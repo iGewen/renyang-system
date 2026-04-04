@@ -54,7 +54,7 @@ import { AppLogger, LoggerMiddleware } from './common/logger';
         password: configService.get('database.password'),
         database: configService.get('database.database'),
         entities: [__dirname + '/entities/**/*.entity{.ts,.js}', __dirname + '/entities/*{.ts,.js}'],
-        synchronize: configService.get('NODE_ENV') === 'development',
+        synchronize: true, // 生产环境首次部署后建议设为 false
         logging: configService.get('NODE_ENV') === 'development',
         charset: 'utf8mb4',
       }),
