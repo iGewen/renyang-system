@@ -235,6 +235,7 @@ const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [livestockList, setLivestockList] = useState<Livestock[]>([]);
   const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const fetchLivestock = async () => {
@@ -248,12 +249,29 @@ const HomePage: React.FC = () => {
       }
     };
     fetchLivestock();
+
+    // 获取未读消息数
+    notificationApi.getUnreadCount().then(res => setUnreadCount(res.count)).catch(() => {});
   }, []);
+
+  const rightContent = (
+    <button
+      onClick={() => navigate('/notifications')}
+      className="relative w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white"
+    >
+      <Icons.Bell className="w-5 h-5" />
+      {unreadCount > 0 && (
+        <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+          {unreadCount > 9 ? '9+' : unreadCount}
+        </span>
+      )}
+    </button>
+  );
 
   return (
     <PageTransition>
       <div className="pb-32">
-        <Navbar title="云端牧场" transparent />
+        <Navbar title="云端牧场" transparent rightContent={rightContent} />
         <div className="max-w-screen-xl mx-auto px-6 pt-2 pb-8">
           <header className="mb-10">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-accent/10 text-brand-accent text-[10px] font-bold uppercase tracking-wider mb-4">
@@ -362,13 +380,6 @@ const TabBar: React.FC = () => {
           <Link to="/my-adoptions" className={cn("flex flex-col items-center gap-1.5 transition-all duration-300", isActive('/my-adoptions') ? "text-white scale-110" : "text-white/40 hover:text-white/60")}>
             <Icons.Package className="w-6 h-6" />
             <span className="text-[10px] font-bold tracking-wider uppercase">牧场</span>
-          </Link>
-          <Link to="/notifications" className={cn("flex flex-col items-center gap-1.5 transition-all duration-300", isActive('/notifications') ? "text-white scale-110" : "text-white/40 hover:text-white/60")}>
-            <div className="relative">
-              <Icons.Bell className="w-6 h-6" />
-              <NotificationBadge />
-            </div>
-            <span className="text-[10px] font-bold tracking-wider uppercase">消息</span>
           </Link>
           <Link to="/profile" className={cn("flex flex-col items-center gap-1.5 transition-all duration-300", isActive('/profile') ? "text-white scale-110" : "text-white/40 hover:text-white/60")}>
             <Icons.User className="w-6 h-6" />

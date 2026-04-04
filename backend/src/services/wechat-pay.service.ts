@@ -59,6 +59,10 @@ export class WechatPayService {
     const appId = await this.getConfig('wechat_app_id');
     const mchId = await this.getConfig('wechat_mch_id');
     const apiKey = await this.getConfig('wechat_pay_key');
+    const apiV3Key = await this.getConfig('wechat_api_v3_key');
+    const serialNo = await this.getConfig('wechat_serial_no');
+    const privateKey = await this.getConfig('wechat_private_key');
+    const notifyUrl = await this.getConfig('wechat_notify_url') || this.notifyUrl;
 
     // 如果没有配置微信支付，返回模拟支付URL
     if (!appId || !mchId || !apiKey) {
@@ -74,7 +78,7 @@ export class WechatPayService {
       mchid: mchId,
       description,
       out_trade_no: outTradeNo,
-      notify_url: this.notifyUrl,
+      notify_url: notifyUrl,
       amount: {
         total: Math.round(totalAmount * 100), // 转为分
         currency: 'CNY',

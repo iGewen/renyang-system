@@ -789,7 +789,7 @@ export class AdminService {
           start: today,
           end: new Date(),
         })
-        .select('SUM(order.amount)', 'total')
+        .select('SUM(order.paidAmount)', 'total')
         .getRawOne(),
     ]);
 

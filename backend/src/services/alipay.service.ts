@@ -62,6 +62,8 @@ export class AlipayService {
     const appId = await this.getConfig('alipay_app_id');
     const privateKey = await this.getConfig('alipay_private_key');
     const alipayPublicKey = await this.getConfig('alipay_public_key');
+    const notifyUrl = await this.getConfig('alipay_notify_url') || this.notifyUrl;
+    const returnUrl = await this.getConfig('alipay_return_url') || this.returnUrl;
 
     // 如果没有配置支付宝，返回模拟支付URL
     if (!appId || !privateKey) {
@@ -82,12 +84,12 @@ export class AlipayService {
       app_id: appId,
       method: 'alipay.trade.wap.pay',
       format: 'JSON',
-      return_url: this.returnUrl,
+      return_url: returnUrl,
       charset: 'utf-8',
       sign_type: 'RSA2',
       timestamp: this.formatTime(new Date()),
       version: '1.0',
-      notify_url: this.notifyUrl,
+      notify_url: notifyUrl,
       biz_content: JSON.stringify(bizContent),
     };
 

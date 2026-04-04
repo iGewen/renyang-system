@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { adminApi } from '../../services/api';
-import type { Livestock, LivestockType, AdoptionOrder, FeedBill, User, DashboardStats, SystemConfig, AuditLog } from '../../types';
+import type { Livestock, LivestockType, AdoptionOrder, FeedBill, User, DashboardStats, SystemConfig, AuditLog, Notification } from '../../types';
 
 // ==================== 后台管理布局 ====================
 
@@ -23,6 +23,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, activeMenu, onMenuC
     { id: 'feed', label: '饲料费管理', icon: Icons.Coins },
     { id: 'redemption', label: '买断管理', icon: Icons.CheckCircle2 },
     { id: 'users', label: '用户管理', icon: Icons.Users },
+    { id: 'notifications', label: '站内信', icon: Icons.Bell },
     { id: 'logs', label: '审计日志', icon: Icons.FileText },
     { id: 'config', label: '系统配置', icon: Icons.Settings }
   ];
@@ -655,9 +656,15 @@ export const AdminConfig: React.FC = () => {
     alipayAppId: '',
     alipayPrivateKey: '',
     alipayPublicKey: '',
+    alipayNotifyUrl: '',
+    alipayReturnUrl: '',
     wechatAppId: '',
     wechatMchId: '',
     wechatPayKey: '',
+    wechatApiV3Key: '',
+    wechatSerialNo: '',
+    wechatPrivateKey: '',
+    wechatNotifyUrl: '',
   });
 
   const [smsConfig, setSmsConfig] = useState({
@@ -690,9 +697,15 @@ export const AdminConfig: React.FC = () => {
           if (config.configKey === 'alipay_app_id') setPaymentConfig(prev => ({ ...prev, alipayAppId: config.configValue }));
           if (config.configKey === 'alipay_private_key') setPaymentConfig(prev => ({ ...prev, alipayPrivateKey: config.configValue }));
           if (config.configKey === 'alipay_public_key') setPaymentConfig(prev => ({ ...prev, alipayPublicKey: config.configValue }));
+          if (config.configKey === 'alipay_notify_url') setPaymentConfig(prev => ({ ...prev, alipayNotifyUrl: config.configValue }));
+          if (config.configKey === 'alipay_return_url') setPaymentConfig(prev => ({ ...prev, alipayReturnUrl: config.configValue }));
           if (config.configKey === 'wechat_app_id') setPaymentConfig(prev => ({ ...prev, wechatAppId: config.configValue }));
           if (config.configKey === 'wechat_mch_id') setPaymentConfig(prev => ({ ...prev, wechatMchId: config.configValue }));
           if (config.configKey === 'wechat_pay_key') setPaymentConfig(prev => ({ ...prev, wechatPayKey: config.configValue }));
+          if (config.configKey === 'wechat_api_v3_key') setPaymentConfig(prev => ({ ...prev, wechatApiV3Key: config.configValue }));
+          if (config.configKey === 'wechat_serial_no') setPaymentConfig(prev => ({ ...prev, wechatSerialNo: config.configValue }));
+          if (config.configKey === 'wechat_private_key') setPaymentConfig(prev => ({ ...prev, wechatPrivateKey: config.configValue }));
+          if (config.configKey === 'wechat_notify_url') setPaymentConfig(prev => ({ ...prev, wechatNotifyUrl: config.configValue }));
         }
         if (config.configType === 'sms') {
           if (config.configKey === 'aliyun_access_key_id') setSmsConfig(prev => ({ ...prev, aliyunAccessKeyId: config.configValue }));
@@ -734,9 +747,15 @@ export const AdminConfig: React.FC = () => {
         adminApi.updateConfig('alipay_app_id', paymentConfig.alipayAppId),
         adminApi.updateConfig('alipay_private_key', paymentConfig.alipayPrivateKey),
         adminApi.updateConfig('alipay_public_key', paymentConfig.alipayPublicKey),
+        adminApi.updateConfig('alipay_notify_url', paymentConfig.alipayNotifyUrl),
+        adminApi.updateConfig('alipay_return_url', paymentConfig.alipayReturnUrl),
         adminApi.updateConfig('wechat_app_id', paymentConfig.wechatAppId),
         adminApi.updateConfig('wechat_mch_id', paymentConfig.wechatMchId),
         adminApi.updateConfig('wechat_pay_key', paymentConfig.wechatPayKey),
+        adminApi.updateConfig('wechat_api_v3_key', paymentConfig.wechatApiV3Key),
+        adminApi.updateConfig('wechat_serial_no', paymentConfig.wechatSerialNo),
+        adminApi.updateConfig('wechat_private_key', paymentConfig.wechatPrivateKey),
+        adminApi.updateConfig('wechat_notify_url', paymentConfig.wechatNotifyUrl),
       ]);
       alert('保存成功');
     } catch (error: any) {
@@ -814,28 +833,44 @@ export const AdminConfig: React.FC = () => {
       {activeTab === 'payment' && (
         <div className="space-y-6">
           <Card className="p-6">
-            <h3 className="text-lg font-bold text-slate-900 mb-4">支付宝支付配置</h3>
+            <h3 className="text-lg font-bold text-slate-900 mb-4">支付宝支付配置（H5支付）</h3>
             <div className="space-y-4 max-w-2xl">
               <Input label="App ID" value={paymentConfig.alipayAppId} onChange={e => setPaymentConfig({ ...paymentConfig, alipayAppId: e.target.value })} placeholder="支付宝应用ID" />
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">应用私钥</label>
-                <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none font-mono text-xs" rows={4} value={paymentConfig.alipayPrivateKey} onChange={e => setPaymentConfig({ ...paymentConfig, alipayPrivateKey: e.target.value })} placeholder="支付宝应用私钥" />
+                <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none font-mono text-xs" rows={4} value={paymentConfig.alipayPrivateKey} onChange={e => setPaymentConfig({ ...paymentConfig, alipayPrivateKey: e.target.value })} placeholder="支付宝应用私钥（RSA2格式）" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">支付宝公钥</label>
-                <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none font-mono text-xs" rows={4} value={paymentConfig.alipayPublicKey} onChange={e => setPaymentConfig({ ...paymentConfig, alipayPublicKey: e.target.value })} placeholder="支付宝公钥" />
+                <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none font-mono text-xs" rows={4} value={paymentConfig.alipayPublicKey} onChange={e => setPaymentConfig({ ...paymentConfig, alipayPublicKey: e.target.value })} placeholder="支付宝公钥（用于验签）" />
               </div>
+              <Input label="支付回调URL" value={paymentConfig.alipayNotifyUrl} onChange={e => setPaymentConfig({ ...paymentConfig, alipayNotifyUrl: e.target.value })} placeholder="https://example.com/api/payment/alipay/notify" />
+              <Input label="支付返回URL" value={paymentConfig.alipayReturnUrl} onChange={e => setPaymentConfig({ ...paymentConfig, alipayReturnUrl: e.target.value })} placeholder="https://example.com/payment/result" />
             </div>
           </Card>
 
           <Card className="p-6">
-            <h3 className="text-lg font-bold text-slate-900 mb-4">微信支付配置</h3>
+            <h3 className="text-lg font-bold text-slate-900 mb-4">微信支付配置（H5支付）</h3>
             <div className="space-y-4 max-w-2xl">
-              <Input label="App ID" value={paymentConfig.wechatAppId} onChange={e => setPaymentConfig({ ...paymentConfig, wechatAppId: e.target.value })} placeholder="微信应用ID" />
-              <Input label="商户号" value={paymentConfig.wechatMchId} onChange={e => setPaymentConfig({ ...paymentConfig, wechatMchId: e.target.value })} placeholder="微信商户号" />
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="App ID" value={paymentConfig.wechatAppId} onChange={e => setPaymentConfig({ ...paymentConfig, wechatAppId: e.target.value })} placeholder="微信应用ID" />
+                <Input label="商户号" value={paymentConfig.wechatMchId} onChange={e => setPaymentConfig({ ...paymentConfig, wechatMchId: e.target.value })} placeholder="微信商户号" />
+              </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">支付密钥</label>
-                <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none font-mono text-xs" rows={4} value={paymentConfig.wechatPayKey} onChange={e => setPaymentConfig({ ...paymentConfig, wechatPayKey: e.target.value })} placeholder="微信支付密钥" />
+                <label className="block text-sm font-medium text-slate-700 mb-1">商户API密钥（V2）</label>
+                <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none font-mono text-xs" rows={2} value={paymentConfig.wechatPayKey} onChange={e => setPaymentConfig({ ...paymentConfig, wechatPayKey: e.target.value })} placeholder="微信支付V2密钥（32位）" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">API V3密钥</label>
+                <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none font-mono text-xs" rows={2} value={paymentConfig.wechatApiV3Key} onChange={e => setPaymentConfig({ ...paymentConfig, wechatApiV3Key: e.target.value })} placeholder="微信支付V3密钥（32位）" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="商户证书序列号" value={paymentConfig.wechatSerialNo} onChange={e => setPaymentConfig({ ...paymentConfig, wechatSerialNo: e.target.value })} placeholder="商户API证书序列号" />
+                <Input label="支付回调URL" value={paymentConfig.wechatNotifyUrl} onChange={e => setPaymentConfig({ ...paymentConfig, wechatNotifyUrl: e.target.value })} placeholder="https://example.com/api/payment/wechat/notify" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">商户API私钥</label>
+                <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none font-mono text-xs" rows={4} value={paymentConfig.wechatPrivateKey} onChange={e => setPaymentConfig({ ...paymentConfig, wechatPrivateKey: e.target.value })} placeholder="商户API私钥（用于签名）" />
               </div>
               <div className="pt-4">
                 <Button onClick={handleSavePayment} loading={saving}>保存支付配置</Button>
@@ -859,6 +894,160 @@ export const AdminConfig: React.FC = () => {
           </div>
         </Card>
       )}
+    </div>
+  );
+};
+
+// ==================== 站内信管理 ====================
+
+export const AdminNotifications: React.FC = () => {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    content: '',
+    type: 'system',
+    userIds: '' as string,
+  });
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
+  const loadNotifications = async () => {
+    try {
+      const res = await adminApi.getNotifications({});
+      setNotifications(res.list || []);
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSend = async () => {
+    if (!formData.title || !formData.content) {
+      alert('请填写标题和内容');
+      return;
+    }
+
+    setSending(true);
+    try {
+      await adminApi.sendNotification({
+        title: formData.title,
+        content: formData.content,
+        type: formData.type,
+        userIds: formData.userIds ? formData.userIds.split(',').map(s => s.trim()) : undefined,
+      });
+      alert('发送成功');
+      setShowSendModal(false);
+      setFormData({ title: '', content: '', type: 'system', userIds: '' });
+      loadNotifications();
+    } catch (error: any) {
+      alert(error.message || '发送失败');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const typeMap: Record<string, { label: string; color: string }> = {
+    system: { label: '系统', color: 'bg-purple-100 text-purple-600' },
+    order: { label: '订单', color: 'bg-blue-100 text-blue-600' },
+    feed: { label: '饲料费', color: 'bg-orange-100 text-orange-600' },
+    redemption: { label: '买断', color: 'bg-green-100 text-green-600' },
+    balance: { label: '余额', color: 'bg-cyan-100 text-cyan-600' },
+  };
+
+  if (loading) return <LoadingSpinner />;
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-slate-900">站内信管理</h2>
+        <Button onClick={() => setShowSendModal(true)}>
+          <Icons.Send className="w-4 h-4 mr-2" />
+          发送通知
+        </Button>
+      </div>
+
+      <Card className="p-6">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-100">
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">时间</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">类型</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">标题</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">内容</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">接收用户</th>
+              </tr>
+            </thead>
+            <tbody>
+              {notifications.map(notification => (
+                <tr key={notification.id} className="border-b border-slate-50">
+                  <td className="py-3 px-4 text-sm text-slate-500">{new Date(notification.createdAt).toLocaleString()}</td>
+                  <td className="py-3 px-4">
+                    <span className={cn('px-2 py-1 rounded text-xs font-medium', typeMap[notification.type]?.color || 'bg-slate-100 text-slate-600')}>
+                      {typeMap[notification.type]?.label || notification.type}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 font-medium">{notification.title}</td>
+                  <td className="py-3 px-4 text-sm text-slate-500 max-w-xs truncate">{notification.content}</td>
+                  <td className="py-3 px-4 text-sm">{notification.userId ? '指定用户' : '全部用户'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {notifications.length === 0 && <EmptyState icon={<Icons.Bell className="w-12 h-12" />} title="暂无站内信" />}
+        </div>
+      </Card>
+
+      <Modal open={showSendModal} onClose={() => setShowSendModal(false)} title="发送站内信">
+        <div className="space-y-4 p-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">通知类型</label>
+            <select
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none"
+              value={formData.type}
+              onChange={e => setFormData({ ...formData, type: e.target.value })}
+            >
+              <option value="system">系统通知</option>
+              <option value="order">订单通知</option>
+              <option value="feed">饲料费通知</option>
+              <option value="redemption">买断通知</option>
+              <option value="balance">余额通知</option>
+            </select>
+          </div>
+          <Input
+            label="标题"
+            value={formData.title}
+            onChange={e => setFormData({ ...formData, title: e.target.value })}
+            placeholder="请输入通知标题"
+          />
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">内容</label>
+            <textarea
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none"
+              rows={4}
+              value={formData.content}
+              onChange={e => setFormData({ ...formData, content: e.target.value })}
+              placeholder="请输入通知内容"
+            />
+          </div>
+          <Input
+            label="指定用户ID（选填，多个用逗号分隔）"
+            value={formData.userIds}
+            onChange={e => setFormData({ ...formData, userIds: e.target.value })}
+            placeholder="留空则发送给所有用户"
+          />
+          <div className="flex gap-3 pt-4">
+            <Button variant="outline" className="flex-1" onClick={() => setShowSendModal(false)}>取消</Button>
+            <Button className="flex-1" onClick={handleSend} loading={sending}>发送</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
@@ -1008,6 +1197,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ activeMenu: initialMenu }) => {
         return <AdminRedemptions />;
       case 'users':
         return <AdminUsers />;
+      case 'notifications':
+        return <AdminNotifications />;
       case 'logs':
         return <AdminAuditLogs />;
       case 'config':
@@ -1028,6 +1219,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ activeMenu: initialMenu }) => {
             {activeMenu === 'feed' && '饲料费管理'}
             {activeMenu === 'redemption' && '买断管理'}
             {activeMenu === 'users' && '用户管理'}
+            {activeMenu === 'notifications' && '站内信'}
             {activeMenu === 'logs' && '审计日志'}
             {activeMenu === 'config' && '系统配置'}
           </h2>

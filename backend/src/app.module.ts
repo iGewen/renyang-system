@@ -129,9 +129,25 @@ export class AppModule implements NestModule, OnModuleInit {
 
   private async initializeAdmin() {
     try {
-      // 先尝试修复已有管理员的名称编码问题
+      // 修复已有数据的字符集问题
+      console.log('🔧 正在修复数据库字符集问题...');
+
+      // 修复管理员表
       await this.dataSource.query(
-        "UPDATE admins SET name = '超级管理员' WHERE username = 'admin' AND name != '超级管理员'"
+        "UPDATE admins SET name = '超级管理员' WHERE username = 'admin'"
+      );
+
+      // 修复活体类型表
+      await this.dataSource.query(
+        "UPDATE livestock_types SET name = CASE id WHEN 'LT001' THEN '羊' WHEN 'LT002' THEN '鸡' WHEN 'LT003' THEN '鸵鸟' ELSE name END WHERE id IN ('LT001', 'LT002', 'LT003')"
+      );
+
+      // 修复系统配置表
+      await this.dataSource.query(
+        `UPDATE system_configs SET
+          configKey = 'site_name',
+          description = '网站名称'
+        WHERE configKey = '' OR configKey IS NULL LIMIT 1`
       );
 
       const result = await this.dataSource.query(
@@ -149,6 +165,8 @@ export class AppModule implements NestModule, OnModuleInit {
       } else {
         console.log('ℹ️  管理员账号已存在');
       }
+
+      console.log('✅ 数据库字符集修复完成');
     } catch (error) {
       console.error('❌ 初始化管理员失败:', error);
     }
@@ -163,12 +181,21 @@ export class AppModule implements NestModule, OnModuleInit {
         { key: 'site_keywords', value: '云端牧场,智慧农业,活体领养,云养殖', type: 'basic', description: '网站关键词(SEO)' },
         { key: 'contact_phone', value: '', type: 'basic', description: '联系电话' },
         { key: 'contact_email', value: '', type: 'basic', description: '联系邮箱' },
+        // 支付宝H5支付配置
         { key: 'alipay_app_id', value: '', type: 'payment', description: '支付宝App ID' },
         { key: 'alipay_private_key', value: '', type: 'payment', description: '支付宝应用私钥' },
         { key: 'alipay_public_key', value: '', type: 'payment', description: '支付宝公钥' },
+        { key: 'alipay_notify_url', value: '', type: 'payment', description: '支付宝支付回调URL' },
+        { key: 'alipay_return_url', value: '', type: 'payment', description: '支付宝支付返回URL' },
+        // 微信H5支付配置
         { key: 'wechat_app_id', value: '', type: 'payment', description: '微信App ID' },
         { key: 'wechat_mch_id', value: '', type: 'payment', description: '微信商户号' },
-        { key: 'wechat_pay_key', value: '', type: 'payment', description: '微信支付密钥' },
+        { key: 'wechat_pay_key', value: '', type: 'payment', description: '微信支付V2密钥' },
+        { key: 'wechat_api_v3_key', value: '', type: 'payment', description: '微信支付V3密钥' },
+        { key: 'wechat_serial_no', value: '', type: 'payment', description: '商户证书序列号' },
+        { key: 'wechat_private_key', value: '', type: 'payment', description: '商户API私钥' },
+        { key: 'wechat_notify_url', value: '', type: 'payment', description: '微信支付回调URL' },
+        // 阿里云短信配置
         { key: 'aliyun_access_key_id', value: '', type: 'sms', description: '阿里云Access Key ID' },
         { key: 'aliyun_access_key_secret', value: '', type: 'sms', description: '阿里云Access Key Secret' },
         { key: 'aliyun_sign_name', value: '', type: 'sms', description: '短信签名' },
