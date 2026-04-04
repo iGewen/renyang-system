@@ -174,11 +174,56 @@ cd frontend
 npm run build
 ```
 
-### Docker部署（待实现）
+### Docker部署
+
+详细部署教程请查看 [Docker部署教程](./docs/DOCKER_DEPLOY.md)
+
+#### 快速开始
+
+使用阿里云ACR镜像仓库的基础镜像：
 
 ```bash
-docker-compose up -d
+# 1. 配置环境变量
+cp .env.docker .env
+# 编辑 .env 文件，修改数据库密码和JWT密钥等敏感信息
+
+# 2. 登录阿里云ACR
+docker login --username=<您的阿里云账号> crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com
+
+# 3. 拉取基础镜像
+docker pull crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/mysql:8.0
+docker pull crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/redis:latest
+
+# 4. 启动所有服务
+docker-compose up -d --build
+
+# 5. 查看服务状态
+docker-compose ps
 ```
+
+#### Docker镜像说明
+
+使用阿里云ACR镜像仓库的基础镜像：
+- MySQL: `crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/mysql:8.0`
+- Redis: `crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/redis:latest`
+- 前后端服务会自动从源码构建
+
+#### Docker服务说明
+
+| 服务 | 端口 | 说明 |
+|------|------|------|
+| mysql | 3306 | MySQL 8.0 数据库 |
+| redis | 6379 | Redis 缓存 |
+| backend | 3001 | NestJS 后端服务 |
+| frontend | 80 | Nginx 前端服务 |
+
+#### 访问地址
+
+- 前端页面: http://服务器IP
+- 后端API文档: http://服务器IP:3001/api/docs
+- 管理后台: http://服务器IP/admin
+
+默认管理员账号: `admin` / `admin123456`
 
 ## 项目进度
 
@@ -196,8 +241,8 @@ docker-compose up -d
 - [x] 日志系统
 - [x] 文件上传
 - [x] 单元测试
-- [ ] 前端开发
-- [ ] Docker部署
+- [x] 前端开发
+- [x] Docker部署
 
 ## 许可证
 

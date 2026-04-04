@@ -1,10 +1,16 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect, createContext, useContext, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState } from './components/ui';
 import { cn } from './lib/utils';
 import type { Livestock, Adoption, FeedBill, User } from './types';
 import { livestockApi, adoptionApi, orderApi, paymentApi, userApi, balanceApi, notificationApi, authApi } from './services/api';
+
+// Lazy load pages for better performance
+const OrdersPage = lazy(() => import('./pages/order/OrdersPage'));
+const AdoptionDetailPage = lazy(() => import('./pages/adoption/AdoptionDetailPage'));
+const FeedBillDetailPage = lazy(() => import('./pages/feed-bill/FeedBillDetailPage'));
+const RedemptionPage = lazy(() => import('./pages/redemption/RedemptionPage'));
 
 // ==================== 认证上下文 ====================
 
@@ -1221,6 +1227,10 @@ export default function App() {
               <Route path="/balance" element={<BalancePage />} />
               <Route path="/notifications" element={<NotificationPage />} />
               <Route path="/auth" element={<AuthPage />} />
+              <Route path="/orders" element={<Suspense fallback={<LoadingSpinner />}><OrdersPage /></Suspense>} />
+              <Route path="/adoption/:id" element={<Suspense fallback={<LoadingSpinner />}><AdoptionDetailPage /></Suspense>} />
+              <Route path="/adoption/:id/redemption" element={<Suspense fallback={<LoadingSpinner />}><RedemptionPage /></Suspense>} />
+              <Route path="/feed-bill/:id" element={<Suspense fallback={<LoadingSpinner />}><FeedBillDetailPage /></Suspense>} />
               <Route path="/admin-login" element={<AdminLoginPage />} />
               <Route path="/admin" element={<AdminDashboardPage />} />
             </Routes>

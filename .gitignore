@@ -25,3 +25,8 @@ coverage/
 *.tmp
 .env.local
 .env.*.local
+
+# Docker环境配置（包含敏感信息）
+.env
+!.env.example
+!.env.docker
