@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, EmptyState } from '../components/ui';
-import { cn } from '../lib/utils';
-import { orderApi } from '../services/api';
-import type { AdoptionOrder } from '../types';
+import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, EmptyState } from '../../components/ui';
+import { cn } from '../../lib/utils';
+import { orderApi } from '../../services/api';
+import type { AdoptionOrder } from '../../types';
 
 type OrderStatus = 'all' | 'pending_payment' | 'paid' | 'cancelled' | 'refunded';
 
