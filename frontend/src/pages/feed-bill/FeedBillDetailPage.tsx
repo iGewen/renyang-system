@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { Icons, PageTransition, LoadingSpinner, Button, Card, Modal } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { adoptionApi } from '../../services/api';
