@@ -15,8 +15,8 @@ RUN apk add --no-cache python3 make g++
 # 复制package文件
 COPY package*.json ./
 
-# 使用淘宝npm镜像加速
-RUN npm config set registry https://registry.npmmirror.com && npm ci
+# 使用淘宝npm镜像加速，删除lock文件避免版本冲突
+RUN npm config set registry https://registry.npmmirror.com && rm -f package-lock.json && npm install
 
 # 复制源代码
 COPY . .
@@ -41,7 +41,7 @@ EXPOSE 80
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:80 || exit 1
+  CMD curl -f http://localhost:80 || exit 1
 
 # 启动Nginx
 CMD ["nginx", "-g", "daemon off;"]
