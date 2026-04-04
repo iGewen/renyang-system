@@ -2,6 +2,7 @@ import { Controller, Get, Post, Put, Delete, Param, Body, Query, Req } from '@ne
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth, ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { IsString, IsNumber, IsOptional, IsBoolean, IsIn, IsObject } from 'class-validator';
+import { Public } from '@/common/decorators/public.decorator';
 
 // DTOs
 class LoginDto {
@@ -219,6 +220,7 @@ export class AdminController {
   /**
    * 管理员登录
    */
+  @Public()
   @Post('auth/login')
   @ApiOperation({ summary: '管理员登录' })
   @ApiResponse({ status: 200, description: '登录成功' })
