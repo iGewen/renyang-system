@@ -1,10 +1,12 @@
-import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule, OnModuleInit } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { TypeOrmModule, InjectDataSource } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { DataSource } from 'typeorm';
+import * as bcrypt from 'bcryptjs';
 
 // 配置
 import { databaseConfig } from './config/database.config';
@@ -107,10 +109,38 @@ import { AppLogger, LoggerMiddleware } from './common/logger';
     AppLogger,
   ],
 })
-export class AppModule implements NestModule {
+export class AppModule implements NestModule, OnModuleInit {
+  constructor(@InjectDataSource() private dataSource: DataSource) {}
+
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(LoggerMiddleware)
       .forRoutes('*');
+  }
+
+  async onModuleInit() {
+    await this.initializeAdmin();
+  }
+
+  private async initializeAdmin() {
+    try {
+      const result = await this.dataSource.query(
+        'SELECT COUNT(*) as count FROM admins WHERE username = ?',
+        ['admin']
+      );
+
+      if (result[0].count === 0) {
+        const hashedPassword = await bcrypt.hash('admin123456', 10);
+        await this.dataSource.query(
+          'INSERT INTO admins (id, username, password, name, role, status, created_at, updated_at) VALUES (UUID(), ?, ?, ?, 1, 1, NOW(), NOW())',
+          ['admin', hashedPassword, '超级管理员']
+        );
+        console.log('✅ 默认管理员账号已创建: admin / admin123456');
+      } else {
+        console.log('ℹ️  管理员账号已存在');
+      }
+    } catch (error) {
+      console.error('❌ 初始化管理员失败:', error);
+    }
   }
 }
