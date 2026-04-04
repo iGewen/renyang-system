@@ -1,0 +1,27 @@
+# 依赖
+node_modules/
+dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*.*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+logs/
+
+# 测试
+coverage/
+.nyc_output/
+
+# 临时文件
+*.tmp
+.env.local
+.env.*.local

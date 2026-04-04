@@ -1,0 +1,71 @@
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Index,
+  ManyToOne,
+} from 'typeorm';
+import { User } from './user.entity';
+
+export enum PaymentStatus {
+  PENDING = 1, // 待支付
+  SUCCESS = 2, // 支付成功
+  FAILED = 3, // 支付失败
+  CLOSED = 4, // 已关闭
+}
+
+@Entity('payment_records')
+export class PaymentRecord {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Index()
+  @Column({ length: 64, unique: true, comment: '支付平台订单号' })
+  paymentNo: string;
+
+  @Index()
+  @Column({ length: 32, comment: '商户订单号' })
+  outTradeNo: string;
+
+  @Index()
+  @Column({ type: 'uuid', comment: '用户ID' })
+  userId: string;
+
+  @Column({ length: 20, comment: '订单类型：adoption/feed/redemption/recharge' })
+  orderType: string;
+
+  @Index()
+  @Column({ type: 'uuid', comment: '订单ID' })
+  orderId: string;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, comment: '支付金额' })
+  amount: number;
+
+  @Column({ length: 20, comment: '支付方式：alipay/wechat/balance' })
+  paymentMethod: string;
+
+  @Index()
+  @Column({
+    type: 'tinyint',
+    default: PaymentStatus.PENDING,
+    comment: '状态',
+  })
+  status: number;
+
+  @Column({ type: 'datetime', nullable: true, comment: '支付时间' })
+  paidAt: Date;
+
+  @Column({ type: 'datetime', nullable: true, comment: '回调时间' })
+  notifyAt: Date;
+
+  @Column({ type: 'json', nullable: true, comment: '回调数据' })
+  notifyData: any;
+
+  @CreateDateColumn({ comment: '创建时间' })
+  createdAt: Date;
+
+  // 关联
+  @ManyToOne(() => User)
+  user: User;
+}

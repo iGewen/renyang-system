@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #1B4332;
+  --color-brand-secondary: #2D6A4F;
+  --color-brand-accent: #D4A373;
+  --color-brand-bg: #FDFCFB;
+  --color-brand-paper: #FFFFFF;
+  --font-display: "Playfair Display", serif;
+  --font-sans: "Inter", "PingFang SC", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-brand-bg text-slate-900 font-sans antialiased;
+  }
+
+  h1, h2, h3 {
+    @apply font-display tracking-tight;
+  }
+}
+
+/* Premium Card Style */
+.premium-card {
+  @apply bg-brand-paper rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/50 transition-all duration-300;
+}
+
+.premium-card:hover {
+  @apply shadow-[0_20px_40px_rgb(0,0,0,0.08)] -translate-y-1;
+}
+
+/* Button Styles */
+.btn-elegant {
+  @apply bg-brand-primary text-white px-8 py-4 rounded-2xl font-semibold transition-all active:scale-95 hover:bg-brand-secondary shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-2;
+}
+
+.btn-outline {
+  @apply border-2 border-brand-primary text-brand-primary px-8 py-4 rounded-2xl font-semibold transition-all active:scale-95 hover:bg-brand-primary/5 flex items-center justify-center gap-2;
+}
+
+/* Custom Utilities */
+.text-balance {
+  text-wrap: balance;
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 rounded-full;
+}
