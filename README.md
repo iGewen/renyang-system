@@ -180,10 +180,11 @@ npm run build
 
 ```bash
 # 1. 创建目录并克隆代码（dev分支）
-sudo mkdir -p /var/www/wwwroot/renyang-system
-cd /var/www/wwwroot/renyang-system
-git clone -b dev https://github.com/iGewen/renyang-system.git .
+sudo mkdir -p /var/www/wwwroot
+cd /var/www/wwwroot
+git clone -b dev https://github.com/iGewen/renyang-system.git
 sudo chown -R $USER:$USER /var/www/wwwroot/renyang-system
+cd renyang-system
 
 # 2. 配置环境变量
 cp .env.docker .env

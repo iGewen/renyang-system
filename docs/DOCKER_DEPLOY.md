@@ -111,14 +111,17 @@ docker-compose --version
 
 ```bash
 # 创建项目目录
-sudo mkdir -p /var/www/wwwroot/renyang-system
-cd /var/www/wwwroot/renyang-system
+sudo mkdir -p /var/www/wwwroot
+cd /var/www/wwwroot
 
 # 克隆代码（指定dev分支）
-git clone -b dev https://github.com/iGewen/renyang-system.git .
+git clone -b dev https://github.com/iGewen/renyang-system.git
 
-# 设置目录权限（当前用户）
+# 设置目录权限
 sudo chown -R $USER:$USER /var/www/wwwroot/renyang-system
+
+# 进入项目目录
+cd renyang-system
 ```
 
 ### 步骤二：配置环境变量
