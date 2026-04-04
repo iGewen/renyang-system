@@ -661,19 +661,17 @@ export class AdminService {
 
     const configs = await this.systemConfigRepository.find({ where });
 
-    // 转换为对象格式
-    const result: Record<string, any> = {};
-    for (const config of configs) {
-      try {
-        result[config.configKey] = config.isEncrypted
-          ? this.decrypt(config.configValue)
-          : JSON.parse(config.configValue);
-      } catch {
-        result[config.configKey] = config.configValue;
-      }
-    }
-
-    return result;
+    // 返回数组格式，每个配置项包含完整信息
+    return configs.map(config => ({
+      id: config.id,
+      configKey: config.configKey,
+      configValue: config.isEncrypted ? this.decrypt(config.configValue) : config.configValue,
+      configType: config.configType,
+      description: config.description,
+      isEncrypted: config.isEncrypted === 1,
+      createdAt: config.createdAt,
+      updatedAt: config.updatedAt,
+    }));
   }
 
   /**

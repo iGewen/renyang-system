@@ -120,6 +120,7 @@ export class AppModule implements NestModule, OnModuleInit {
 
   async onModuleInit() {
     await this.initializeAdmin();
+    await this.initializeSystemConfig();
   }
 
   private async initializeAdmin() {
@@ -141,6 +142,46 @@ export class AppModule implements NestModule, OnModuleInit {
       }
     } catch (error) {
       console.error('❌ 初始化管理员失败:', error);
+    }
+  }
+
+  private async initializeSystemConfig() {
+    try {
+      const defaultConfigs = [
+        { key: 'site_name', value: '云端牧场', type: 'basic', description: '网站名称' },
+        { key: 'site_title', value: '云端牧场 - 智慧农业领养平台', type: 'basic', description: '网站标题' },
+        { key: 'site_description', value: '连接自然与科技，每一份领养都是对生命的尊重与呵护', type: 'basic', description: '网站描述(SEO)' },
+        { key: 'site_keywords', value: '云端牧场,智慧农业,活体领养,云养殖', type: 'basic', description: '网站关键词(SEO)' },
+        { key: 'contact_phone', value: '', type: 'basic', description: '联系电话' },
+        { key: 'contact_email', value: '', type: 'basic', description: '联系邮箱' },
+        { key: 'alipay_app_id', value: '', type: 'payment', description: '支付宝App ID' },
+        { key: 'alipay_private_key', value: '', type: 'payment', description: '支付宝应用私钥' },
+        { key: 'alipay_public_key', value: '', type: 'payment', description: '支付宝公钥' },
+        { key: 'wechat_app_id', value: '', type: 'payment', description: '微信App ID' },
+        { key: 'wechat_mch_id', value: '', type: 'payment', description: '微信商户号' },
+        { key: 'wechat_pay_key', value: '', type: 'payment', description: '微信支付密钥' },
+        { key: 'aliyun_access_key_id', value: '', type: 'sms', description: '阿里云Access Key ID' },
+        { key: 'aliyun_access_key_secret', value: '', type: 'sms', description: '阿里云Access Key Secret' },
+        { key: 'aliyun_sign_name', value: '', type: 'sms', description: '短信签名' },
+        { key: 'aliyun_template_code', value: '', type: 'sms', description: '短信模板Code' },
+      ];
+
+      for (const config of defaultConfigs) {
+        const result = await this.dataSource.query(
+          'SELECT COUNT(*) as count FROM system_configs WHERE config_key = ?',
+          [config.key]
+        );
+
+        if (result[0].count === 0) {
+          await this.dataSource.query(
+            'INSERT INTO system_configs (id, config_key, config_value, config_type, description, is_encrypted, created_at, updated_at) VALUES (UUID(), ?, ?, ?, ?, 0, NOW(), NOW())',
+            [config.key, config.value, config.type, config.description]
+          );
+        }
+      }
+      console.log('✅ 系统配置初始化完成');
+    } catch (error) {
+      console.error('❌ 初始化系统配置失败:', error);
     }
   }
 }
