@@ -308,6 +308,7 @@ const HomePage: React.FC = () => {
 
 const Navbar: React.FC<{ title: string; showBack?: boolean; transparent?: boolean; rightContent?: React.ReactNode }> = ({ title, showBack = false, transparent = false, rightContent }) => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   return (
     <div className={cn("sticky top-0 z-50 transition-all", transparent ? "bg-transparent" : "bg-brand-bg/80 backdrop-blur-xl border-b border-slate-100")}>
       <div className="max-w-screen-xl mx-auto px-6 py-5 flex items-center justify-between">
@@ -325,9 +326,9 @@ const Navbar: React.FC<{ title: string; showBack?: boolean; transparent?: boolea
               <Icons.Bell className="w-5 h-5" />
               <NotificationBadge />
             </Link>
-            <button className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-brand-primary shadow-lg shadow-brand-primary/20 flex items-center justify-center text-white hover:scale-105 transition-transform">
+            <Link to={isAuthenticated ? "/profile" : "/auth"} className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-brand-primary shadow-lg shadow-brand-primary/20 flex items-center justify-center text-white hover:scale-105 transition-transform">
               <Icons.User className="w-5 h-5" />
-            </button>
+            </Link>
           </div>
         )}
       </div>
@@ -1089,12 +1090,29 @@ const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [activeMenu, setActiveMenu] = useState('dashboard');
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
     if (!token) { navigate('/admin-login'); return; }
     adminApi.getDashboardStats().then(setStats).catch(() => {}).finally(() => setLoading(false));
   }, [navigate]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_info');
+    navigate('/admin-login');
+  };
+
+  const menuItems = [
+    { id: 'dashboard', label: '控制台', icon: Icons.LayoutDashboard },
+    { id: 'livestock', label: '活体管理', icon: Icons.Package },
+    { id: 'orders', label: '订单管理', icon: Icons.ShoppingCart },
+    { id: 'feed', label: '饲料费管理', icon: Icons.Coins },
+    { id: 'redemption', label: '买断管理', icon: Icons.CheckCircle2 },
+    { id: 'users', label: '用户管理', icon: Icons.Users },
+    { id: 'config', label: '系统配置', icon: Icons.Settings }
+  ];
 
   if (loading) return <LoadingSpinner />;
 
@@ -1107,29 +1125,30 @@ const AdminDashboardPage: React.FC = () => {
             <h1 className="text-xl font-display font-bold text-brand-primary">牧场管理后台</h1>
           </div>
           <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
-            {[
-              { id: 'dashboard', label: '控制台', icon: Icons.LayoutDashboard },
-              { id: 'livestock', label: '活体管理', icon: Icons.Package },
-              { id: 'orders', label: '订单管理', icon: Icons.ShoppingCart },
-              { id: 'feed', label: '饲料费管理', icon: Icons.Coins },
-              { id: 'redemption', label: '买断管理', icon: Icons.CheckCircle2 },
-              { id: 'users', label: '用户管理', icon: Icons.Users },
-              { id: 'config', label: '系统配置', icon: Icons.Settings }
-            ].map(item => (
-              <button key={item.id} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium bg-brand-primary text-white shadow-md shadow-brand-primary/20">
+            {menuItems.map(item => (
+              <button
+                key={item.id}
+                onClick={() => setActiveMenu(item.id)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
+                  activeMenu === item.id
+                    ? "bg-brand-primary text-white shadow-md shadow-brand-primary/20"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                )}
+              >
                 <item.icon className="w-5 h-5" />{item.label}
               </button>
             ))}
           </div>
           <div className="p-4 border-t border-slate-100">
-            <button onClick={() => { localStorage.removeItem('admin_token'); navigate('/admin-login'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+            <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors">
               <Icons.LogOut className="w-5 h-5" />退出登录
             </button>
           </div>
         </aside>
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden ml-64">
           <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-6 z-30">
-            <h2 className="text-lg font-bold text-slate-900">控制台</h2>
+            <h2 className="text-lg font-bold text-slate-900">{menuItems.find(m => m.id === activeMenu)?.label || '控制台'}</h2>
             <div className="flex items-center gap-4">
               <button className="p-2 text-slate-400 hover:bg-slate-50 rounded-full relative">
                 <Icons.Bell className="w-5 h-5" />
