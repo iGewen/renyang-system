@@ -269,9 +269,13 @@ export class AdminService {
    * 创建活体类型
    */
   async createLivestockType(data: Partial<LivestockType>, adminId: string, adminName: string) {
+    // 生成编码：取名称首字母拼音或使用ID前缀
+    const code = data.code || IdUtil.generate('LT');
+
     const type = this.livestockTypeRepository.create({
       id: IdUtil.generate('LT'),
       ...data,
+      code,
     });
 
     await this.livestockTypeRepository.save(type);
@@ -1010,5 +1014,203 @@ export class AdminService {
     });
 
     return notification;
+  }
+
+  // =============== 买断管理 ===============
+
+  /**
+   * 获取买断订单列表
+   */
+  async getRedemptionList(params: {
+    page: number;
+    pageSize: number;
+    status?: number;
+  }) {
+    const queryBuilder = this.redemptionOrderRepository.createQueryBuilder('redemption')
+      .leftJoinAndSelect('redemption.user', 'user')
+      .leftJoinAndSelect('redemption.livestock', 'livestock')
+      .leftJoinAndSelect('redemption.adoption', 'adoption');
+
+    if (params.status !== undefined) {
+      queryBuilder.andWhere('redemption.status = :status', { status: params.status });
+    }
+
+    queryBuilder
+      .orderBy('redemption.createdAt', 'DESC')
+      .skip((params.page - 1) * params.pageSize)
+      .take(params.pageSize);
+
+    const [list, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      list,
+      total,
+      page: params.page,
+      pageSize: params.pageSize,
+      totalPages: Math.ceil(total / params.pageSize),
+    };
+  }
+
+  /**
+   * 获取买断订单详情
+   */
+  async getRedemptionDetail(id: string) {
+    const redemption = await this.redemptionOrderRepository.findOne({
+      where: { id },
+      relations: ['user', 'livestock', 'adoption'],
+    });
+
+    if (!redemption) {
+      throw new NotFoundException('买断订单不存在');
+    }
+
+    return redemption;
+  }
+
+  /**
+   * 审核买断申请
+   */
+  async auditRedemption(
+    id: string,
+    approved: boolean,
+    adjustedAmount: number | undefined,
+    remark: string | undefined,
+    adminId: string,
+    adminName: string,
+  ) {
+    const redemption = await this.redemptionOrderRepository.findOne({ where: { id } });
+    if (!redemption) {
+      throw new NotFoundException('买断订单不存在');
+    }
+
+    if (redemption.status !== 1) {
+      throw new BadRequestException('该买断申请不在待审核状态');
+    }
+
+    const beforeData = { status: redemption.status };
+    redemption.status = approved ? 2 : 3; // 2: 审核通过, 3: 审核拒绝
+
+    if (approved && adjustedAmount !== undefined) {
+      redemption.adjustedAmount = adjustedAmount;
+      redemption.finalAmount = adjustedAmount;
+    }
+
+    if (remark) {
+      redemption.auditRemark = remark;
+    }
+
+    redemption.auditAdminId = adminId;
+    redemption.auditAt = new Date();
+
+    await this.redemptionOrderRepository.save(redemption);
+
+    await this.createAuditLog({
+      adminId,
+      adminName,
+      module: 'redemption',
+      action: approved ? 'approve' : 'reject',
+      targetType: 'redemption',
+      targetId: id,
+      beforeData,
+      afterData: { status: redemption.status, adjustedAmount, remark },
+      remark: approved ? '审核通过买断申请' : '审核拒绝买断申请',
+    });
+
+    return redemption;
+  }
+
+  // =============== 退款管理 ===============
+
+  /**
+   * 获取退款订单列表
+   */
+  async getRefundList(params: {
+    page: number;
+    pageSize: number;
+    status?: number;
+  }) {
+    const queryBuilder = this.refundOrderRepository.createQueryBuilder('refund')
+      .leftJoinAndSelect('refund.user', 'user');
+
+    if (params.status !== undefined) {
+      queryBuilder.andWhere('refund.status = :status', { status: params.status });
+    }
+
+    queryBuilder
+      .orderBy('refund.createdAt', 'DESC')
+      .skip((params.page - 1) * params.pageSize)
+      .take(params.pageSize);
+
+    const [list, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      list,
+      total,
+      page: params.page,
+      pageSize: params.pageSize,
+      totalPages: Math.ceil(total / params.pageSize),
+    };
+  }
+
+  /**
+   * 获取退款订单详情
+   */
+  async getRefundDetail(id: string) {
+    const refund = await this.refundOrderRepository.findOne({
+      where: { id },
+      relations: ['user'],
+    });
+
+    if (!refund) {
+      throw new NotFoundException('退款订单不存在');
+    }
+
+    return refund;
+  }
+
+  /**
+   * 审核退款申请
+   */
+  async auditRefund(
+    id: string,
+    approved: boolean,
+    remark: string | undefined,
+    adminId: string,
+    adminName: string,
+  ) {
+    const refund = await this.refundOrderRepository.findOne({ where: { id } });
+    if (!refund) {
+      throw new NotFoundException('退款订单不存在');
+    }
+
+    if (refund.status !== 1) {
+      throw new BadRequestException('该退款申请不在待审核状态');
+    }
+
+    const beforeData = { status: refund.status };
+    refund.status = approved ? 2 : 3; // 2: 审核通过, 3: 审核拒绝
+
+    if (remark) {
+      refund.auditRemark = remark;
+    }
+
+    refund.auditAdminId = adminId;
+    refund.auditAt = new Date();
+
+    await this.refundOrderRepository.save(refund);
+
+    await this.createAuditLog({
+      adminId,
+      adminName,
+      module: 'refund',
+      action: approved ? 'approve' : 'reject',
+      targetType: 'refund',
+      targetId: id,
+      beforeData,
+      afterData: { status: refund.status, remark },
+      remark: approved ? '审核通过退款申请' : '审核拒绝退款申请',
+    });
+
+    return refund;
   }
 }

@@ -19,7 +19,7 @@ export class LivestockType {
   name: string;
 
   @Index()
-  @Column({ length: 20, unique: true, comment: '类型编码' })
+  @Column({ length: 20, unique: true, nullable: true, comment: '类型编码' })
   code: string;
 
   @Column({ length: 500, nullable: true, comment: '图标URL' })

@@ -197,11 +197,15 @@ export const AdminLivestock: React.FC = () => {
   const handleSaveLivestock = async () => {
     try {
       const data = {
-        ...livestockForm,
+        name: livestockForm.name,
+        typeId: livestockForm.typeId,
         price: parseFloat(livestockForm.price),
         monthlyFeedFee: parseFloat(livestockForm.monthlyFeedFee),
         redemptionMonths: parseInt(livestockForm.redemptionMonths),
-        stock: parseInt(livestockForm.stock)
+        stock: parseInt(livestockForm.stock),
+        description: livestockForm.description,
+        mainImage: livestockForm.image || undefined,
+        images: livestockForm.image ? [livestockForm.image] : [],
       };
       if (editingLivestock) {
         await adminApi.updateLivestock(editingLivestock.id, data);

@@ -678,4 +678,106 @@ export class AdminController {
       endDate,
     });
   }
+
+  // =============== 买断管理 ===============
+
+  /**
+   * 获取买断订单列表
+   */
+  @Get('redemptions')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '获取买断订单列表' })
+  @ApiQuery({ name: 'page', required: false, description: '页码' })
+  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
+  @ApiQuery({ name: 'status', required: false, description: '状态' })
+  async getRedemptionList(
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.adminService.getRedemptionList({
+      page: page ? parseInt(page) : 1,
+      pageSize: pageSize ? parseInt(pageSize) : 20,
+      status: status ? parseInt(status) : undefined,
+    });
+  }
+
+  /**
+   * 获取买断订单详情
+   */
+  @Get('redemptions/:id')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '获取买断订单详情' })
+  @ApiParam({ name: 'id', description: '买断订单ID' })
+  async getRedemptionDetail(@Param('id') id: string) {
+    return this.adminService.getRedemptionDetail(id);
+  }
+
+  /**
+   * 审核买断申请
+   */
+  @Post('redemptions/:id/audit')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '审核买断申请' })
+  @ApiParam({ name: 'id', description: '买断订单ID' })
+  async auditRedemption(
+    @Param('id') id: string,
+    @Body() body: { approved: boolean; adjustedAmount?: number; remark?: string },
+    @Req() req: any,
+  ) {
+    const adminId = req.user?.sub;
+    const adminName = req.user?.username;
+    return this.adminService.auditRedemption(id, body.approved, body.adjustedAmount, body.remark, adminId, adminName);
+  }
+
+  // =============== 退款管理 ===============
+
+  /**
+   * 获取退款订单列表
+   */
+  @Get('refunds')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '获取退款订单列表' })
+  @ApiQuery({ name: 'page', required: false, description: '页码' })
+  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
+  @ApiQuery({ name: 'status', required: false, description: '状态' })
+  async getRefundList(
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.adminService.getRefundList({
+      page: page ? parseInt(page) : 1,
+      pageSize: pageSize ? parseInt(pageSize) : 20,
+      status: status ? parseInt(status) : undefined,
+    });
+  }
+
+  /**
+   * 获取退款订单详情
+   */
+  @Get('refunds/:id')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '获取退款订单详情' })
+  @ApiParam({ name: 'id', description: '退款订单ID' })
+  async getRefundDetail(@Param('id') id: string) {
+    return this.adminService.getRefundDetail(id);
+  }
+
+  /**
+   * 审核退款申请
+   */
+  @Post('refunds/:id/audit')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '审核退款申请' })
+  @ApiParam({ name: 'id', description: '退款订单ID' })
+  async auditRefund(
+    @Param('id') id: string,
+    @Body() body: { approved: boolean; remark?: string },
+    @Req() req: any,
+  ) {
+    const adminId = req.user?.sub;
+    const adminName = req.user?.username;
+    return this.adminService.auditRefund(id, body.approved, body.remark, adminId, adminName);
+  }
 }
