@@ -168,13 +168,13 @@ export class AppModule implements NestModule, OnModuleInit {
 
       for (const config of defaultConfigs) {
         const result = await this.dataSource.query(
-          'SELECT COUNT(*) as count FROM system_configs WHERE config_key = ?',
+          'SELECT COUNT(*) as count FROM system_configs WHERE configKey = ?',
           [config.key]
         );
 
         if (result[0].count === 0) {
           await this.dataSource.query(
-            'INSERT INTO system_configs (id, config_key, config_value, config_type, description, is_encrypted, created_at, updated_at) VALUES (UUID(), ?, ?, ?, ?, 0, NOW(), NOW())',
+            'INSERT INTO system_configs (id, configKey, configValue, configType, description, isEncrypted, createdAt, updatedAt) VALUES (UUID(), ?, ?, ?, ?, 0, NOW(), NOW())',
             [config.key, config.value, config.type, config.description]
           );
         }
