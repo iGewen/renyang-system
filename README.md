@@ -174,56 +174,58 @@ cd frontend
 npm run build
 ```
 
-### Docker部署
+### Docker一键部署
 
-详细部署教程请查看 [Docker部署教程](./docs/DOCKER_DEPLOY.md)
-
-#### 快速开始
-
-使用阿里云ACR镜像仓库的基础镜像：
+#### 快速开始（3步完成部署）
 
 ```bash
-# 1. 配置环境变量
+# 1. 克隆代码
+git clone https://github.com/iGewen/renyang-system.git
+cd renyang-system
+
+# 2. 配置环境变量
 cp .env.docker .env
-# 编辑 .env 文件，修改数据库密码和JWT密钥等敏感信息
+# 编辑 .env 文件，修改 MySQL密码 和 JWT密钥
 
-# 2. 登录阿里云ACR
-docker login --username=<您的阿里云账号> crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com
-
-# 3. 拉取基础镜像
-docker pull crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/mysql:8.0
-docker pull crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/redis:latest
-
-# 4. 启动所有服务
-docker-compose up -d --build
-
-# 5. 查看服务状态
-docker-compose ps
+# 3. 一键启动（自动拉取镜像、构建、启动）
+docker-compose up -d
+# 或使用新版Docker命令
+docker compose up -d
 ```
 
-#### Docker镜像说明
+#### 查看部署状态
 
-使用阿里云ACR镜像仓库的基础镜像：
-- MySQL: `crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/mysql:8.0`
-- Redis: `crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/redis:latest`
-- 前后端服务会自动从源码构建
+```bash
+# 查看服务状态
+docker-compose ps
 
-#### Docker服务说明
+# 查看日志
+docker-compose logs -f
 
-| 服务 | 端口 | 说明 |
-|------|------|------|
-| mysql | 3306 | MySQL 8.0 数据库 |
-| redis | 6379 | Redis 缓存 |
-| backend | 3001 | NestJS 后端服务 |
-| frontend | 80 | Nginx 前端服务 |
+# 查看单个服务日志
+docker-compose logs -f backend
+```
 
 #### 访问地址
 
-- 前端页面: http://服务器IP
-- 后端API文档: http://服务器IP:3001/api/docs
-- 管理后台: http://服务器IP/admin
+| 服务 | 地址 | 说明 |
+|------|------|------|
+| 前端页面 | http://服务器IP | 用户端页面 |
+| 后端API | http://服务器IP:3001/api/docs | Swagger文档 |
+| 管理后台 | http://服务器IP/admin | 管理员后台 |
 
-默认管理员账号: `admin` / `admin123456`
+**默认管理员账号:** `admin` / `admin123456` ⚠️ 请登录后立即修改密码
+
+#### 部署说明
+
+Docker Compose 会自动完成：
+1. ✅ 拉取 MySQL、Redis 基础镜像（阿里云ACR）
+2. ✅ 构建后端 NestJS 镜像
+3. ✅ 构建前端 React 镜像（Nginx）
+4. ✅ 自动初始化数据库
+5. ✅ 启动所有服务并健康检查
+
+详细教程请查看 [Docker部署教程](./docs/DOCKER_DEPLOY.md)
 
 ## 项目进度
 
