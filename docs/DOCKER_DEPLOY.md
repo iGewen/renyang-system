@@ -107,12 +107,18 @@ docker-compose --version
 
 ## 一键部署
 
-### 步骤一：获取代码
+### 步骤一：创建目录并获取代码
 
 ```bash
+# 创建项目目录
+sudo mkdir -p /var/www/wwwroot/renyang-system
+cd /var/www/wwwroot/renyang-system
+
 # 克隆代码（指定dev分支）
-git clone -b dev https://github.com/iGewen/renyang-system.git
-cd renyang-system
+git clone -b dev https://github.com/iGewen/renyang-system.git .
+
+# 设置目录权限（当前用户）
+sudo chown -R $USER:$USER /var/www/wwwroot/renyang-system
 ```
 
 ### 步骤二：配置环境变量
@@ -291,6 +297,9 @@ docker-compose logs --tail=100 backend
 ### 更新部署
 
 ```bash
+# 进入项目目录
+cd /var/www/wwwroot/renyang-system
+
 # 拉取最新代码
 git pull
 
@@ -398,6 +407,9 @@ BACKEND_PORT=3002
 ### 重置环境
 
 ```bash
+# 进入项目目录
+cd /var/www/wwwroot/renyang-system
+
 # 停止并删除容器和网络
 docker compose down
 docker-compose down
