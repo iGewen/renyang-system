@@ -179,8 +179,8 @@ npm run build
 #### 快速开始（3步完成部署）
 
 ```bash
-# 1. 克隆代码
-git clone https://github.com/iGewen/renyang-system.git
+# 1. 克隆代码（dev分支）
+git clone -b dev https://github.com/iGewen/renyang-system.git
 cd renyang-system
 
 # 2. 配置环境变量
@@ -188,10 +188,14 @@ cp .env.docker .env
 # 编辑 .env 文件，修改 MySQL密码 和 JWT密钥
 
 # 3. 一键启动（自动拉取镜像、构建、启动）
-docker-compose up -d
-# 或使用新版Docker命令
+# 新版Docker命令（推荐）
 docker compose up -d
+
+# 旧版Docker命令（兼容）
+docker-compose up -d
 ```
+
+> **兼容性说明：** 支持 Docker Compose V1 (`docker-compose`) 和 V2 (`docker compose`) 两种命令格式。
 
 #### 查看部署状态
 

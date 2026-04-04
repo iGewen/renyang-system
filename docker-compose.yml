@@ -1,3 +1,8 @@
+# 云端牧场 Docker Compose 配置
+# 兼容 Docker Compose V1 (docker-compose) 和 V2 (docker compose)
+# 使用方式：
+#   新版: docker compose up -d
+#   旧版: docker-compose up -d
 version: '3.8'
 
 services:

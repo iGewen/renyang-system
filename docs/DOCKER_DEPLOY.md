@@ -2,6 +2,10 @@
 
 本文档介绍如何使用 Docker Compose 一键部署云端牧场项目。
 
+> **兼容性说明：** 本项目同时支持 Docker Compose V1 和 V2 命令格式。
+> - 新版命令：`docker compose`（Docker Compose V2，推荐）
+> - 旧版命令：`docker-compose`（Docker Compose V1）
+
 ## 目录
 
 - [环境准备](#环境准备)
@@ -23,11 +27,11 @@
 | 内存 | 4GB | 8GB+ |
 | 磁盘 | 40GB | 100GB+ |
 
-### 安装 Docker 和 Docker Compose
+### 安装 Docker（包含 Docker Compose V2）
 
-**CentOS:**
+**推荐方式（自动安装最新版）：**
 ```bash
-# 安装Docker
+# 安装Docker（包含Docker Compose V2）
 curl -fsSL https://get.docker.com | bash
 
 # 启动Docker
@@ -39,10 +43,16 @@ docker --version
 docker compose version
 ```
 
-**Ubuntu:**
+**CentOS 手动安装：**
 ```bash
-# 安装Docker
-curl -fsSL https://get.docker.com | bash
+# 安装必要工具
+yum install -y yum-utils device-mapper-persistent-data lvm2
+
+# 添加Docker源
+yum-config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+
+# 安装Docker（包含Docker Compose插件）
+yum install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
 # 启动Docker
 systemctl start docker
@@ -51,6 +61,46 @@ systemctl enable docker
 # 验证安装
 docker --version
 docker compose version
+```
+
+**Ubuntu 手动安装：**
+```bash
+# 更新包索引
+apt-get update
+
+# 安装依赖
+apt-get install -y ca-certificates curl gnupg lsb-release
+
+# 添加Docker源
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# 安装Docker（包含Docker Compose插件）
+apt-get update
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# 启动Docker
+systemctl start docker
+systemctl enable docker
+
+# 验证安装
+docker --version
+docker compose version
+```
+
+### 安装 Docker Compose V1（可选）
+
+如果您的系统没有 Docker Compose V2，可以安装 V1：
+
+```bash
+# 下载Docker Compose V1
+curl -L "https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+
+# 添加执行权限
+chmod +x /usr/local/bin/docker-compose
+
+# 验证安装
+docker-compose --version
 ```
 
 ---
@@ -60,8 +110,8 @@ docker compose version
 ### 步骤一：获取代码
 
 ```bash
-# 克隆代码
-git clone https://github.com/iGewen/renyang-system.git
+# 克隆代码（指定dev分支）
+git clone -b dev https://github.com/iGewen/renyang-system.git
 cd renyang-system
 ```
 
@@ -87,10 +137,10 @@ JWT_SECRET=your-very-long-and-secure-jwt-secret-key-at-least-32-characters
 ### 步骤三：一键启动
 
 ```bash
-# 启动所有服务（自动拉取镜像、构建、启动）
+# 新版Docker命令（Docker Compose V2，推荐）
 docker compose up -d
 
-# 或者使用旧版命令
+# 或使用旧版命令（Docker Compose V1，兼容）
 docker-compose up -d
 ```
 
@@ -105,8 +155,11 @@ Docker Compose 会自动完成：
 ### 步骤四：验证部署
 
 ```bash
-# 查看服务状态
+# 新版命令
 docker compose ps
+
+# 旧版命令
+docker-compose ps
 
 # 应该看到所有服务状态为 healthy
 # NAME                    STATUS
@@ -190,23 +243,30 @@ ALIYUN_SMS_TEMPLATE_CODE=
 
 ## 常用命令
 
+> **提示：** 以下命令同时提供 V1 和 V2 两种格式，根据您的环境选择使用。
+
 ### 服务管理
 
 ```bash
 # 启动服务
-docker compose up -d
+docker compose up -d        # V2 新版
+docker-compose up -d        # V1 旧版
 
 # 停止服务
-docker compose down
+docker compose down         # V2 新版
+docker-compose down         # V1 旧版
 
 # 重启服务
-docker compose restart
+docker compose restart      # V2 新版
+docker-compose restart      # V1 旧版
 
 # 重启单个服务
 docker compose restart backend
+docker-compose restart backend
 
 # 查看状态
 docker compose ps
+docker-compose ps
 
 # 查看资源使用
 docker stats
@@ -217,14 +277,15 @@ docker stats
 ```bash
 # 查看所有日志
 docker compose logs -f
+docker-compose logs -f
 
 # 查看特定服务日志
 docker compose logs -f backend
-docker compose logs -f frontend
-docker compose logs -f mysql
+docker-compose logs -f backend
 
 # 查看最近100行
 docker compose logs --tail=100 backend
+docker-compose logs --tail=100 backend
 ```
 
 ### 更新部署
@@ -235,12 +296,15 @@ git pull
 
 # 重新构建并启动
 docker compose up -d --build
+docker-compose up -d --build
 
 # 只重建后端
 docker compose up -d --build backend
+docker-compose up -d --build backend
 
 # 只重建前端
 docker compose up -d --build frontend
+docker-compose up -d --build frontend
 ```
 
 ### 数据库操作
@@ -248,12 +312,15 @@ docker compose up -d --build frontend
 ```bash
 # 进入MySQL
 docker compose exec mysql mysql -u root -p
+docker-compose exec mysql mysql -u root -p
 
 # 备份数据库
 docker compose exec mysql mysqldump -u root -p cloud_ranch > backup.sql
+docker-compose exec mysql mysqldump -u root -p cloud_ranch > backup.sql
 
 # 恢复数据库
 docker compose exec -T mysql mysql -u root -p cloud_ranch < backup.sql
+docker-compose exec -T mysql mysql -u root -p cloud_ranch < backup.sql
 ```
 
 ---
@@ -265,6 +332,7 @@ docker compose exec -T mysql mysql -u root -p cloud_ranch < backup.sql
 ```bash
 # 查看所有容器状态
 docker compose ps
+docker-compose ps
 
 # 查看不健康的容器
 docker compose ps --filter "health=unhealthy"
@@ -275,9 +343,11 @@ docker compose ps --filter "health=unhealthy"
 ```bash
 # 查看后端日志
 docker compose logs -f backend
+docker-compose logs -f backend
 
 # 查看MySQL日志
 docker compose logs -f mysql
+docker-compose logs -f mysql
 ```
 
 ### 常见问题
@@ -286,6 +356,7 @@ docker compose logs -f mysql
 ```bash
 # 检查日志
 docker compose logs mysql
+docker-compose logs mysql
 
 # 可能是权限问题
 sudo chown -R 999:999 /var/lib/docker/volumes/renyang-system_mysql_data
@@ -295,18 +366,22 @@ sudo chown -R 999:999 /var/lib/docker/volumes/renyang-system_mysql_data
 ```bash
 # 检查MySQL是否健康
 docker compose ps mysql
+docker-compose ps mysql
 
 # 检查网络
 docker compose exec backend ping mysql
+docker-compose exec backend ping mysql
 ```
 
 **3. 前端无法访问后端API**
 ```bash
 # 检查后端是否健康
 docker compose ps backend
+docker-compose ps backend
 
 # 检查Nginx配置
 docker compose exec frontend cat /etc/nginx/conf.d/default.conf
+docker-compose exec frontend cat /etc/nginx/conf.d/default.conf
 ```
 
 **4. 端口被占用**
@@ -325,12 +400,15 @@ BACKEND_PORT=3002
 ```bash
 # 停止并删除容器和网络
 docker compose down
+docker-compose down
 
 # 删除数据卷（会清空数据库！）
 docker compose down -v
+docker-compose down -v
 
 # 重新部署
 docker compose up -d
+docker-compose up -d
 ```
 
 ---
@@ -371,5 +449,5 @@ ufw enable
 
 ---
 
-**文档版本**: v2.0
+**文档版本**: v2.1
 **更新日期**: 2026-04-04
