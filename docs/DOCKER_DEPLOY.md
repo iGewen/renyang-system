@@ -48,7 +48,7 @@ docker compose version
 # 安装必要工具
 yum install -y yum-utils device-mapper-persistent-data lvm2
 
-# 添加Docker源
+# 添加Docker源（阿里云镜像）
 yum-config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
 
 # 安装Docker（包含Docker Compose插件）
@@ -86,6 +86,34 @@ systemctl enable docker
 # 验证安装
 docker --version
 docker compose version
+```
+
+### 配置Docker镜像加速（推荐）
+
+国内服务器建议配置镜像加速，提高镜像拉取速度：
+
+```bash
+# 创建Docker配置目录
+sudo mkdir -p /etc/docker
+
+# 配置镜像加速
+sudo tee /etc/docker/daemon.json <<-'EOF'
+{
+  "registry-mirrors": [
+    "https://docker.m.daocloud.io",
+    "https://dockerproxy.com",
+    "https://docker.mirrors.ustc.edu.cn",
+    "https://docker.nju.edu.cn"
+  ]
+}
+EOF
+
+# 重启Docker服务
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+
+# 验证配置
+docker info | grep -A 5 "Registry Mirrors"
 ```
 
 ### 安装 Docker Compose V1（可选）
@@ -154,12 +182,12 @@ docker-compose up -d
 ```
 
 Docker Compose 会自动完成：
-1. ✅ 拉取 MySQL 8.0 镜像
-2. ✅ 拉取 Redis 镜像
-3. ✅ 构建后端 NestJS 镜像
-4. ✅ 构建前端 React + Nginx 镜像
+1. ✅ 拉取 MySQL 8.0 镜像（阿里云ACR）
+2. ✅ 拉取 Redis 镜像（阿里云ACR）
+3. ✅ 构建后端 NestJS 镜像（使用国内镜像源加速）
+4. ✅ 构建前端 React + Nginx 镜像（使用国内镜像源加速）
 5. ✅ 初始化数据库和表结构
-6. ✅ 启动所有服务
+6. ✅ 启动所有服务并进行健康检查
 
 ### 步骤四：验证部署
 
@@ -306,9 +334,13 @@ cd /var/www/wwwroot/renyang-system
 # 拉取最新代码
 git pull
 
-# 重新构建并启动
+# 重新构建并启动（推荐）
 docker compose up -d --build
 docker-compose up -d --build
+
+# 强制重新构建（解决构建问题时使用）
+docker compose build --no-cache
+docker compose up -d
 
 # 只重建后端
 docker compose up -d --build backend
@@ -360,11 +392,32 @@ docker-compose logs -f backend
 # 查看MySQL日志
 docker compose logs -f mysql
 docker-compose logs -f mysql
+
+# 查看前端日志
+docker compose logs -f frontend
+docker-compose logs -f frontend
 ```
 
 ### 常见问题
 
-**1. MySQL启动失败**
+**1. npm依赖冲突（ERESOLVE错误）**
+```bash
+# 问题表现：
+# npm error ERESOLVE could not resolve
+
+# 解决方案：已内置 --legacy-peer-deps 参数
+# 如仍遇到问题，可手动重新构建
+docker compose build --no-cache backend
+docker compose up -d
+```
+
+**2. 镜像拉取缓慢**
+```bash
+# 配置Docker镜像加速（见上文"配置Docker镜像加速"）
+# 或使用阿里云ACR镜像
+```
+
+**3. MySQL启动失败**
 ```bash
 # 检查日志
 docker compose logs mysql
@@ -372,20 +425,25 @@ docker-compose logs mysql
 
 # 可能是权限问题
 sudo chown -R 999:999 /var/lib/docker/volumes/renyang-system_mysql_data
+
+# 或删除数据卷重新初始化（会清空数据）
+docker compose down -v
+docker compose up -d
 ```
 
-**2. 后端无法连接数据库**
+**4. 后端无法连接数据库**
 ```bash
-# 检查MySQL是否健康
+# 等待MySQL完全启动（约30-60秒）
 docker compose ps mysql
-docker-compose ps mysql
 
-# 检查网络
-docker compose exec backend ping mysql
-docker-compose exec backend ping mysql
+# 检查MySQL健康状态
+docker compose logs mysql | grep "ready for connections"
+
+# 重启后端服务
+docker compose restart backend
 ```
 
-**3. 前端无法访问后端API**
+**5. 前端无法访问后端API**
 ```bash
 # 检查后端是否健康
 docker compose ps backend
@@ -394,17 +452,22 @@ docker-compose ps backend
 # 检查Nginx配置
 docker compose exec frontend cat /etc/nginx/conf.d/default.conf
 docker-compose exec frontend cat /etc/nginx/conf.d/default.conf
+
+# 检查网络连通性
+docker compose exec frontend ping backend
 ```
 
-**4. 端口被占用**
+**6. 端口被占用**
 ```bash
 # 查看端口占用
 netstat -tlnp | grep :80
 netstat -tlnp | grep :3001
+netstat -tlnp | grep :3306
 
 # 修改.env中的端口配置
 FRONTEND_PORT=8080
 BACKEND_PORT=3002
+MYSQL_PORT=13306
 ```
 
 ### 重置环境
@@ -451,18 +514,72 @@ MYSQL_PORT=13306
 ```bash
 # CentOS
 firewall-cmd --permanent --add-port=80/tcp
+firewall-cmd --permanent --add-port=443/tcp
 firewall-cmd --reload
 
 # Ubuntu
 ufw allow 80/tcp
+ufw allow 443/tcp
 ufw enable
 ```
 
 ### 4. 启用HTTPS
 
-推荐使用 Nginx 反向代理 + Let's Encrypt 证书。
+推荐使用 Nginx 反向代理 + Let's Encrypt 证书：
+
+```bash
+# 安装certbot
+sudo apt install certbot python3-certbot-nginx  # Ubuntu
+sudo yum install certbot python3-certbot-nginx  # CentOS
+
+# 申请证书
+sudo certbot --nginx -d your-domain.com
+
+# 自动续期
+sudo certbot renew --dry-run
+```
+
+### 5. 定期备份
+
+```bash
+# 创建备份目录
+sudo mkdir -p /var/backups/cloud-ranch
+
+# 备份数据库
+cd /var/www/wwwroot/renyang-system
+docker compose exec mysql mysqldump -u root -p cloud_ranch > /var/backups/cloud-ranch/db_$(date +%Y%m%d).sql
+
+# 设置定时备份（每天凌晨2点）
+echo "0 2 * * * cd /var/www/wwwroot/renyang-system && docker compose exec -T mysql mysqldump -u root -p\${MYSQL_ROOT_PASSWORD} cloud_ranch > /var/backups/cloud-ranch/db_\$(date +\%Y\%m\%d).sql" | sudo crontab -
+```
 
 ---
 
-**文档版本**: v2.1
+## 构建说明
+
+本项目使用国内镜像源加速构建：
+
+### Alpine镜像源
+```dockerfile
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+```
+
+### npm镜像源
+```dockerfile
+RUN npm config set registry https://registry.npmmirror.com && npm ci --legacy-peer-deps
+```
+
+### 使用的基础镜像
+
+| 服务 | 镜像 | 来源 |
+|------|------|------|
+| MySQL | mysql:8.0 | 阿里云ACR |
+| Redis | redis:latest | 阿里云ACR |
+| 后端构建 | node:lts-alpine | Docker Hub |
+| 前端构建 | node:lts-alpine | Docker Hub |
+| 前端运行 | nginx:alpine | Docker Hub |
+
+---
+
+**文档版本**: v2.2
 **更新日期**: 2026-04-04
