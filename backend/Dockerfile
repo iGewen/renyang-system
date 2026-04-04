@@ -15,8 +15,8 @@ RUN apk add --no-cache python3 make g++
 # 复制package文件
 COPY package*.json ./
 
-# 使用淘宝npm镜像加速
-RUN npm config set registry https://registry.npmmirror.com && npm ci
+# 使用淘宝npm镜像加速，并忽略peer依赖冲突
+RUN npm config set registry https://registry.npmmirror.com && npm ci --legacy-peer-deps
 
 # 复制源代码
 COPY . .
@@ -25,7 +25,7 @@ COPY . .
 RUN npm run build
 
 # 清理devDependencies，只保留生产依赖
-RUN npm prune --production
+RUN npm prune --production --legacy-peer-deps
 
 # 阶段2: 生产阶段
 FROM node:lts-alpine AS production
