@@ -33,6 +33,9 @@ FROM node:lts-alpine AS production
 # 使用阿里云镜像源
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
+# 安装curl用于健康检查
+RUN apk add --no-cache curl
+
 WORKDIR /app
 
 # 设置Node环境
@@ -46,9 +49,9 @@ COPY --from=builder /app/package.json ./
 # 暴露端口
 EXPOSE 3001
 
-# 健康检查
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3001/api/docs || exit 1
+# 健康检查（使用curl）
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
+  CMD curl -f http://localhost:3001/api/docs || exit 1
 
 # 启动应用
 CMD ["node", "dist/main.js"]
