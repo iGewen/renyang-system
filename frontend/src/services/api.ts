@@ -47,126 +47,73 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 export const authApi = {
   // 发送短信验证码
   sendSmsCode: async (phone: string, type: 'register' | 'login' | 'reset_password'): Promise<{ success: boolean }> => {
-    await delay(300);
-    return { success: true };
+    return request('/auth/sms/send', {
+      method: 'POST',
+      body: JSON.stringify({ phone, type }),
+    });
   },
 
   // 用户注册
   register: async (data: { phone: string; code: string; password: string }): Promise<{ token: string; user: User }> => {
-    await delay(500);
-    return {
-      token: 'mock_token_' + Date.now(),
-      user: {
-        id: '1',
-        phone: data.phone,
-        nickname: '新用户',
-        balance: 0,
-        status: 'normal',
-        createdAt: new Date().toISOString()
-      }
-    };
+    return request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   // 密码登录
   loginByPassword: async (data: { phone: string; password: string }): Promise<{ token: string; user: User }> => {
-    await delay(500);
-    return {
-      token: 'mock_token_' + Date.now(),
-      user: {
-        id: '1',
-        phone: data.phone,
-        nickname: '微信用户',
-        balance: 1280,
-        status: 'normal',
-        createdAt: '2026-01-01T00:00:00Z'
-      }
-    };
+    return request('/auth/login/password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   // 验证码登录
   loginByCode: async (data: { phone: string; code: string }): Promise<{ token: string; user: User }> => {
-    await delay(500);
-    return {
-      token: 'mock_token_' + Date.now(),
-      user: {
-        id: '1',
-        phone: data.phone,
-        nickname: '微信用户',
-        balance: 1280,
-        status: 'normal',
-        createdAt: '2026-01-01T00:00:00Z'
-      }
-    };
+    return request('/auth/login/code', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   // 获取微信授权URL
   getWechatAuthUrl: async (): Promise<{ url: string }> => {
-    await delay(200);
-    return { url: 'https://open.weixin.qq.com/connect/oauth2?...' };
+    return request('/auth/wechat/url');
   },
 
   // 微信授权回调
   wechatCallback: async (code: string, state: string): Promise<{ needBindPhone: boolean; tempToken?: string; token?: string; user?: User }> => {
-    await delay(500);
-    return {
-      needBindPhone: true,
-      tempToken: 'temp_token_' + Date.now()
-    };
+    return request(`/auth/wechat/callback?code=${code}&state=${state}`);
   },
 
   // 绑定手机号
   bindPhone: async (data: { tempToken: string; phone: string; code: string }): Promise<{ token: string; user: User }> => {
-    await delay(500);
-    return {
-      token: 'mock_token_' + Date.now(),
-      user: {
-        id: '1',
-        phone: data.phone,
-        nickname: '微信用户',
-        balance: 0,
-        status: 'normal',
-        createdAt: new Date().toISOString()
-      }
-    };
+    return request('/auth/wechat/bind-phone', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   // 重置密码
   resetPassword: async (data: { phone: string; code: string; newPassword: string }): Promise<{ success: boolean }> => {
-    await delay(500);
-    return { success: true };
+    return request('/auth/password/reset', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   // 获取当前用户信息
   getCurrentUser: async (): Promise<User> => {
-    await delay(300);
-    return {
-      id: '1',
-      phone: '138****8888',
-      nickname: '微信用户',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150',
-      balance: 1280,
-      status: 'normal',
-      createdAt: '2026-01-01T00:00:00Z',
-      stats: {
-        adoptions: 2,
-        days: 128,
-        saved: 350
-      }
-    };
+    return request('/user/profile');
   },
 
   // 更新用户信息
   updateCurrentUser: async (data: { nickname?: string; avatar?: string }): Promise<User> => {
-    await delay(300);
-    return {
-      id: '1',
-      phone: '138****8888',
-      nickname: data.nickname || '微信用户',
-      avatar: data.avatar,
-      balance: 1280,
-      status: 'normal',
-      createdAt: '2026-01-01T00:00:00Z'
-    };
+    return request('/user/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 };
 
@@ -175,32 +122,21 @@ export const authApi = {
 export const livestockApi = {
   // 获取活体类型列表
   getTypes: async (): Promise<LivestockType[]> => {
-    await delay(300);
-    return [
-      { id: '1', name: '羊', code: 'sheep', sortOrder: 1, status: 'enabled' },
-      { id: '2', name: '鸡', code: 'chicken', sortOrder: 2, status: 'enabled' },
-      { id: '3', name: '鸵鸟', code: 'ostrich', sortOrder: 3, status: 'enabled' }
-    ];
+    return request('/livestock/types');
   },
 
   // 获取活体列表
   getList: async (params?: { typeId?: string; page?: number; pageSize?: number }): Promise<PaginatedResponse<Livestock>> => {
-    await delay(500);
-    const { LIVESTOCK_DATA } = await import('../types');
-    return {
-      list: LIVESTOCK_DATA,
-      total: LIVESTOCK_DATA.length,
-      page: params?.page || 1,
-      pageSize: params?.pageSize || 10,
-      totalPages: 1
-    };
+    const query = new URLSearchParams();
+    if (params?.typeId) query.set('typeId', params.typeId);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
+    return request(`/livestock?${query.toString()}`);
   },
 
   // 获取活体详情
-  getById: async (id: string): Promise<Livestock | undefined> => {
-    await delay(300);
-    const { LIVESTOCK_DATA } = await import('../types');
-    return LIVESTOCK_DATA.find(item => item.id === id);
+  getById: async (id: string): Promise<Livestock> => {
+    return request(`/livestock/${id}`);
   }
 };
 
@@ -209,36 +145,29 @@ export const livestockApi = {
 export const orderApi = {
   // 创建领养订单
   create: async (data: { livestockId: string; quantity?: number; clientOrderId: string }): Promise<{ orderId: string; orderNo: string; expireAt: string }> => {
-    await delay(500);
-    return {
-      orderId: 'order_' + Date.now(),
-      orderNo: 'ORD' + Date.now().toString(36).toUpperCase(),
-      expireAt: new Date(Date.now() + 15 * 60 * 1000).toISOString()
-    };
+    return request('/orders', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   // 取消订单
   cancel: async (orderId: string): Promise<{ success: boolean }> => {
-    await delay(300);
-    return { success: true };
+    return request(`/orders/${orderId}/cancel`, { method: 'POST' });
   },
 
   // 获取订单详情
   getById: async (orderId: string): Promise<AdoptionOrder> => {
-    await delay(300);
-    return {} as AdoptionOrder;
+    return request(`/orders/${orderId}`);
   },
 
   // 获取我的订单列表
   getMyOrders: async (params?: { status?: string; page?: number; pageSize?: number }): Promise<PaginatedResponse<AdoptionOrder>> => {
-    await delay(500);
-    return {
-      list: [],
-      total: 0,
-      page: 1,
-      pageSize: 10,
-      totalPages: 0
-    };
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
+    return request(`/orders/my?${query.toString()}`);
   }
 };
 
@@ -247,70 +176,38 @@ export const orderApi = {
 export const adoptionApi = {
   // 获取我的领养列表
   getMyAdoptions: async (): Promise<Adoption[]> => {
-    await delay(500);
-    const { LIVESTOCK_DATA } = await import('../types');
-    return [
-      {
-        id: 'ADPT-X92J1K',
-        adoptionNo: 'ADPT-X92J1K',
-        orderId: 'order_1',
-        userId: '1',
-        livestockId: '1',
-        livestockSnapshot: LIVESTOCK_DATA[0],
-        livestock: LIVESTOCK_DATA[0],
-        startDate: '2026-01-15',
-        redemptionMonths: 12,
-        feedMonthsPaid: 3,
-        totalFeedAmount: 450,
-        lateFeeAmount: 0,
-        status: 'active',
-        days: 78,
-        nextPayment: '2026-04-15',
-        isException: false,
-        createdAt: '2026-01-15T00:00:00Z'
-      }
-    ];
+    return request('/adoptions/my');
   },
 
   // 获取领养详情
   getById: async (adoptionId: string): Promise<Adoption> => {
-    await delay(300);
-    return {} as Adoption;
+    return request(`/adoptions/${adoptionId}`);
   },
 
   // 获取饲料费账单列表
   getFeedBills: async (adoptionId: string): Promise<FeedBill[]> => {
-    await delay(500);
-    return [];
+    return request(`/adoptions/${adoptionId}/feed-bills`);
   },
 
   // 获取饲料费账单详情
   getFeedBillById: async (billId: string): Promise<FeedBill> => {
-    await delay(300);
-    return {} as FeedBill;
+    return request(`/feed-bills/${billId}`);
   },
 
   // 支付饲料费
   payFeedBill: async (billId: string, paymentMethod: 'alipay' | 'wechat' | 'balance'): Promise<PaymentResult> => {
-    await delay(500);
-    if (paymentMethod === 'balance') {
-      return { paymentNo: 'PAY' + Date.now() };
-    }
-    return {
-      payUrl: 'https://payment.example.com/pay/' + Date.now(),
-      paymentNo: 'PAY' + Date.now()
-    };
+    return request(`/feed-bills/${billId}/pay`, {
+      method: 'POST',
+      body: JSON.stringify({ paymentMethod }),
+    });
   },
 
   // 申请买断
   applyRedemption: async (adoptionId: string, clientOrderId: string): Promise<{ redemptionId: string; redemptionNo: string; amount: number; type: 'full' | 'early' }> => {
-    await delay(500);
-    return {
-      redemptionId: 'redemption_' + Date.now(),
-      redemptionNo: 'RDM' + Date.now().toString(36).toUpperCase(),
-      amount: 0,
-      type: 'full'
-    };
+    return request(`/adoptions/${adoptionId}/redemption`, {
+      method: 'POST',
+      body: JSON.stringify({ clientOrderId }),
+    });
   }
 };
 
@@ -319,20 +216,15 @@ export const adoptionApi = {
 export const redemptionApi = {
   // 获取买断详情
   getById: async (redemptionId: string): Promise<RedemptionOrder> => {
-    await delay(300);
-    return {} as RedemptionOrder;
+    return request(`/redemptions/${redemptionId}`);
   },
 
   // 支付买断
   pay: async (redemptionId: string, paymentMethod: 'alipay' | 'wechat' | 'balance'): Promise<PaymentResult> => {
-    await delay(500);
-    if (paymentMethod === 'balance') {
-      return { paymentNo: 'PAY' + Date.now() };
-    }
-    return {
-      payUrl: 'https://payment.example.com/pay/' + Date.now(),
-      paymentNo: 'PAY' + Date.now()
-    };
+    return request(`/redemptions/${redemptionId}/pay`, {
+      method: 'POST',
+      body: JSON.stringify({ paymentMethod }),
+    });
   }
 };
 
@@ -341,20 +233,15 @@ export const redemptionApi = {
 export const paymentApi = {
   // 发起支付
   create: async (data: { orderType: 'adoption' | 'feed' | 'redemption' | 'recharge'; orderId: string; paymentMethod: 'alipay' | 'wechat' | 'balance'; amount?: number }): Promise<PaymentResult> => {
-    await delay(500);
-    if (data.paymentMethod === 'balance') {
-      return { paymentNo: 'PAY' + Date.now() };
-    }
-    return {
-      payUrl: 'https://payment.example.com/pay/' + Date.now(),
-      paymentNo: 'PAY' + Date.now()
-    };
+    return request('/payment/create', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   // 查询支付状态
   getStatus: async (paymentNo: string): Promise<{ status: number; paidAt?: string }> => {
-    await delay(200);
-    return { status: 2, paidAt: new Date().toISOString() };
+    return request(`/payment/status/${paymentNo}`);
   }
 };
 
@@ -363,40 +250,24 @@ export const paymentApi = {
 export const balanceApi = {
   // 获取余额
   get: async (): Promise<{ balance: number }> => {
-    await delay(200);
-    return { balance: 1280 };
+    return request('/user/balance');
   },
 
   // 获取余额流水
   getLogs: async (params?: { type?: string; page?: number; pageSize?: number }): Promise<PaginatedResponse<BalanceLog>> => {
-    await delay(500);
-    return {
-      list: [
-        {
-          id: '1',
-          userId: '1',
-          type: 'recharge',
-          amount: 500,
-          balanceBefore: 780,
-          balanceAfter: 1280,
-          remark: '余额充值',
-          createdAt: new Date().toISOString()
-        }
-      ],
-      total: 1,
-      page: 1,
-      pageSize: 10,
-      totalPages: 1
-    };
+    const query = new URLSearchParams();
+    if (params?.type) query.set('type', params.type);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
+    return request(`/user/balance/logs?${query.toString()}`);
   },
 
   // 充值余额
   recharge: async (amount: number, paymentMethod: 'alipay' | 'wechat'): Promise<PaymentResult> => {
-    await delay(500);
-    return {
-      payUrl: 'https://payment.example.com/pay/' + Date.now(),
-      paymentNo: 'PAY' + Date.now()
-    };
+    return request('/user/balance/recharge', {
+      method: 'POST',
+      body: JSON.stringify({ amount, paymentMethod }),
+    });
   }
 };
 
@@ -405,29 +276,24 @@ export const balanceApi = {
 export const refundApi = {
   // 申请退款
   apply: async (data: { orderType: 'adoption' | 'feed' | 'redemption'; orderId: string; reason: string }): Promise<{ refundId: string; refundNo: string }> => {
-    await delay(500);
-    return {
-      refundId: 'refund_' + Date.now(),
-      refundNo: 'RFD' + Date.now().toString(36).toUpperCase()
-    };
+    return request('/refunds', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   // 获取退款详情
   getById: async (refundId: string): Promise<RefundOrder> => {
-    await delay(300);
-    return {} as RefundOrder;
+    return request(`/refunds/${refundId}`);
   },
 
   // 获取我的退款列表
   getMyRefunds: async (params?: { status?: string; page?: number; pageSize?: number }): Promise<PaginatedResponse<RefundOrder>> => {
-    await delay(500);
-    return {
-      list: [],
-      total: 0,
-      page: 1,
-      pageSize: 10,
-      totalPages: 0
-    };
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
+    return request(`/refunds/my?${query.toString()}`);
   }
 };
 
@@ -436,50 +302,27 @@ export const refundApi = {
 export const notificationApi = {
   // 获取站内信列表
   getList: async (params?: { type?: string; isRead?: number; page?: number; pageSize?: number }): Promise<PaginatedResponse<Notification>> => {
-    await delay(500);
-    return {
-      list: [
-        {
-          id: '1',
-          title: '领养成功通知',
-          content: '您已成功领养苏尼特羊，请按时缴纳饲料费。',
-          type: 'order',
-          isRead: false,
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: '2',
-          title: '饲料费缴纳提醒',
-          content: '您的饲料费账单将于5天后到期，请及时缴纳。',
-          type: 'feed',
-          isRead: true,
-          readAt: new Date().toISOString(),
-          createdAt: new Date(Date.now() - 86400000).toISOString()
-        }
-      ],
-      total: 2,
-      page: 1,
-      pageSize: 10,
-      totalPages: 1
-    };
+    const query = new URLSearchParams();
+    if (params?.type) query.set('type', params.type);
+    if (params?.isRead !== undefined) query.set('isRead', params.isRead.toString());
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
+    return request(`/notifications?${query.toString()}`);
   },
 
   // 获取未读消息数量
   getUnreadCount: async (): Promise<{ count: number }> => {
-    await delay(200);
-    return { count: 3 };
+    return request('/notifications/unread-count');
   },
 
   // 标记已读
   markRead: async (notificationId: string): Promise<{ success: boolean }> => {
-    await delay(200);
-    return { success: true };
+    return request(`/notifications/${notificationId}/read`, { method: 'POST' });
   },
 
   // 标记全部已读
   markAllRead: async (): Promise<{ success: boolean }> => {
-    await delay(300);
-    return { success: true };
+    return request('/notifications/read-all', { method: 'POST' });
   }
 };
 
@@ -499,360 +342,343 @@ export const adminApi = {
   },
 
   updatePassword: async (data: { oldPassword: string; newPassword: string }): Promise<{ success: boolean }> => {
-    await delay(300);
-    return { success: true };
+    return request('/admin/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   // ==================== 数据统计 ====================
   getDashboardStats: async (): Promise<DashboardStats> => {
-    await delay(500);
-    return {
-      orderTotal: 342,
-      orderPaid: 289,
-      orderToday: 15,
-      orderMonth: 128,
-      orderYear: 289,
-      revenueToday: 15800,
-      revenueMonth: 128450,
-      revenueYear: 892340,
-      refundCount: 12,
-      refundAmount: 8900,
-      refundToday: 1,
-      adoptionByType: [
-        { typeId: '1', typeName: '羊', count: 150 },
-        { typeId: '2', typeName: '鸡', count: 80 },
-        { typeId: '3', typeName: '鸵鸟', count: 59 }
-      ],
-      pendingOrders: 5,
-      pendingRedemptions: 3,
-      exceptionAdoptions: 2,
-      pendingRefunds: 4,
-      userTotal: 1284,
-      userToday: 28,
-      activeUsers: 356
-    };
+    return request('/admin/dashboard/stats');
   },
 
   getDashboardTrend: async (type: 'revenue' | 'order' | 'user', range: 'week' | 'month' | 'year'): Promise<{ dates: string[]; values: number[] }> => {
-    await delay(300);
-    const dates = [];
-    const values = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      dates.push(`${d.getMonth() + 1}/${d.getDate()}`);
-      values.push(Math.floor(Math.random() * 10000) + 1000);
-    }
-    return { dates, values };
+    return request(`/admin/dashboard/trend?type=${type}&range=${range}`);
   },
 
   // ==================== 活体管理 ====================
   getLivestockTypes: async (): Promise<LivestockType[]> => {
-    await delay(300);
-    return [
-      { id: '1', name: '羊', code: 'sheep', sortOrder: 1, status: 'enabled' },
-      { id: '2', name: '鸡', code: 'chicken', sortOrder: 2, status: 'enabled' },
-      { id: '3', name: '鸵鸟', code: 'ostrich', sortOrder: 3, status: 'enabled' }
-    ];
+    return request('/admin/livestock-types');
   },
 
   createLivestockType: async (data: Partial<LivestockType>): Promise<LivestockType> => {
-    await delay(300);
-    return { id: Date.now().toString(), ...data, sortOrder: 0, status: 'enabled' } as LivestockType;
+    return request('/admin/livestock-types', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   updateLivestockType: async (id: string, data: Partial<LivestockType>): Promise<LivestockType> => {
-    await delay(300);
-    return { id, ...data } as LivestockType;
+    return request(`/admin/livestock-types/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   },
 
   deleteLivestockType: async (id: string): Promise<{ success: boolean }> => {
-    await delay(300);
-    return { success: true };
+    return request(`/admin/livestock-types/${id}`, { method: 'DELETE' });
   },
 
   getLivestockList: async (params?: { typeId?: string; status?: string; keyword?: string; page?: number; pageSize?: number }): Promise<PaginatedResponse<Livestock>> => {
-    await delay(500);
-    const { LIVESTOCK_DATA } = await import('../types');
-    return {
-      list: LIVESTOCK_DATA,
-      total: LIVESTOCK_DATA.length,
-      page: params?.page || 1,
-      pageSize: params?.pageSize || 10,
-      totalPages: 1
-    };
+    const query = new URLSearchParams();
+    if (params?.typeId) query.set('typeId', params.typeId);
+    if (params?.status) query.set('status', params.status);
+    if (params?.keyword) query.set('keyword', params.keyword);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
+    return request(`/admin/livestock?${query.toString()}`);
   },
 
   createLivestock: async (data: Partial<Livestock>): Promise<Livestock> => {
-    await delay(500);
-    return { id: Date.now().toString(), ...data } as Livestock;
+    return request('/admin/livestock', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   updateLivestock: async (id: string, data: Partial<Livestock>): Promise<Livestock> => {
-    await delay(300);
-    return { id, ...data } as Livestock;
+    return request(`/admin/livestock/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   },
 
   deleteLivestock: async (id: string): Promise<{ success: boolean }> => {
-    await delay(300);
-    return { success: true };
+    return request(`/admin/livestock/${id}`, { method: 'DELETE' });
   },
 
   updateLivestockStatus: async (id: string, status: 'on_sale' | 'off_sale'): Promise<Livestock> => {
-    await delay(300);
-    return { id, status } as Livestock;
+    return request(`/admin/livestock/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
   },
 
   updateLivestockStock: async (id: string, stock: number, reason?: string): Promise<Livestock> => {
-    await delay(300);
-    return { id, stock } as Livestock;
+    return request(`/admin/livestock/${id}/stock`, {
+      method: 'PUT',
+      body: JSON.stringify({ stock, reason }),
+    });
   },
 
   // ==================== 订单管理 ====================
   getOrders: async (params?: { status?: string; orderNo?: string; userPhone?: string; startDate?: string; endDate?: string; page?: number; pageSize?: number }): Promise<PaginatedResponse<AdoptionOrder>> => {
-    await delay(500);
-    return {
-      list: [],
-      total: 0,
-      page: 1,
-      pageSize: 10,
-      totalPages: 0
-    };
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status);
+    if (params?.orderNo) query.set('orderNo', params.orderNo);
+    if (params?.userPhone) query.set('userPhone', params.userPhone);
+    if (params?.startDate) query.set('startDate', params.startDate);
+    if (params?.endDate) query.set('endDate', params.endDate);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
+    return request(`/admin/orders?${query.toString()}`);
   },
 
   getOrderById: async (id: string): Promise<AdoptionOrder> => {
-    await delay(300);
-    return {} as AdoptionOrder;
+    return request(`/admin/orders/${id}`);
   },
 
   // ==================== 饲料费管理 ====================
   getFeedBills: async (params?: { status?: string; billNo?: string; userPhone?: string; isOverdue?: number; startDate?: string; endDate?: string; page?: number; pageSize?: number }): Promise<PaginatedResponse<FeedBill>> => {
-    await delay(500);
-    return {
-      list: [],
-      total: 0,
-      page: 1,
-      pageSize: 10,
-      totalPages: 0
-    };
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status);
+    if (params?.billNo) query.set('billNo', params.billNo);
+    if (params?.userPhone) query.set('userPhone', params.userPhone);
+    if (params?.isOverdue !== undefined) query.set('isOverdue', params.isOverdue.toString());
+    if (params?.startDate) query.set('startDate', params.startDate);
+    if (params?.endDate) query.set('endDate', params.endDate);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
+    return request(`/admin/feed-bills?${query.toString()}`);
   },
 
   adjustFeedBill: async (id: string, data: { adjustedAmount: number; reason: string }): Promise<FeedBill> => {
-    await delay(300);
-    return {} as FeedBill;
+    return request(`/admin/feed-bills/${id}/adjust`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   },
 
   waiveFeedBill: async (id: string, reason: string): Promise<FeedBill> => {
-    await delay(300);
-    return {} as FeedBill;
+    return request(`/admin/feed-bills/${id}/waive`, {
+      method: 'PUT',
+      body: JSON.stringify({ reason }),
+    });
   },
 
   waiveLateFee: async (id: string, reason: string): Promise<FeedBill> => {
-    await delay(300);
-    return {} as FeedBill;
+    return request(`/admin/feed-bills/${id}/waive-late-fee`, {
+      method: 'PUT',
+      body: JSON.stringify({ reason }),
+    });
   },
 
   getExceptionAdoptions: async (params?: { page?: number; pageSize?: number }): Promise<PaginatedResponse<Adoption>> => {
-    await delay(500);
-    return {
-      list: [],
-      total: 0,
-      page: 1,
-      pageSize: 10,
-      totalPages: 0
-    };
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
+    return request(`/admin/adoptions/exception?${query.toString()}`);
   },
 
   resolveException: async (id: string, data: { action: 'contact' | 'terminate' | 'continue'; remark: string }): Promise<Adoption> => {
-    await delay(300);
-    return {} as Adoption;
+    return request(`/admin/adoptions/${id}/resolve`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   },
 
   // ==================== 买断管理 ====================
   getRedemptions: async (params?: { status?: string; type?: string; userPhone?: string; startDate?: string; endDate?: string; page?: number; pageSize?: number }): Promise<PaginatedResponse<RedemptionOrder>> => {
-    await delay(500);
-    return {
-      list: [],
-      total: 0,
-      page: 1,
-      pageSize: 10,
-      totalPages: 0
-    };
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status);
+    if (params?.type) query.set('type', params.type);
+    if (params?.userPhone) query.set('userPhone', params.userPhone);
+    if (params?.startDate) query.set('startDate', params.startDate);
+    if (params?.endDate) query.set('endDate', params.endDate);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
+    return request(`/admin/redemptions?${query.toString()}`);
   },
 
   getRedemptionById: async (id: string): Promise<RedemptionOrder> => {
-    await delay(300);
-    return {} as RedemptionOrder;
+    return request(`/admin/redemptions/${id}`);
   },
 
   auditRedemption: async (id: string, data: { approved: boolean; adjustedAmount?: number; remark?: string }): Promise<RedemptionOrder> => {
-    await delay(300);
-    return {} as RedemptionOrder;
+    return request(`/admin/redemptions/${id}/audit`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   },
 
   // ==================== 退款管理 ====================
   getRefunds: async (params?: { status?: string; refundNo?: string; userPhone?: string; orderType?: string; startDate?: string; endDate?: string; page?: number; pageSize?: number }): Promise<PaginatedResponse<RefundOrder>> => {
-    await delay(500);
-    return {
-      list: [],
-      total: 0,
-      page: 1,
-      pageSize: 10,
-      totalPages: 0
-    };
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status);
+    if (params?.refundNo) query.set('refundNo', params.refundNo);
+    if (params?.userPhone) query.set('userPhone', params.userPhone);
+    if (params?.orderType) query.set('orderType', params.orderType);
+    if (params?.startDate) query.set('startDate', params.startDate);
+    if (params?.endDate) query.set('endDate', params.endDate);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
+    return request(`/admin/refunds?${query.toString()}`);
   },
 
   getRefundById: async (id: string): Promise<RefundOrder> => {
-    await delay(300);
-    return {} as RefundOrder;
+    return request(`/admin/refunds/${id}`);
   },
 
   auditRefund: async (id: string, data: { approved: boolean; remark?: string }): Promise<RefundOrder> => {
-    await delay(300);
-    return {} as RefundOrder;
+    return request(`/admin/refunds/${id}/audit`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   },
 
   manualRefund: async (data: { orderType: string; orderId: string; refundAmount: number; refundLivestock: 'yes' | 'no'; reason: string; confirmPassword: string }): Promise<RefundOrder> => {
-    await delay(500);
-    return {} as RefundOrder;
+    return request('/admin/refunds/manual', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   // ==================== 用户管理 ====================
   getUsers: async (params?: { status?: string; keyword?: string; startDate?: string; endDate?: string; page?: number; pageSize?: number }): Promise<PaginatedResponse<User>> => {
-    await delay(500);
-    return {
-      list: [],
-      total: 0,
-      page: 1,
-      pageSize: 10,
-      totalPages: 0
-    };
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status);
+    if (params?.keyword) query.set('keyword', params.keyword);
+    if (params?.startDate) query.set('startDate', params.startDate);
+    if (params?.endDate) query.set('endDate', params.endDate);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
+    return request(`/admin/users?${query.toString()}`);
   },
 
   getUserById: async (id: string): Promise<User> => {
-    await delay(300);
-    return {} as User;
+    return request(`/admin/users/${id}`);
   },
 
   getUserAdoptions: async (id: string): Promise<Adoption[]> => {
-    await delay(300);
-    return [];
+    return request(`/admin/users/${id}/adoptions`);
   },
 
   getUserOrders: async (id: string): Promise<AdoptionOrder[]> => {
-    await delay(300);
-    return [];
+    return request(`/admin/users/${id}/orders`);
   },
 
   getUserBalanceLogs: async (id: string): Promise<BalanceLog[]> => {
-    await delay(300);
-    return [];
+    return request(`/admin/users/${id}/balance-logs`);
   },
 
   adjustUserBalance: async (id: string, data: { amount: number; reason: string; confirmPassword: string }): Promise<User> => {
-    await delay(300);
-    return {} as User;
+    return request(`/admin/users/${id}/balance`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   },
 
   updateUserStatus: async (id: string, data: { status: 'normal' | 'restricted' | 'banned'; reason: string }): Promise<User> => {
-    await delay(300);
-    return {} as User;
+    return request(`/admin/users/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   },
 
   // ==================== 消息管理 ====================
   getNotifications: async (params?: { type?: string; page?: number; pageSize?: number }): Promise<PaginatedResponse<Notification>> => {
-    await delay(500);
-    return {
-      list: [],
-      total: 0,
-      page: 1,
-      pageSize: 10,
-      totalPages: 0
-    };
+    const query = new URLSearchParams();
+    if (params?.type) query.set('type', params.type);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
+    return request(`/admin/notifications?${query.toString()}`);
   },
 
   sendNotification: async (data: { userIds?: string[]; title: string; content: string; type: string }): Promise<{ success: boolean; sendCount: number }> => {
-    await delay(500);
-    return { success: true, sendCount: data.userIds?.length || 100 };
+    return request('/admin/notifications/send', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   // ==================== 系统配置 ====================
   getConfigs: async (configType?: string): Promise<SystemConfig[]> => {
-    await delay(300);
-    return [
-      { id: '1', configKey: 'alipay_config', configValue: {}, configType: 'payment', description: '支付宝H5配置', isEncrypted: true },
-      { id: '2', configKey: 'wechat_pay_config', configValue: {}, configType: 'payment', description: '微信H5支付配置', isEncrypted: true },
-      { id: '3', configKey: 'wechat_login_config', configValue: { enabled: false }, configType: 'payment', description: '微信登录配置', isEncrypted: true },
-      { id: '4', configKey: 'aliyun_sms_config', configValue: {}, configType: 'sms', description: '阿里云短信配置', isEncrypted: true },
-      { id: '5', configKey: 'order_config', configValue: { expireMinutes: 15, feedBillAdvanceDays: 5, lateFeeStartDays: 3, exceptionDays: 7 }, configType: 'business', description: '订单配置', isEncrypted: false },
-      { id: '6', configKey: 'late_fee_config', configValue: { rate: 0.001, capRate: 0.5 }, configType: 'business', description: '滞纳金配置', isEncrypted: false },
-      { id: '7', configKey: 'platform_config', configValue: { name: '云端牧场', customerServicePhone: '', customerServiceHours: '9:00-21:00' }, configType: 'other', description: '平台基础配置', isEncrypted: false }
-    ];
+    const query = configType ? `?configType=${configType}` : '';
+    return request(`/admin/configs${query}`);
   },
 
   updateConfig: async (key: string, value: any): Promise<SystemConfig> => {
-    await delay(300);
-    return {} as SystemConfig;
+    return request(`/admin/configs/${key}`, {
+      method: 'PUT',
+      body: JSON.stringify({ value }),
+    });
   },
 
   testPayment: async (type: 'alipay' | 'wechat'): Promise<{ success: boolean; message: string }> => {
-    await delay(1000);
-    return { success: true, message: '配置测试成功' };
+    return request(`/admin/configs/test-payment/${type}`, { method: 'POST' });
   },
 
   testSms: async (phone: string): Promise<{ success: boolean; message: string }> => {
-    await delay(1000);
-    return { success: true, message: '短信发送成功' };
+    return request('/admin/configs/test-sms', {
+      method: 'POST',
+      body: JSON.stringify({ phone }),
+    });
   },
 
   // ==================== 管理员管理 ====================
   getAdmins: async (params?: { status?: string; keyword?: string; page?: number; pageSize?: number }): Promise<PaginatedResponse<Admin>> => {
-    await delay(500);
-    return {
-      list: [
-        { id: '1', username: 'admin', name: '超级管理员', role: 'super_admin', status: 'enabled', createdAt: '2026-01-01T00:00:00Z' }
-      ],
-      total: 1,
-      page: 1,
-      pageSize: 10,
-      totalPages: 1
-    };
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status);
+    if (params?.keyword) query.set('keyword', params.keyword);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
+    return request(`/admin/admins?${query.toString()}`);
   },
 
   createAdmin: async (data: { username: string; password: string; name: string; phone?: string; role: 'super_admin' | 'admin' }): Promise<Admin> => {
-    await delay(300);
-    return { id: Date.now().toString(), ...data, status: 'enabled', createdAt: new Date().toISOString() } as Admin;
+    return request('/admin/admins', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   updateAdmin: async (id: string, data: Partial<Admin>): Promise<Admin> => {
-    await delay(300);
-    return { id, ...data } as Admin;
+    return request(`/admin/admins/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   },
 
   resetAdminPassword: async (id: string, newPassword: string): Promise<{ success: boolean }> => {
-    await delay(300);
-    return { success: true };
+    return request(`/admin/admins/${id}/reset-password`, {
+      method: 'PUT',
+      body: JSON.stringify({ newPassword }),
+    });
   },
 
   updateAdminStatus: async (id: string, status: 'enabled' | 'disabled'): Promise<Admin> => {
-    await delay(300);
-    return { id, status } as Admin;
+    return request(`/admin/admins/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
   },
 
   // ==================== 审计日志 ====================
   getAuditLogs: async (params?: { adminId?: string; module?: string; action?: string; isSensitive?: number; startDate?: string; endDate?: string; page?: number; pageSize?: number }): Promise<PaginatedResponse<AuditLog>> => {
-    await delay(500);
-    return {
-      list: [],
-      total: 0,
-      page: 1,
-      pageSize: 10,
-      totalPages: 0
-    };
+    const query = new URLSearchParams();
+    if (params?.adminId) query.set('adminId', params.adminId);
+    if (params?.module) query.set('module', params.module);
+    if (params?.action) query.set('action', params.action);
+    if (params?.isSensitive !== undefined) query.set('isSensitive', params.isSensitive.toString());
+    if (params?.startDate) query.set('startDate', params.startDate);
+    if (params?.endDate) query.set('endDate', params.endDate);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
+    return request(`/admin/audit-logs?${query.toString()}`);
   },
 
   getAuditLogById: async (id: string): Promise<AuditLog> => {
-    await delay(300);
-    return {} as AuditLog;
+    return request(`/admin/audit-logs/${id}`);
   }
 };
