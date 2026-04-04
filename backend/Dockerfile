@@ -4,6 +4,9 @@
 # 阶段1: 构建阶段
 FROM node:lts-alpine AS builder
 
+# 使用阿里云镜像源
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+
 WORKDIR /app
 
 # 安装构建工具（某些依赖需要编译）
@@ -12,8 +15,8 @@ RUN apk add --no-cache python3 make g++
 # 复制package文件
 COPY package*.json ./
 
-# 安装所有依赖（包括devDependencies用于构建）
-RUN npm ci
+# 使用淘宝npm镜像加速
+RUN npm config set registry https://registry.npmmirror.com && npm ci
 
 # 复制源代码
 COPY . .
@@ -26,6 +29,9 @@ RUN npm prune --production
 
 # 阶段2: 生产阶段
 FROM node:lts-alpine AS production
+
+# 使用阿里云镜像源
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
 WORKDIR /app
 
