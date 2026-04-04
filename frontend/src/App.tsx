@@ -363,6 +363,13 @@ const TabBar: React.FC = () => {
             <Icons.Package className="w-6 h-6" />
             <span className="text-[10px] font-bold tracking-wider uppercase">牧场</span>
           </Link>
+          <Link to="/notifications" className={cn("flex flex-col items-center gap-1.5 transition-all duration-300", isActive('/notifications') ? "text-white scale-110" : "text-white/40 hover:text-white/60")}>
+            <div className="relative">
+              <Icons.Bell className="w-6 h-6" />
+              <NotificationBadge />
+            </div>
+            <span className="text-[10px] font-bold tracking-wider uppercase">消息</span>
+          </Link>
           <Link to="/profile" className={cn("flex flex-col items-center gap-1.5 transition-all duration-300", isActive('/profile') ? "text-white scale-110" : "text-white/40 hover:text-white/60")}>
             <Icons.User className="w-6 h-6" />
             <span className="text-[10px] font-bold tracking-wider uppercase">我的</span>

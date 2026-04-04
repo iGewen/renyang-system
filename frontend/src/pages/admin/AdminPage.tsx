@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { adminApi } from '../../services/api';
-import type { Livestock, LivestockType, AdoptionOrder, FeedBill, User, DashboardStats, SystemConfig } from '../../types';
+import type { Livestock, LivestockType, AdoptionOrder, FeedBill, User, DashboardStats, SystemConfig, AuditLog } from '../../types';
 
 // ==================== 后台管理布局 ====================
 
@@ -23,6 +23,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, activeMenu, onMenuC
     { id: 'feed', label: '饲料费管理', icon: Icons.Coins },
     { id: 'redemption', label: '买断管理', icon: Icons.CheckCircle2 },
     { id: 'users', label: '用户管理', icon: Icons.Users },
+    { id: 'logs', label: '审计日志', icon: Icons.FileText },
     { id: 'config', label: '系统配置', icon: Icons.Settings }
   ];
 
@@ -862,6 +863,96 @@ export const AdminConfig: React.FC = () => {
   );
 };
 
+// ==================== 审计日志 ====================
+
+export const AdminAuditLogs: React.FC = () => {
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [moduleFilter, setModuleFilter] = useState('');
+
+  useEffect(() => {
+    adminApi.getAuditLogs({ module: moduleFilter || undefined })
+      .then(res => setLogs(res.list || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [moduleFilter]);
+
+  const moduleMap: Record<string, { label: string; color: string }> = {
+    admin: { label: '管理员', color: 'bg-purple-100 text-purple-600' },
+    user: { label: '用户', color: 'bg-blue-100 text-blue-600' },
+    livestock: { label: '活体', color: 'bg-green-100 text-green-600' },
+    order: { label: '订单', color: 'bg-orange-100 text-orange-600' },
+    feed_bill: { label: '饲料费', color: 'bg-cyan-100 text-cyan-600' },
+    redemption: { label: '买断', color: 'bg-pink-100 text-pink-600' },
+    refund: { label: '退款', color: 'bg-red-100 text-red-600' },
+    config: { label: '配置', color: 'bg-slate-100 text-slate-600' },
+  };
+
+  if (loading) return <LoadingSpinner />;
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-slate-900">审计日志</h2>
+        <div className="flex gap-2">
+          {['', 'admin', 'user', 'livestock', 'order', 'feed_bill', 'redemption', 'refund', 'config'].map(module => (
+            <button
+              key={module}
+              onClick={() => setModuleFilter(module)}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+                moduleFilter === module ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              )}
+            >
+              {module === '' ? '全部' : moduleMap[module]?.label || module}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <Card className="p-6">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-100">
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">时间</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">操作人</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">模块</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">操作</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">IP</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">敏感</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map(log => (
+                <tr key={log.id} className="border-b border-slate-50">
+                  <td className="py-3 px-4 text-sm text-slate-500">{new Date(log.createdAt).toLocaleString()}</td>
+                  <td className="py-3 px-4">{log.adminName || '-'}</td>
+                  <td className="py-3 px-4">
+                    <span className={cn('px-2 py-1 rounded text-xs font-medium', moduleMap[log.module]?.color || 'bg-slate-100 text-slate-600')}>
+                      {moduleMap[log.module]?.label || log.module}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 text-sm">{log.action}</td>
+                  <td className="py-3 px-4 text-sm text-slate-500 font-mono">{log.ip}</td>
+                  <td className="py-3 px-4">
+                    {log.isSensitive ? (
+                      <span className="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-600">敏感</span>
+                    ) : (
+                      <span className="px-2 py-1 rounded text-xs font-medium bg-slate-100 text-slate-500">普通</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {logs.length === 0 && <EmptyState icon={<Icons.FileText className="w-12 h-12" />} title="暂无审计日志" />}
+        </div>
+      </Card>
+    </div>
+  );
+};
+
 // ==================== 后台管理主页面 ====================
 
 interface AdminPageProps {
@@ -917,6 +1008,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ activeMenu: initialMenu }) => {
         return <AdminRedemptions />;
       case 'users':
         return <AdminUsers />;
+      case 'logs':
+        return <AdminAuditLogs />;
       case 'config':
         return <AdminConfig />;
       default:
@@ -935,6 +1028,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ activeMenu: initialMenu }) => {
             {activeMenu === 'feed' && '饲料费管理'}
             {activeMenu === 'redemption' && '买断管理'}
             {activeMenu === 'users' && '用户管理'}
+            {activeMenu === 'logs' && '审计日志'}
             {activeMenu === 'config' && '系统配置'}
           </h2>
           <div className="flex items-center gap-4">

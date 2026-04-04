@@ -18,11 +18,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    const { sub: userId, type } = payload;
+    const { sub: userId, username, type, role } = payload;
 
-    // 如果是管理员token，不验证用户
+    // 如果是管理员token，返回管理员信息
     if (type === 'admin') {
-      return { id: userId, type: 'admin' };
+      return { sub: userId, username, type: 'admin', role };
     }
 
     const user = await this.authService.validateUser(userId);
@@ -31,7 +31,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     return {
-      id: user.id,
+      sub: user.id,
       phone: user.phone,
       nickname: user.nickname,
       avatar: user.avatar,

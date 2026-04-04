@@ -59,6 +59,10 @@ import { AppLogger, LoggerMiddleware } from './common/logger';
         synchronize: false, // 生产环境关闭自动同步，避免数据冲突
         logging: configService.get('NODE_ENV') === 'development',
         charset: 'utf8mb4',
+        extra: {
+          charset: 'utf8mb4',
+          connectionLimit: 10,
+        },
       }),
       inject: [ConfigService],
     }),
@@ -125,6 +129,11 @@ export class AppModule implements NestModule, OnModuleInit {
 
   private async initializeAdmin() {
     try {
+      // 先尝试修复已有管理员的名称编码问题
+      await this.dataSource.query(
+        "UPDATE admins SET name = '超级管理员' WHERE username = 'admin' AND name != '超级管理员'"
+      );
+
       const result = await this.dataSource.query(
         'SELECT COUNT(*) as count FROM admins WHERE username = ?',
         ['admin']

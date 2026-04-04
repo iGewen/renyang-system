@@ -4,7 +4,7 @@ import { SmsService } from './sms.service';
 import { WechatService } from './wechat.service';
 import { AlipayService } from './alipay.service';
 import { WechatPayService } from './wechat-pay.service';
-import { User, SmsCode } from '@/entities';
+import { User, SmsCode, SystemConfig } from '@/entities';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RedisService } from '@/common/utils/redis.service';
@@ -12,7 +12,7 @@ import { RedisService } from '@/common/utils/redis.service';
 @Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, SmsCode]),
+    TypeOrmModule.forFeature([User, SmsCode, SystemConfig]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

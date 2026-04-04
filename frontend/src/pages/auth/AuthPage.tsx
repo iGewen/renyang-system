@@ -167,7 +167,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
         {/* 头部 */}
         <div className="p-6">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/')}
             className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center"
           >
             <Icons.ArrowLeft className="w-5 h-5 text-brand-primary" />

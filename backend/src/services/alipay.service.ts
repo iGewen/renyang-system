@@ -1,7 +1,10 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { RedisService } from '@/common/utils/redis.service';
 import { CryptoUtil } from '@/common/utils/crypto.util';
+import { SystemConfig } from '@/entities';
 import * as crypto from 'crypto';
 
 /**
@@ -10,9 +13,6 @@ import * as crypto from 'crypto';
  */
 @Injectable()
 export class AlipayService {
-  private appId: string;
-  private privateKey: string;
-  private alipayPublicKey: string;
   private notifyUrl: string;
   private returnUrl: string;
   private gateway: string = 'https://openapi.alipay.com/gateway.do';
@@ -20,12 +20,33 @@ export class AlipayService {
   constructor(
     private configService: ConfigService,
     private redisService: RedisService,
+    @InjectRepository(SystemConfig)
+    private configRepository: Repository<SystemConfig>,
   ) {
-    this.appId = this.configService.get('alipay.appId') || '';
-    this.privateKey = this.configService.get('alipay.privateKey') || '';
-    this.alipayPublicKey = this.configService.get('alipay.alipayPublicKey') || '';
     this.notifyUrl = this.configService.get('alipay.notifyUrl') || '';
     this.returnUrl = this.configService.get('alipay.returnUrl') || '';
+  }
+
+  /**
+   * 从数据库获取配置
+   */
+  private async getConfig(key: string): Promise<string> {
+    // 先从缓存获取
+    const cacheKey = `config:${key}`;
+    const cached = await this.redisService.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    // 从数据库获取
+    const config = await this.configRepository.findOne({
+      where: { configKey: key },
+    });
+
+    const value = config?.configValue || '';
+    // 缓存5分钟
+    await this.redisService.set(cacheKey, value, 300);
+    return value;
   }
 
   /**
@@ -37,8 +58,13 @@ export class AlipayService {
     subject: string,
     body?: string,
   ): Promise<{ payUrl: string }> {
+    // 从数据库获取配置
+    const appId = await this.getConfig('alipay_app_id');
+    const privateKey = await this.getConfig('alipay_private_key');
+    const alipayPublicKey = await this.getConfig('alipay_public_key');
+
     // 如果没有配置支付宝，返回模拟支付URL
-    if (!this.appId || !this.privateKey) {
+    if (!appId || !privateKey) {
       console.log(`[Alipay] 模拟支付 - 订单号: ${outTradeNo}, 金额: ${totalAmount}`);
       const mockPayUrl = `${this.configService.get('app.url') || 'http://localhost:3001'}/api/payments/alipay/mock?outTradeNo=${outTradeNo}`;
       return { payUrl: mockPayUrl };
@@ -53,7 +79,7 @@ export class AlipayService {
     };
 
     const params: Record<string, string> = {
-      app_id: this.appId,
+      app_id: appId,
       method: 'alipay.trade.wap.pay',
       format: 'JSON',
       return_url: this.returnUrl,
@@ -66,7 +92,7 @@ export class AlipayService {
     };
 
     // 签名
-    params.sign = this.sign(params);
+    params.sign = this.sign(params, privateKey);
 
     // 构建支付URL
     const payUrl = `${this.gateway}?${this.buildQueryString(params)}`;
@@ -77,8 +103,10 @@ export class AlipayService {
   /**
    * 验证回调签名
    */
-  verifyNotify(params: Record<string, string>): boolean {
-    if (!this.alipayPublicKey) {
+  async verifyNotify(params: Record<string, string>): Promise<boolean> {
+    const alipayPublicKey = await this.getConfig('alipay_public_key');
+
+    if (!alipayPublicKey) {
       console.log('[Alipay] 模拟环境，跳过验签');
       return true;
     }
@@ -101,7 +129,7 @@ export class AlipayService {
       verify.update(signData);
 
       // 格式化公钥
-      const publicKey = this.formatPublicKey(this.alipayPublicKey);
+      const publicKey = this.formatPublicKey(alipayPublicKey);
 
       return verify.verify(publicKey, sign, 'base64');
     } catch (error) {
@@ -114,7 +142,10 @@ export class AlipayService {
    * 查询订单
    */
   async queryOrder(outTradeNo: string): Promise<any> {
-    if (!this.appId || !this.privateKey) {
+    const appId = await this.getConfig('alipay_app_id');
+    const privateKey = await this.getConfig('alipay_private_key');
+
+    if (!appId || !privateKey) {
       console.log(`[Alipay] 模拟查询订单 - 订单号: ${outTradeNo}`);
       return { trade_status: 'TRADE_SUCCESS' };
     }
@@ -124,7 +155,7 @@ export class AlipayService {
     };
 
     const params: Record<string, string> = {
-      app_id: this.appId,
+      app_id: appId,
       method: 'alipay.trade.query',
       format: 'JSON',
       charset: 'utf-8',
@@ -134,7 +165,7 @@ export class AlipayService {
       biz_content: JSON.stringify(bizContent),
     };
 
-    params.sign = this.sign(params);
+    params.sign = this.sign(params, privateKey);
 
     const response = await fetch(this.gateway, {
       method: 'POST',
@@ -152,7 +183,10 @@ export class AlipayService {
    * 关闭订单
    */
   async closeOrder(outTradeNo: string): Promise<boolean> {
-    if (!this.appId || !this.privateKey) {
+    const appId = await this.getConfig('alipay_app_id');
+    const privateKey = await this.getConfig('alipay_private_key');
+
+    if (!appId || !privateKey) {
       console.log(`[Alipay] 模拟关闭订单 - 订单号: ${outTradeNo}`);
       return true;
     }
@@ -162,7 +196,7 @@ export class AlipayService {
     };
 
     const params: Record<string, string> = {
-      app_id: this.appId,
+      app_id: appId,
       method: 'alipay.trade.close',
       format: 'JSON',
       charset: 'utf-8',
@@ -172,7 +206,7 @@ export class AlipayService {
       biz_content: JSON.stringify(bizContent),
     };
 
-    params.sign = this.sign(params);
+    params.sign = this.sign(params, privateKey);
 
     const response = await fetch(this.gateway, {
       method: 'POST',
@@ -194,7 +228,10 @@ export class AlipayService {
     refundAmount: number,
     refundReason: string,
   ): Promise<{ success: boolean; refundNo?: string; message?: string }> {
-    if (!this.appId || !this.privateKey) {
+    const appId = await this.getConfig('alipay_app_id');
+    const privateKey = await this.getConfig('alipay_private_key');
+
+    if (!appId || !privateKey) {
       console.log(`[Alipay] 模拟退款 - 订单号: ${outTradeNo}, 金额: ${refundAmount}`);
       return { success: true, refundNo: `RFD${Date.now()}` };
     }
@@ -209,7 +246,7 @@ export class AlipayService {
     };
 
     const params: Record<string, string> = {
-      app_id: this.appId,
+      app_id: appId,
       method: 'alipay.trade.refund',
       format: 'JSON',
       charset: 'utf-8',
@@ -219,7 +256,7 @@ export class AlipayService {
       biz_content: JSON.stringify(bizContent),
     };
 
-    params.sign = this.sign(params);
+    params.sign = this.sign(params, privateKey);
 
     const response = await fetch(this.gateway, {
       method: 'POST',
@@ -244,7 +281,7 @@ export class AlipayService {
   /**
    * RSA签名
    */
-  private sign(params: Record<string, string>): string {
+  private sign(params: Record<string, string>, privateKey: string): string {
     // 移除sign字段
     const { sign: _, ...data } = params;
 
@@ -256,11 +293,11 @@ export class AlipayService {
       .join('&');
 
     // 使用私钥签名
-    const privateKey = this.formatPrivateKey(this.privateKey);
+    const formattedKey = this.formatPrivateKey(privateKey);
     const signer = crypto.createSign('RSA-SHA256');
     signer.update(signData);
 
-    return signer.sign(privateKey, 'base64');
+    return signer.sign(formattedKey, 'base64');
   }
 
   /**
