@@ -11,6 +11,7 @@ const OrdersPage = lazy(() => import('./pages/order/OrdersPage'));
 const AdoptionDetailPage = lazy(() => import('./pages/adoption/AdoptionDetailPage'));
 const FeedBillDetailPage = lazy(() => import('./pages/feed-bill/FeedBillDetailPage'));
 const RedemptionPage = lazy(() => import('./pages/redemption/RedemptionPage'));
+const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
 
 // ==================== 认证上下文 ====================
 
@@ -1052,7 +1053,8 @@ const AdminLoginPage: React.FC = () => {
       const result = await adminApi.login({ username, password });
       localStorage.setItem('admin_token', result.token);
       localStorage.setItem('admin_info', JSON.stringify(result.admin));
-      navigate('/admin');
+      // 使用 window.location.href 强制刷新页面，避免白屏
+      window.location.href = '/admin';
     } catch (err: any) {
       setError(err.message || '登录失败');
     } finally {
@@ -1079,123 +1081,6 @@ const AdminLoginPage: React.FC = () => {
             <Button className="w-full" size="lg" onClick={handleLogin} loading={loading}>登录</Button>
           </div>
         </Card>
-      </div>
-    </PageTransition>
-  );
-};
-
-// ==================== 后台管理首页（简化版，完整版在 Admin.tsx） ====================
-
-const AdminDashboardPage: React.FC = () => {
-  const navigate = useNavigate();
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [activeMenu, setActiveMenu] = useState('dashboard');
-
-  useEffect(() => {
-    const token = localStorage.getItem('admin_token');
-    if (!token) { navigate('/admin-login'); return; }
-    adminApi.getDashboardStats().then(setStats).catch(() => {}).finally(() => setLoading(false));
-  }, [navigate]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('admin_info');
-    navigate('/admin-login');
-  };
-
-  const menuItems = [
-    { id: 'dashboard', label: '控制台', icon: Icons.LayoutDashboard },
-    { id: 'livestock', label: '活体管理', icon: Icons.Package },
-    { id: 'orders', label: '订单管理', icon: Icons.ShoppingCart },
-    { id: 'feed', label: '饲料费管理', icon: Icons.Coins },
-    { id: 'redemption', label: '买断管理', icon: Icons.CheckCircle2 },
-    { id: 'users', label: '用户管理', icon: Icons.Users },
-    { id: 'config', label: '系统配置', icon: Icons.Settings }
-  ];
-
-  if (loading) return <LoadingSpinner />;
-
-  return (
-    <PageTransition>
-      <div className="min-h-screen bg-slate-50 flex">
-        <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-100 flex flex-col">
-          <div className="h-16 flex items-center px-6 border-b border-slate-100">
-            <div className="w-8 h-8 bg-brand-primary rounded-xl flex items-center justify-center mr-3"><Icons.LayoutDashboard className="w-4 h-4 text-white" /></div>
-            <h1 className="text-xl font-display font-bold text-brand-primary">牧场管理后台</h1>
-          </div>
-          <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
-            {menuItems.map(item => (
-              <button
-                key={item.id}
-                onClick={() => setActiveMenu(item.id)}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
-                  activeMenu === item.id
-                    ? "bg-brand-primary text-white shadow-md shadow-brand-primary/20"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                )}
-              >
-                <item.icon className="w-5 h-5" />{item.label}
-              </button>
-            ))}
-          </div>
-          <div className="p-4 border-t border-slate-100">
-            <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors">
-              <Icons.LogOut className="w-5 h-5" />退出登录
-            </button>
-          </div>
-        </aside>
-        <main className="flex-1 flex flex-col min-w-0 overflow-hidden ml-64">
-          <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-6 z-30">
-            <h2 className="text-lg font-bold text-slate-900">{menuItems.find(m => m.id === activeMenu)?.label || '控制台'}</h2>
-            <div className="flex items-center gap-4">
-              <button className="p-2 text-slate-400 hover:bg-slate-50 rounded-full relative">
-                <Icons.Bell className="w-5 h-5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-              </button>
-              <div className="w-8 h-8 rounded-full bg-brand-accent/20 border border-brand-accent/30 flex items-center justify-center text-brand-accent font-bold text-sm">A</div>
-            </div>
-          </header>
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <StatCard title="今日收入" value={`¥${stats?.revenueToday?.toLocaleString() || 0}`} icon={<Icons.DollarSign className="w-6 h-6" />} />
-              <StatCard title="今日订单" value={stats?.orderToday || 0} icon={<Icons.ShoppingCart className="w-6 h-6" />} />
-              <StatCard title="总用户数" value={stats?.userTotal?.toLocaleString() || 0} icon={<Icons.Users className="w-6 h-6" />} />
-              <StatCard title="待处理事项" value={(stats?.pendingOrders || 0) + (stats?.pendingRedemptions || 0) + (stats?.exceptionAdoptions || 0)} icon={<Icons.AlertTriangle className="w-6 h-6" />} />
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="p-6">
-                <h3 className="text-lg font-bold text-slate-900 mb-4">领养类型分布</h3>
-                <div className="space-y-3">
-                  {stats?.adoptionByType?.map((item: any) => (
-                    <div key={item.typeId} className="flex items-center justify-between">
-                      <span className="text-sm text-slate-600">{item.typeName}</span>
-                      <span className="text-sm font-bold text-brand-primary">{item.count}</span>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-              <Card className="p-6">
-                <h3 className="text-lg font-bold text-slate-900 mb-4">待处理事项</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-orange-50 rounded-xl">
-                    <span className="text-sm text-slate-600">待支付订单</span>
-                    <span className="text-sm font-bold text-orange-600">{stats?.pendingOrders || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl">
-                    <span className="text-sm text-slate-600">待审核买断</span>
-                    <span className="text-sm font-bold text-blue-600">{stats?.pendingRedemptions || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-red-50 rounded-xl">
-                    <span className="text-sm text-slate-600">异常领养</span>
-                    <span className="text-sm font-bold text-red-600">{stats?.exceptionAdoptions || 0}</span>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </div>
-        </main>
       </div>
     </PageTransition>
   );
@@ -1251,7 +1136,7 @@ export default function App() {
               <Route path="/adoption/:id/redemption" element={<Suspense fallback={<LoadingSpinner />}><RedemptionPage /></Suspense>} />
               <Route path="/feed-bill/:id" element={<Suspense fallback={<LoadingSpinner />}><FeedBillDetailPage /></Suspense>} />
               <Route path="/admin-login" element={<AdminLoginPage />} />
-              <Route path="/admin" element={<AdminDashboardPage />} />
+              <Route path="/admin" element={<Suspense fallback={<LoadingSpinner />}><AdminPage /></Suspense>} />
             </Routes>
           </AnimatePresence>
         </div>
