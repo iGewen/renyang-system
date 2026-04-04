@@ -604,14 +604,14 @@ export const adminApi = {
 
   // ==================== 系统配置 ====================
   getConfigs: async (configType?: string): Promise<SystemConfig[]> => {
-    const query = configType ? `?configType=${configType}` : '';
-    return request(`/admin/configs${query}`);
+    const query = configType ? `?type=${configType}` : '';
+    return request(`/admin/system-config${query}`);
   },
 
   updateConfig: async (key: string, value: any): Promise<SystemConfig> => {
-    return request(`/admin/configs/${key}`, {
-      method: 'PUT',
-      body: JSON.stringify({ value }),
+    return request(`/admin/system-config`, {
+      method: 'POST',
+      body: JSON.stringify({ key, value }),
     });
   },
 

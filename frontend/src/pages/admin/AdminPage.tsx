@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { adminApi } from '../../services/api';
-import type { Livestock, LivestockType, AdoptionOrder, FeedBill, User, DashboardStats } from '../../types';
+import type { Livestock, LivestockType, AdoptionOrder, FeedBill, User, DashboardStats, SystemConfig } from '../../types';
 
 // ==================== 后台管理布局 ====================
 
@@ -150,7 +150,6 @@ export const AdminLivestock: React.FC = () => {
   const [editingType, setEditingType] = useState<LivestockType | null>(null);
   const [editingLivestock, setEditingLivestock] = useState<Livestock | null>(null);
 
-  // 表单状态
   const [typeForm, setTypeForm] = useState({ name: '', description: '' });
   const [livestockForm, setLivestockForm] = useState({
     name: '', typeId: '', price: '', monthlyFeedFee: '', redemptionMonths: '12', stock: '', description: '', image: ''
@@ -242,7 +241,6 @@ export const AdminLivestock: React.FC = () => {
         </div>
       </div>
 
-      {/* 类型列表 */}
       <Card className="p-6 mb-6">
         <h3 className="text-lg font-bold text-slate-900 mb-4">活体类型</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -261,7 +259,6 @@ export const AdminLivestock: React.FC = () => {
         </div>
       </Card>
 
-      {/* 活体列表 */}
       <Card className="p-6">
         <h3 className="text-lg font-bold text-slate-900 mb-4">活体列表</h3>
         <div className="overflow-x-auto">
@@ -301,7 +298,6 @@ export const AdminLivestock: React.FC = () => {
         </div>
       </Card>
 
-      {/* 类型弹窗 */}
       <Modal open={showTypeModal} onClose={() => setShowTypeModal(false)} title={editingType ? '编辑类型' : '添加类型'}>
         <div className="space-y-4 p-6">
           <Input label="类型名称" value={typeForm.name} onChange={e => setTypeForm({ ...typeForm, name: e.target.value })} placeholder="请输入类型名称" />
@@ -313,7 +309,6 @@ export const AdminLivestock: React.FC = () => {
         </div>
       </Modal>
 
-      {/* 活体弹窗 */}
       <Modal open={showLivestockModal} onClose={() => setShowLivestockModal(false)} title={editingLivestock ? '编辑活体' : '添加活体'}>
         <div className="space-y-4 p-6 max-h-[70vh] overflow-y-auto">
           <Input label="名称" value={livestockForm.name} onChange={e => setLivestockForm({ ...livestockForm, name: e.target.value })} placeholder="请输入活体名称" />
@@ -468,7 +463,7 @@ export const AdminFeedBills: React.FC = () => {
                   <td className="py-3 px-4 font-mono text-sm">{bill.billNo}</td>
                   <td className="py-3 px-4">{bill.adoption?.user?.phone || '-'}</td>
                   <td className="py-3 px-4">¥{bill.amount}</td>
-                  <td className="py-3 px-4">¥{bill.lateFee || 0}</td>
+                  <td className="py-3 px-4">¥{bill.lateFeeAmount || 0}</td>
                   <td className="py-3 px-4">
                     <Badge variant={statusMap[bill.status]?.variant || 'default'}>{statusMap[bill.status]?.label || bill.status}</Badge>
                   </td>
@@ -640,12 +635,229 @@ export const AdminUsers: React.FC = () => {
 // ==================== 系统配置 ====================
 
 export const AdminConfig: React.FC = () => {
+  const [configs, setConfigs] = useState<SystemConfig[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<'basic' | 'payment' | 'sms'>('basic');
+
+  // 配置表单
+  const [basicConfig, setBasicConfig] = useState({
+    siteName: '',
+    siteTitle: '',
+    siteDescription: '',
+    siteKeywords: '',
+    contactPhone: '',
+    contactEmail: '',
+  });
+
+  const [paymentConfig, setPaymentConfig] = useState({
+    alipayAppId: '',
+    alipayPrivateKey: '',
+    alipayPublicKey: '',
+    wechatAppId: '',
+    wechatMchId: '',
+    wechatPayKey: '',
+  });
+
+  const [smsConfig, setSmsConfig] = useState({
+    aliyunAccessKeyId: '',
+    aliyunAccessKeySecret: '',
+    aliyunSignName: '',
+    aliyunTemplateCode: '',
+  });
+
+  useEffect(() => {
+    loadConfigs();
+  }, []);
+
+  const loadConfigs = async () => {
+    try {
+      const res = await adminApi.getConfigs();
+      setConfigs(res);
+
+      // 解析配置到表单
+      res.forEach((config: SystemConfig) => {
+        if (config.configType === 'basic') {
+          if (config.configKey === 'site_name') setBasicConfig(prev => ({ ...prev, siteName: config.configValue }));
+          if (config.configKey === 'site_title') setBasicConfig(prev => ({ ...prev, siteTitle: config.configValue }));
+          if (config.configKey === 'site_description') setBasicConfig(prev => ({ ...prev, siteDescription: config.configValue }));
+          if (config.configKey === 'site_keywords') setBasicConfig(prev => ({ ...prev, siteKeywords: config.configValue }));
+          if (config.configKey === 'contact_phone') setBasicConfig(prev => ({ ...prev, contactPhone: config.configValue }));
+          if (config.configKey === 'contact_email') setBasicConfig(prev => ({ ...prev, contactEmail: config.configValue }));
+        }
+        if (config.configType === 'payment') {
+          if (config.configKey === 'alipay_app_id') setPaymentConfig(prev => ({ ...prev, alipayAppId: config.configValue }));
+          if (config.configKey === 'alipay_private_key') setPaymentConfig(prev => ({ ...prev, alipayPrivateKey: config.configValue }));
+          if (config.configKey === 'alipay_public_key') setPaymentConfig(prev => ({ ...prev, alipayPublicKey: config.configValue }));
+          if (config.configKey === 'wechat_app_id') setPaymentConfig(prev => ({ ...prev, wechatAppId: config.configValue }));
+          if (config.configKey === 'wechat_mch_id') setPaymentConfig(prev => ({ ...prev, wechatMchId: config.configValue }));
+          if (config.configKey === 'wechat_pay_key') setPaymentConfig(prev => ({ ...prev, wechatPayKey: config.configValue }));
+        }
+        if (config.configType === 'sms') {
+          if (config.configKey === 'aliyun_access_key_id') setSmsConfig(prev => ({ ...prev, aliyunAccessKeyId: config.configValue }));
+          if (config.configKey === 'aliyun_access_key_secret') setSmsConfig(prev => ({ ...prev, aliyunAccessKeySecret: config.configValue }));
+          if (config.configKey === 'aliyun_sign_name') setSmsConfig(prev => ({ ...prev, aliyunSignName: config.configValue }));
+          if (config.configKey === 'aliyun_template_code') setSmsConfig(prev => ({ ...prev, aliyunTemplateCode: config.configValue }));
+        }
+      });
+    } catch (error) {
+      console.error('加载配置失败', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveBasic = async () => {
+    setSaving(true);
+    try {
+      await Promise.all([
+        adminApi.updateConfig('site_name', basicConfig.siteName),
+        adminApi.updateConfig('site_title', basicConfig.siteTitle),
+        adminApi.updateConfig('site_description', basicConfig.siteDescription),
+        adminApi.updateConfig('site_keywords', basicConfig.siteKeywords),
+        adminApi.updateConfig('contact_phone', basicConfig.contactPhone),
+        adminApi.updateConfig('contact_email', basicConfig.contactEmail),
+      ]);
+      alert('保存成功');
+    } catch (error: any) {
+      alert(error.message || '保存失败');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSavePayment = async () => {
+    setSaving(true);
+    try {
+      await Promise.all([
+        adminApi.updateConfig('alipay_app_id', paymentConfig.alipayAppId),
+        adminApi.updateConfig('alipay_private_key', paymentConfig.alipayPrivateKey),
+        adminApi.updateConfig('alipay_public_key', paymentConfig.alipayPublicKey),
+        adminApi.updateConfig('wechat_app_id', paymentConfig.wechatAppId),
+        adminApi.updateConfig('wechat_mch_id', paymentConfig.wechatMchId),
+        adminApi.updateConfig('wechat_pay_key', paymentConfig.wechatPayKey),
+      ]);
+      alert('保存成功');
+    } catch (error: any) {
+      alert(error.message || '保存失败');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveSms = async () => {
+    setSaving(true);
+    try {
+      await Promise.all([
+        adminApi.updateConfig('aliyun_access_key_id', smsConfig.aliyunAccessKeyId),
+        adminApi.updateConfig('aliyun_access_key_secret', smsConfig.aliyunAccessKeySecret),
+        adminApi.updateConfig('aliyun_sign_name', smsConfig.aliyunSignName),
+        adminApi.updateConfig('aliyun_template_code', smsConfig.aliyunTemplateCode),
+      ]);
+      alert('保存成功');
+    } catch (error: any) {
+      alert(error.message || '保存失败');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <LoadingSpinner />;
+
+  const tabs = [
+    { id: 'basic', label: '基础配置', icon: Icons.Settings },
+    { id: 'payment', label: '支付配置', icon: Icons.CreditCard },
+    { id: 'sms', label: '短信配置', icon: Icons.MessageSquare },
+  ];
+
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold text-slate-900 mb-6">系统配置</h2>
-      <Card className="p-6">
-        <EmptyState icon={<Icons.Settings className="w-12 h-12" />} title="系统配置功能开发中" description="此功能正在开发中，敬请期待" />
-      </Card>
+
+      <div className="flex gap-4 mb-6">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+              activeTab === tab.id ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            )}
+          >
+            <tab.icon className="w-4 h-4" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'basic' && (
+        <Card className="p-6">
+          <h3 className="text-lg font-bold text-slate-900 mb-4">网站基础配置</h3>
+          <div className="space-y-4 max-w-2xl">
+            <Input label="网站名称" value={basicConfig.siteName} onChange={e => setBasicConfig({ ...basicConfig, siteName: e.target.value })} placeholder="云端牧场" />
+            <Input label="网站标题" value={basicConfig.siteTitle} onChange={e => setBasicConfig({ ...basicConfig, siteTitle: e.target.value })} placeholder="云端牧场 - 智慧农业领养平台" />
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">网站描述 (SEO)</label>
+              <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none" rows={3} value={basicConfig.siteDescription} onChange={e => setBasicConfig({ ...basicConfig, siteDescription: e.target.value })} placeholder="网站描述，用于SEO优化" />
+            </div>
+            <Input label="网站关键词 (SEO)" value={basicConfig.siteKeywords} onChange={e => setBasicConfig({ ...basicConfig, siteKeywords: e.target.value })} placeholder="云端牧场,智慧农业,活体领养" />
+            <Input label="联系电话" value={basicConfig.contactPhone} onChange={e => setBasicConfig({ ...basicConfig, contactPhone: e.target.value })} placeholder="400-xxx-xxxx" />
+            <Input label="联系邮箱" value={basicConfig.contactEmail} onChange={e => setBasicConfig({ ...basicConfig, contactEmail: e.target.value })} placeholder="contact@example.com" />
+            <div className="pt-4">
+              <Button onClick={handleSaveBasic} loading={saving}>保存配置</Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {activeTab === 'payment' && (
+        <div className="space-y-6">
+          <Card className="p-6">
+            <h3 className="text-lg font-bold text-slate-900 mb-4">支付宝支付配置</h3>
+            <div className="space-y-4 max-w-2xl">
+              <Input label="App ID" value={paymentConfig.alipayAppId} onChange={e => setPaymentConfig({ ...paymentConfig, alipayAppId: e.target.value })} placeholder="支付宝应用ID" />
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">应用私钥</label>
+                <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none font-mono text-xs" rows={4} value={paymentConfig.alipayPrivateKey} onChange={e => setPaymentConfig({ ...paymentConfig, alipayPrivateKey: e.target.value })} placeholder="支付宝应用私钥" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">支付宝公钥</label>
+                <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none font-mono text-xs" rows={4} value={paymentConfig.alipayPublicKey} onChange={e => setPaymentConfig({ ...paymentConfig, alipayPublicKey: e.target.value })} placeholder="支付宝公钥" />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="text-lg font-bold text-slate-900 mb-4">微信支付配置</h3>
+            <div className="space-y-4 max-w-2xl">
+              <Input label="App ID" value={paymentConfig.wechatAppId} onChange={e => setPaymentConfig({ ...paymentConfig, wechatAppId: e.target.value })} placeholder="微信应用ID" />
+              <Input label="商户号" value={paymentConfig.wechatMchId} onChange={e => setPaymentConfig({ ...paymentConfig, wechatMchId: e.target.value })} placeholder="微信商户号" />
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">支付密钥</label>
+                <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none font-mono text-xs" rows={4} value={paymentConfig.wechatPayKey} onChange={e => setPaymentConfig({ ...paymentConfig, wechatPayKey: e.target.value })} placeholder="微信支付密钥" />
+              </div>
+              <div className="pt-4">
+                <Button onClick={handleSavePayment} loading={saving}>保存支付配置</Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {activeTab === 'sms' && (
+        <Card className="p-6">
+          <h3 className="text-lg font-bold text-slate-900 mb-4">阿里云短信配置</h3>
+          <div className="space-y-4 max-w-2xl">
+            <Input label="Access Key ID" value={smsConfig.aliyunAccessKeyId} onChange={e => setSmsConfig({ ...smsConfig, aliyunAccessKeyId: e.target.value })} placeholder="阿里云 Access Key ID" />
+            <Input label="Access Key Secret" value={smsConfig.aliyunAccessKeySecret} onChange={e => setSmsConfig({ ...smsConfig, aliyunAccessKeySecret: e.target.value })} placeholder="阿里云 Access Key Secret" type="password" />
+            <Input label="短信签名" value={smsConfig.aliyunSignName} onChange={e => setSmsConfig({ ...smsConfig, aliyunSignName: e.target.value })} placeholder="短信签名名称" />
+            <Input label="短信模板Code" value={smsConfig.aliyunTemplateCode} onChange={e => setSmsConfig({ ...smsConfig, aliyunTemplateCode: e.target.value })} placeholder="短信模板Code" />
+            <div className="pt-4">
+              <Button onClick={handleSaveSms} loading={saving}>保存短信配置</Button>
+            </div>
+          </div>
+        </Card>
+      )}
     </div>
   );
 };
@@ -670,7 +882,11 @@ const AdminPage: React.FC<AdminPageProps> = ({ activeMenu: initialMenu }) => {
       return;
     }
     if (info) {
-      setAdminInfo(JSON.parse(info));
+      try {
+        setAdminInfo(JSON.parse(info));
+      } catch (e) {
+        console.error('解析管理员信息失败', e);
+      }
     }
     setLoading(false);
   }, [navigate]);
@@ -678,7 +894,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ activeMenu: initialMenu }) => {
   const handleLogout = () => {
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_info');
-    navigate('/admin-login');
+    window.location.href = '/admin-login';
   };
 
   const handleMenuChange = (menu: string) => {

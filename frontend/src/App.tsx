@@ -716,25 +716,53 @@ const MyAdoptionsPage: React.FC = () => {
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, token, logout, isAuthenticated } = useAuth();
   const [profile, setProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // 未登录时跳转到登录页
+    if (!token && !isAuthenticated) {
+      navigate('/auth');
+      return;
+    }
+
     const fetchProfile = async () => {
       try {
         const data = await authApi.getCurrentUser();
         setProfile(data);
       } catch (error) {
         console.error('Failed to fetch profile:', error);
+        // 如果获取用户信息失败，可能是 token 过期，跳转到登录页
+        logout();
+        navigate('/auth');
       } finally {
         setLoading(false);
       }
     };
-    fetchProfile();
-  }, []);
+
+    if (token) {
+      fetchProfile();
+    }
+  }, [token, isAuthenticated, navigate, logout]);
 
   if (loading) return <LoadingSpinner />;
+
+  // 未登录状态显示登录引导
+  if (!profile && !isAuthenticated) {
+    return (
+      <PageTransition>
+        <div className="min-h-screen bg-brand-bg flex flex-col items-center justify-center p-8">
+          <div className="w-24 h-24 bg-brand-primary rounded-[32px] flex items-center justify-center mb-6 shadow-lg shadow-brand-primary/30">
+            <Icons.User className="w-12 h-12 text-white" />
+          </div>
+          <h2 className="text-2xl font-display font-bold text-brand-primary mb-2">欢迎来到云端牧场</h2>
+          <p className="text-slate-500 mb-8 text-center">登录后即可查看个人信息和领养记录</p>
+          <Button className="px-12" size="lg" onClick={() => navigate('/auth')}>立即登录</Button>
+        </div>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition>
@@ -757,7 +785,7 @@ const ProfilePage: React.FC = () => {
               <h2 className="text-3xl font-display font-bold text-white mb-1 tracking-tight">{profile?.nickname || '智慧牧场主'}</h2>
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-[10px] text-white/80 font-bold border border-white/10 uppercase tracking-widest">黄金会员</span>
-                <span className="text-xs text-white/60 font-mono tracking-tighter">{profile?.phone}</span>
+                <span className="text-xs text-white/60 font-mono tracking-tighter">{profile?.phone || '未绑定手机'}</span>
               </div>
             </div>
           </div>
