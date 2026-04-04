@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -10,6 +10,7 @@ import { User } from '@/entities/user.entity';
 import { SmsCode } from '@/entities/sms-code.entity';
 import { RedisService } from '@/common/utils/redis.service';
 
+@Global()
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, SmsCode]),
@@ -26,6 +27,6 @@ import { RedisService } from '@/common/utils/redis.service';
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, RedisService],
-  exports: [AuthService],
+  exports: [AuthService, JwtStrategy],
 })
 export class AuthModule {}

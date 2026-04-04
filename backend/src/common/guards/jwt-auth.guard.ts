@@ -1,21 +1,19 @@
 import {
   Injectable,
-  CanActivate,
   ExecutionContext,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { AuthGuard } from '@nestjs/passport';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
-export class JwtAuthGuard implements CanActivate {
-  constructor(
-    private reflector: Reflector,
-    private jwtService: JwtService,
-  ) {}
+export class JwtAuthGuard extends AuthGuard('jwt') {
+  constructor(private reflector: Reflector) {
+    super();
+  }
 
-  canActivate(context: ExecutionContext): boolean {
+  canActivate(context: ExecutionContext) {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -25,22 +23,13 @@ export class JwtAuthGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
-    const authorization = request.headers.authorization;
+    return super.canActivate(context);
+  }
 
-    if (!authorization) {
-      throw new UnauthorizedException('请先登录');
+  handleRequest(err: any, user: any, info: any) {
+    if (err || !user) {
+      throw err || new UnauthorizedException('请先登录');
     }
-
-    const token = authorization.replace('Bearer ', '');
-
-    try {
-      const payload = this.jwtService.verify(token);
-      request.user = payload;
-    } catch (error) {
-      throw new UnauthorizedException('登录已过期，请重新登录');
-    }
-
-    return true;
+    return user;
   }
 }
