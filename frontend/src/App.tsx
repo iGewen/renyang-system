@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState } from './components/ui';
 import { cn } from './lib/utils';
 import type { Livestock, Adoption, FeedBill, User } from './types';
-import { livestockApi, adoptionApi, orderApi, paymentApi, userApi, balanceApi, notificationApi, authApi } from './services/api';
+import { livestockApi, adoptionApi, orderApi, paymentApi, userApi, balanceApi, notificationApi, authApi, adminApi } from './services/api';
 
 // Lazy load pages for better performance
 const OrdersPage = lazy(() => import('./pages/order/OrdersPage'));
