@@ -19,18 +19,27 @@ import type {
 
 const API_BASE = '/api';
 
-// 模拟网络延迟
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// 通用请求方法（后续替换为真实 axios）
+// 通用请求方法
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
-  // TODO: 替换为真实的 axios 请求
-  // const response = await fetch(`${API_BASE}${url}`, options);
-  // return response.json();
+  const token = localStorage.getItem('token') || localStorage.getItem('admin_token');
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...options?.headers,
+  };
 
-  // 目前返回 mock 数据
-  await delay(500);
-  return {} as T;
+  const response = await fetch(`${API_BASE}${url}`, {
+    ...options,
+    headers,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || '请求失败');
+  }
+
+  return data.data || data;
 }
 
 // ==================== 认证相关 ====================
@@ -479,30 +488,14 @@ export const notificationApi = {
 export const adminApi = {
   // ==================== 认证 ====================
   login: async (data: { username: string; password: string }): Promise<{ token: string; admin: Admin }> => {
-    await delay(500);
-    return {
-      token: 'admin_token_' + Date.now(),
-      admin: {
-        id: '1',
-        username: 'admin',
-        name: '超级管理员',
-        role: 'super_admin',
-        status: 'enabled',
-        createdAt: '2026-01-01T00:00:00Z'
-      }
-    };
+    return request('/admin/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   getCurrentAdmin: async (): Promise<Admin> => {
-    await delay(300);
-    return {
-      id: '1',
-      username: 'admin',
-      name: '超级管理员',
-      role: 'super_admin',
-      status: 'enabled',
-      createdAt: '2026-01-01T00:00:00Z'
-    };
+    return request('/admin/auth/info');
   },
 
   updatePassword: async (data: { oldPassword: string; newPassword: string }): Promise<{ success: boolean }> => {

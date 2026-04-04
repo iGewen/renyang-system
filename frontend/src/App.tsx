@@ -1048,7 +1048,7 @@ const AdminLoginPage: React.FC = () => {
     if (!username || !password) { setError('请输入用户名和密码'); return; }
     setLoading(true);
     try {
-      const result = await authApi.login({ username, password });
+      const result = await adminApi.login({ username, password });
       localStorage.setItem('admin_token', result.token);
       localStorage.setItem('admin_info', JSON.stringify(result.admin));
       navigate('/admin');
