@@ -408,18 +408,18 @@ const TabBar: React.FC = () => {
   const location = useLocation();
   const isActive = (path: string) => location.pathname === path;
   return (
-    <div className="fixed bottom-8 left-0 right-0 z-50 pointer-events-none">
+    <div className="fixed bottom-6 left-0 right-0 z-50 pointer-events-none">
       <div className="max-w-md md:max-w-lg mx-auto px-6 pointer-events-auto">
-        <div className="bg-brand-primary/95 backdrop-blur-md rounded-[40px] flex justify-around py-5 safe-area-bottom shadow-2xl shadow-brand-primary/40 border border-white/10">
-          <Link to="/" className={cn("flex flex-col items-center gap-1.5 transition-all duration-300", isActive('/') ? "text-white scale-110" : "text-white/40 hover:text-white/60")}>
+        <div className="bg-brand-primary/95 backdrop-blur-md rounded-[32px] flex justify-around items-center py-3 px-4 safe-area-bottom shadow-2xl shadow-brand-primary/40 border border-white/10">
+          <Link to="/" className={cn("flex flex-col items-center justify-center gap-1 transition-colors duration-200 min-w-[60px]", isActive('/') ? "text-white" : "text-white/40 hover:text-white/60")}>
             <Icons.Home className="w-6 h-6" />
             <span className="text-[10px] font-bold tracking-wider uppercase">探索</span>
           </Link>
-          <Link to="/my-adoptions" className={cn("flex flex-col items-center gap-1.5 transition-all duration-300", isActive('/my-adoptions') ? "text-white scale-110" : "text-white/40 hover:text-white/60")}>
+          <Link to="/my-adoptions" className={cn("flex flex-col items-center justify-center gap-1 transition-colors duration-200 min-w-[60px]", isActive('/my-adoptions') ? "text-white" : "text-white/40 hover:text-white/60")}>
             <Icons.Package className="w-6 h-6" />
             <span className="text-[10px] font-bold tracking-wider uppercase">牧场</span>
           </Link>
-          <Link to="/profile" className={cn("flex flex-col items-center gap-1.5 transition-all duration-300", isActive('/profile') ? "text-white scale-110" : "text-white/40 hover:text-white/60")}>
+          <Link to="/profile" className={cn("flex flex-col items-center justify-center gap-1 transition-colors duration-200 min-w-[60px]", isActive('/profile') ? "text-white" : "text-white/40 hover:text-white/60")}>
             <Icons.User className="w-6 h-6" />
             <span className="text-[10px] font-bold tracking-wider uppercase">我的</span>
           </Link>
