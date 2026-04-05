@@ -17,6 +17,7 @@ import {
   LoginByCodeDto,
   ResetPasswordDto,
   BindPhoneDto,
+  UpdateUserDto,
 } from './dto/auth.dto';
 
 @Injectable()
@@ -58,6 +59,9 @@ export class AuthService {
       }
     }
 
+    // 设置发送频率限制
+    await this.redisService.set(limitKey, '1', 60); // 60秒
+
     // 调用短信服务发送验证码
     return this.smsService.sendVerificationCode(phone, type);
   }
@@ -71,7 +75,7 @@ export class AuthService {
     // 验证验证码
     await this.smsService.verifyCode(phone, code, 'register');
 
-    // 检查用户是否已存在
+    // 检查用户是否存在
     const existUser = await this.userRepository.findOne({ where: { phone } });
     if (existUser) {
       throw new BadRequestException('该手机号已注册');
@@ -84,8 +88,9 @@ export class AuthService {
       phone,
       password: hashedPassword,
       nickname: `用户${phone.slice(-4)}`,
+      balance: 0,
+      status: 1,
     });
-
     await this.userRepository.save(user);
 
     // 标记验证码已使用
@@ -96,13 +101,7 @@ export class AuthService {
 
     return {
       token,
-      user: {
-        id: user.id,
-        phone: user.phone,
-        nickname: user.nickname,
-        avatar: user.avatar,
-        balance: user.balance,
-      },
+      user: this.sanitizeUser(user),
     };
   }
 
@@ -112,31 +111,35 @@ export class AuthService {
   async loginByPassword(dto: LoginByPasswordDto) {
     const { phone, password } = dto;
 
-    const user = await this.userRepository.findOne({ where: { phone } });
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .where('user.phone = :phone', { phone })
+      .addSelect('user.password')
+      .getOne();
+
     if (!user) {
-      throw new BadRequestException('用户不存在');
+      throw new UnauthorizedException('用户不存在');
     }
 
-    if (user.status === 'banned') {
-      throw new BadRequestException('账号已被封禁');
+    if (user.status !== 1) {
+      throw new UnauthorizedException('账号已被禁用');
     }
 
-    const isValid = await PasswordUtil.verify(password, user.password);
-    if (!isValid) {
-      throw new BadRequestException('密码错误');
+    const isPasswordValid = await PasswordUtil.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('密码错误');
     }
+
+    // 更新最后登录时间
+    await this.userRepository.update(user.id, {
+      lastLoginAt: new Date(),
+    });
 
     const token = this.generateToken(user);
 
     return {
       token,
-      user: {
-        id: user.id,
-        phone: user.phone,
-        nickname: user.nickname,
-        avatar: user.avatar,
-        balance: user.balance,
-      },
+      user: this.sanitizeUser(user),
     };
   }
 
@@ -146,17 +149,22 @@ export class AuthService {
   async loginByCode(dto: LoginByCodeDto) {
     const { phone, code } = dto;
 
-    const user = await this.userRepository.findOne({ where: { phone } });
-    if (!user) {
-      throw new BadRequestException('用户不存在');
-    }
-
-    if (user.status === 'banned') {
-      throw new BadRequestException('账号已被封禁');
-    }
-
     // 验证验证码
     await this.smsService.verifyCode(phone, code, 'login');
+
+    const user = await this.userRepository.findOne({ where: { phone } });
+    if (!user) {
+      throw new UnauthorizedException('用户不存在');
+    }
+
+    if (user.status !== 1) {
+      throw new UnauthorizedException('账号已被禁用');
+    }
+
+    // 更新最后登录时间
+    await this.userRepository.update(user.id, {
+      lastLoginAt: new Date(),
+    });
 
     // 标记验证码已使用
     await this.smsService.markCodeUsed(phone, code, 'login');
@@ -165,13 +173,7 @@ export class AuthService {
 
     return {
       token,
-      user: {
-        id: user.id,
-        phone: user.phone,
-        nickname: user.nickname,
-        avatar: user.avatar,
-        balance: user.balance,
-      },
+      user: this.sanitizeUser(user),
     };
   }
 
@@ -190,8 +192,8 @@ export class AuthService {
     }
 
     // 更新密码
-    user.password = await PasswordUtil.hash(newPassword);
-    await this.userRepository.save(user);
+    const hashedPassword = await PasswordUtil.hash(newPassword);
+    await this.userRepository.update(user.id, { password: hashedPassword });
 
     // 标记验证码已使用
     await this.smsService.markCodeUsed(phone, code, 'reset_password');
@@ -200,30 +202,121 @@ export class AuthService {
   }
 
   /**
-   * 微信登录
+   * 获取微信授权URL
    */
-  async wechatLogin(code: string) {
-    // TODO: 实现微信登录
-    throw new BadRequestException('微信登录暂未开放');
+  async getWechatAuthUrl() {
+    const appId = this.configService.get('wechatLogin.appId');
+    const redirectUri = encodeURIComponent(`${this.configService.get('app.url')}/api/auth/wechat/callback`);
+    const state = CryptoUtil.randomString(16);
+
+    // 存储state
+    await this.redisService.set(`wechat:state:${state}`, '1', 600); // 10分钟
+
+    const url = `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${appId}&redirect_uri=${redirectUri}&response_type=code&scope=snsapi_userinfo&state=${state}#wechat_redirect`;
+
+    return { url };
+  }
+
+  /**
+   * 微信授权回调
+   */
+  async wechatCallback(code: string, state: string) {
+    // 验证state
+    const stateKey = `wechat:state:${state}`;
+    const stateExists = await this.redisService.get(stateKey);
+    if (!stateExists) {
+      throw new BadRequestException('无效的授权状态');
+    }
+    await this.redisService.del(stateKey);
+
+    // TODO: 实现微信授权回调
+    throw new BadRequestException('微信登录功能暂未开放');
   }
 
   /**
    * 绑定手机号
    */
   async bindPhone(dto: BindPhoneDto) {
-    // TODO: 实现绑定手机号
-    throw new BadRequestException('绑定手机号暂未开放');
+    const { tempToken, phone, code } = dto;
+
+    // 验证临时token
+    const tempKey = `wechat:temp:${tempToken}`;
+    const wechatOpenid = await this.redisService.get(tempKey);
+    if (!wechatOpenid) {
+      throw new BadRequestException('临时token已过期，请重新授权');
+    }
+
+    // 验证验证码
+    await this.smsService.verifyCode(phone, code, 'bind_phone');
+
+    // 检查手机号是否已注册
+    const existUser = await this.userRepository.findOne({ where: { phone } });
+    if (existUser) {
+      throw new BadRequestException('该手机号已绑定其他账号');
+    }
+
+    // 检查微信是否已绑定
+    const wechatUser = await this.userRepository.findOne({ where: { wechatOpenid } });
+    if (wechatUser) {
+      throw new BadRequestException('该微信已绑定其他账号');
+    }
+
+    // 更新用户信息
+    await this.userRepository.update({ wechatOpenid }, { phone });
+    await this.redisService.del(tempKey);
+
+    return { success: true };
   }
 
   /**
-   * 获取用户信息
+   * 获取当前用户信息
    */
-  async getUserInfo(userId: string) {
+  async getCurrentUser(userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('用户不存在');
+    }
+    return this.sanitizeUser(user);
+  }
+
+  /**
+   * 更新用户信息
+   */
+  async updateUser(userId: string, dto: UpdateUserDto) {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new UnauthorizedException('用户不存在');
     }
 
+    if (dto.nickname) {
+      user.nickname = dto.nickname;
+    }
+    if (dto.avatar) {
+      user.avatar = dto.avatar;
+    }
+
+    await this.userRepository.save(user);
+    return this.sanitizeUser(user);
+  }
+
+  /**
+   * 验证用户
+   */
+  async validateUser(userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('用户不存在');
+    }
+    if (user.status !== 1) {
+      throw new UnauthorizedException('账号已被禁用');
+    }
+    return user;
+  }
+
+  /**
+   * 清理用户敏感信息
+   */
+  private sanitizeUser(user: User) {
     return {
       id: user.id,
       phone: user.phone,
