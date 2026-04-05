@@ -156,16 +156,26 @@ export class SmsService {
    * 发送短信（调用阿里云API）
    */
   private async sendSms(phone: string, code: string, config: any, templateCode: string): Promise<void> {
+    this.logger.log(`[SMS] 准备发送 - 手机: ${phone}, 验证码: ${code}`);
+    this.logger.log(`[SMS] 配置检查 - accessKeyId: ${config.accessKeyId ? '已配置' : '未配置'}, accessKeySecret: ${config.accessKeySecret ? '已配置' : '未配置'}, signName: ${config.signName || '未配置'}, templateCode: ${templateCode || '未配置'}`);
+
     // 如果没有配置阿里云密钥，则跳过实际发送
     if (!config.accessKeyId || !config.accessKeySecret) {
-      this.logger.log(`[SMS] 模拟发送 - 手机: ${phone}, 验证码: ${code}`);
+      this.logger.warn(`[SMS] 阿里云密钥未配置，模拟发送 - 手机: ${phone}, 验证码: ${code}`);
+      return;
+    }
+
+    if (!config.signName) {
+      this.logger.warn(`[SMS] 短信签名未配置，模拟发送 - 手机: ${phone}`);
       return;
     }
 
     if (!templateCode) {
-      this.logger.warn(`[SMS] 未配置短信模板，跳过发送 - 手机: ${phone}`);
+      this.logger.warn(`[SMS] 短信模板未配置，跳过发送 - 手机: ${phone}`);
       return;
     }
+
+    this.logger.log(`[SMS] 调用阿里云API - 手机: ${phone}, 签名: ${config.signName}, 模板: ${templateCode}`);
 
     const params = {
       AccessKeyId: config.accessKeyId,
@@ -204,6 +214,8 @@ export class SmsService {
     });
 
     const result = await response.json() as any;
+
+    this.logger.log(`[SMS] 阿里云响应: ${JSON.stringify(result)}`);
 
     if (result.Code !== 'OK') {
       throw new Error(result.Message || '短信发送失败');
