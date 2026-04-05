@@ -1208,6 +1208,7 @@ const AdminLoginPage: React.FC = () => {
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
     // 检查本地存储的登录状态
@@ -1217,6 +1218,7 @@ export default function App() {
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
     }
+    setInitializing(false);
   }, []);
 
   const login = (newToken: string, newUser: User) => {
@@ -1232,6 +1234,15 @@ export default function App() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
   };
+
+  // 初始化时显示加载状态，避免闪烁或跳转问题
+  if (initializing) {
+    return (
+      <div className="w-full min-h-screen bg-brand-bg flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider value={{ user, token, isAuthenticated: !!token, login, logout }}>
