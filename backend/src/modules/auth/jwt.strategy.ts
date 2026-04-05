@@ -22,7 +22,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     // 如果是管理员token，返回管理员信息
     if (type === 'admin') {
-      return { sub: userId, username, type: 'admin', role };
+      return { id: userId, username, type: 'admin', role };
     }
 
     const user = await this.authService.validateUser(userId);
@@ -31,7 +31,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     return {
-      sub: user.id,
+      id: user.id,
       phone: user.phone,
       nickname: user.nickname,
       avatar: user.avatar,
