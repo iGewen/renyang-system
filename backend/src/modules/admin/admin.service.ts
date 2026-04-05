@@ -479,6 +479,32 @@ export class AdminService {
     return { success: true };
   }
 
+  /**
+   * 删除活体
+   */
+  async deleteLivestock(id: string, adminId: string, adminName: string) {
+    const livestock = await this.livestockRepository.findOne({ where: { id } });
+    if (!livestock) {
+      throw new NotFoundException('活体不存在');
+    }
+
+    // 软删除
+    await this.livestockRepository.softDelete(id);
+
+    await this.createAuditLog({
+      adminId,
+      adminName,
+      module: 'livestock',
+      action: 'delete',
+      targetType: 'livestock',
+      targetId: id,
+      beforeData: livestock,
+      remark: '删除活体',
+    });
+
+    return { success: true };
+  }
+
   // =============== 订单管理 ===============
 
   /**
@@ -1212,5 +1238,85 @@ export class AdminService {
     });
 
     return refund;
+  }
+
+  // =============== 通知管理 ===============
+
+  /**
+   * 获取通知列表
+   */
+  async getNotificationList(params: {
+    page: number;
+    pageSize: number;
+    type?: string;
+  }) {
+    const queryBuilder = this.notificationRepository.createQueryBuilder('notification');
+
+    if (params.type) {
+      queryBuilder.andWhere('notification.type = :type', { type: params.type });
+    }
+
+    queryBuilder
+      .orderBy('notification.createdAt', 'DESC')
+      .skip((params.page - 1) * params.pageSize)
+      .take(params.pageSize);
+
+    const [list, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      list,
+      total,
+      page: params.page,
+      pageSize: params.pageSize,
+      totalPages: Math.ceil(total / params.pageSize),
+    };
+  }
+
+  /**
+   * 发送通知
+   */
+  async sendNotification(
+    data: { userIds?: string[]; title: string; content: string; type: string },
+    adminId: string,
+    adminName: string,
+  ) {
+    let sendCount = 0;
+
+    if (data.userIds && data.userIds.length > 0) {
+      // 发送给指定用户
+      for (const userId of data.userIds) {
+        const notification = this.notificationRepository.create({
+          id: `N${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+          userId,
+          title: data.title,
+          content: data.content,
+          type: data.type,
+        });
+        await this.notificationRepository.save(notification);
+        sendCount++;
+      }
+    } else {
+      // 发送给所有用户（系统公告）
+      const notification = this.notificationRepository.create({
+        id: `N${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+        title: data.title,
+        content: data.content,
+        type: 'system',
+      });
+      await this.notificationRepository.save(notification);
+      sendCount = 1;
+    }
+
+    await this.createAuditLog({
+      adminId,
+      adminName,
+      module: 'notification',
+      action: 'send',
+      targetType: 'notification',
+      afterData: { title: data.title, content: data.content, type: data.type, sendCount },
+      remark: `发送通知: ${data.title}`,
+    });
+
+    return { success: true, sendCount };
   }
 }

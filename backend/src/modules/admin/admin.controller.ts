@@ -442,12 +442,29 @@ export class AdminController {
   @ApiParam({ name: 'id', description: '活体ID' })
   async updateLivestockStatus(
     @Param('id') id: string,
-    @Body('status') status: number,
+    @Body('status') status: string | number,
     @Req() req: any,
   ) {
     const adminId = req.user?.sub;
     const adminName = req.user?.username;
-    return this.adminService.updateLivestockStatus(id, status, adminId, adminName);
+    // 支持 'on_sale'/'off_sale' 字符串和数字
+    const statusCode = typeof status === 'string'
+      ? (status === 'on_sale' ? 1 : 2)
+      : status;
+    return this.adminService.updateLivestockStatus(id, statusCode, adminId, adminName);
+  }
+
+  /**
+   * 删除活体
+   */
+  @Delete('livestock/:id')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '删除活体' })
+  @ApiParam({ name: 'id', description: '活体ID' })
+  async deleteLivestock(@Param('id') id: string, @Req() req: any) {
+    const adminId = req.user?.sub;
+    const adminName = req.user?.username;
+    return this.adminService.deleteLivestock(id, adminId, adminName);
   }
 
   // =============== 订单管理 ===============
@@ -596,6 +613,44 @@ export class AdminController {
     const adminId = req.user?.sub;
     const adminName = req.user?.username;
     return this.adminService.sendSystemAnnouncement(dto.title, dto.content, adminId, adminName);
+  }
+
+  // =============== 通知管理 ===============
+
+  /**
+   * 获取通知列表
+   */
+  @Get('notifications')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '获取通知列表' })
+  @ApiQuery({ name: 'page', required: false, description: '页码' })
+  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
+  @ApiQuery({ name: 'type', required: false, description: '通知类型' })
+  async getNotificationList(
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('type') type?: string,
+  ) {
+    return this.adminService.getNotificationList({
+      page: page ? parseInt(page) : 1,
+      pageSize: pageSize ? parseInt(pageSize) : 20,
+      type,
+    });
+  }
+
+  /**
+   * 发送通知
+   */
+  @Post('notifications/send')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '发送通知' })
+  async sendNotification(
+    @Body() body: { userIds?: string[]; title: string; content: string; type: string },
+    @Req() req: any,
+  ) {
+    const adminId = req.user?.sub;
+    const adminName = req.user?.username;
+    return this.adminService.sendNotification(body, adminId, adminName);
   }
 
   // =============== 管理员管理 ===============

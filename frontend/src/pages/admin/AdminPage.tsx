@@ -222,12 +222,23 @@ export const AdminLivestock: React.FC = () => {
     }
   };
 
-  const handleToggleStatus = async (id: string, currentStatus: string) => {
+  const handleToggleStatus = async (id: string, currentStatus: any) => {
     try {
-      await adminApi.updateLivestockStatus(id, currentStatus === 'on_sale' ? 'off_sale' : 'on_sale');
-      setLivestock(livestock.map(l => l.id === id ? { ...l, status: currentStatus === 'on_sale' ? 'off_sale' : 'on_sale' } : l));
+      const newStatus = currentStatus === 1 || currentStatus === 'on_sale' ? 'off_sale' : 'on_sale';
+      await adminApi.updateLivestockStatus(id, newStatus);
+      setLivestock(livestock.map(l => l.id === id ? { ...l, status: newStatus } : l));
     } catch (error: any) {
       alert(error.message || '操作失败');
+    }
+  };
+
+  const handleDeleteLivestock = async (id: string) => {
+    if (!window.confirm('确定要删除这个活体吗？')) return;
+    try {
+      await adminApi.deleteLivestock(id);
+      setLivestock(livestock.filter(l => l.id !== id));
+    } catch (error: any) {
+      alert(error.message || '删除失败');
     }
   };
 
@@ -287,13 +298,17 @@ export const AdminLivestock: React.FC = () => {
                   <td className="py-3 px-4">¥{item.price}</td>
                   <td className="py-3 px-4">{item.stock}</td>
                   <td className="py-3 px-4">
-                    <Badge variant={item.status === 'on_sale' ? 'success' : 'default'}>{item.status === 'on_sale' ? '在售' : '下架'}</Badge>
+                    <Badge variant={item.status === 1 || item.status === 'on_sale' ? 'success' : 'default'}>
+                      {item.status === 1 || item.status === 'on_sale' ? '在售' : '下架'}
+                    </Badge>
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex gap-2">
-                      <button onClick={() => handleToggleStatus(item.id, item.status)} className="text-brand-primary text-sm">
-                        {item.status === 'on_sale' ? '下架' : '上架'}
+                      <button onClick={() => { setEditingLivestock(item); setLivestockForm({ name: item.name, typeId: item.typeId, price: String(item.price), monthlyFeedFee: String(item.monthlyFeedFee), redemptionMonths: String(item.redemptionMonths || 12), stock: String(item.stock), description: item.description || '', image: item.mainImage || '' }); setShowLivestockModal(true); }} className="text-brand-primary text-sm">编辑</button>
+                      <button onClick={() => handleToggleStatus(item.id, item.status)} className="text-blue-600 text-sm">
+                        {item.status === 1 || item.status === 'on_sale' ? '下架' : '上架'}
                       </button>
+                      <button onClick={() => handleDeleteLivestock(item.id)} className="text-red-500 text-sm">删除</button>
                     </div>
                   </td>
                 </tr>
