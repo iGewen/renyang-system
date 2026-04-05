@@ -237,35 +237,8 @@ export class AuthService {
    * 绑定手机号
    */
   async bindPhone(dto: BindPhoneDto) {
-    const { tempToken, phone, code } = dto;
-
-    // 验证临时token
-    const tempKey = `wechat:temp:${tempToken}`;
-    const wechatOpenid = await this.redisService.get(tempKey);
-    if (!wechatOpenid) {
-      throw new BadRequestException('临时token已过期，请重新授权');
-    }
-
-    // 验证验证码
-    await this.smsService.verifyCode(phone, code, 'bind_phone');
-
-    // 检查手机号是否已注册
-    const existUser = await this.userRepository.findOne({ where: { phone } });
-    if (existUser) {
-      throw new BadRequestException('该手机号已绑定其他账号');
-    }
-
-    // 检查微信是否已绑定
-    const wechatUser = await this.userRepository.findOne({ where: { wechatOpenid } });
-    if (wechatUser) {
-      throw new BadRequestException('该微信已绑定其他账号');
-    }
-
-    // 更新用户信息
-    await this.userRepository.update({ wechatOpenid }, { phone });
-    await this.redisService.del(tempKey);
-
-    return { success: true };
+    // TODO: 实现绑定手机号功能
+    throw new BadRequestException('绑定手机号功能暂未开放');
   }
 
   /**
