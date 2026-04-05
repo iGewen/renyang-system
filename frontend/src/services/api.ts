@@ -105,12 +105,12 @@ export const authApi = {
 
   // 获取当前用户信息
   getCurrentUser: async (): Promise<User> => {
-    return request('/user/profile');
+    return request('/users/me');
   },
 
   // 更新用户信息
   updateCurrentUser: async (data: { nickname?: string; avatar?: string }): Promise<User> => {
-    return request('/user/profile', {
+    return request('/users/me', {
       method: 'PUT',
       body: JSON.stringify(data),
     });
