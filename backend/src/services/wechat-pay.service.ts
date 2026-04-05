@@ -531,13 +531,33 @@ export class WechatPayService {
    */
   private signWithPrivateKey(message: string, privateKey: string): string {
     const formattedKey = this.formatPrivateKey(privateKey);
-    const signer = crypto.createSign('RSA-SHA256');
-    signer.update(message);
-    return signer.sign(formattedKey, 'base64');
+    try {
+      const signer = crypto.createSign('RSA-SHA256');
+      signer.update(message);
+      return signer.sign(formattedKey, 'base64');
+    } catch (error: any) {
+      // 如果 PKCS#8 格式失败，尝试 PKCS#1 格式
+      this.logger.warn('[WechatPay] PKCS#8 格式签名失败，尝试 PKCS#1 格式');
+      const cleanKey = privateKey.replace(/\s+/g, '');
+      if (!cleanKey.includes('-----BEGIN')) {
+        const formattedKeyPKCS1 = `-----BEGIN RSA PRIVATE KEY-----\n${cleanKey.match(/.{1,64}/g)?.join('\n') || cleanKey}\n-----END RSA PRIVATE KEY-----`;
+        try {
+          const signer = crypto.createSign('RSA-SHA256');
+          signer.update(message);
+          return signer.sign(formattedKeyPKCS1, 'base64');
+        } catch (e: any) {
+          this.logger.error('[WechatPay] PKCS#1 格式签名也失败:', e.message);
+          throw new BadRequestException('微信支付私钥格式错误，请检查配置');
+        }
+      }
+      this.logger.error('[WechatPay] 签名失败:', error.message);
+      throw new BadRequestException('微信支付签名失败，请检查私钥配置');
+    }
   }
 
   /**
    * 格式化私钥
+   * 兼容 OpenSSL 3.x (使用 PKCS#8 格式)
    */
   private formatPrivateKey(key: string): string {
     if (key.includes('-----BEGIN')) {
@@ -545,7 +565,9 @@ export class WechatPayService {
     }
     // 移除所有空白字符并格式化
     const cleanKey = key.replace(/\s+/g, '');
-    return `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
+    const formattedKey = cleanKey.match(/.{1,64}/g)?.join('\n') || cleanKey;
+    // 使用 PKCS#8 格式（兼容 OpenSSL 3.x）
+    return `-----BEGIN PRIVATE KEY-----\n${formattedKey}\n-----END PRIVATE KEY-----`;
   }
 
   /**

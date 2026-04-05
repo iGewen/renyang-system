@@ -345,27 +345,52 @@ export class AlipayService {
 
     // 使用私钥签名
     const formattedKey = this.formatPrivateKey(privateKey);
-    const signer = crypto.createSign('RSA-SHA256');
-    signer.update(signData);
 
-    return signer.sign(formattedKey, 'base64');
+    try {
+      const signer = crypto.createSign('RSA-SHA256');
+      signer.update(signData);
+      return signer.sign(formattedKey, 'base64');
+    } catch (error: any) {
+      // 如果 PKCS#8 格式失败，尝试 PKCS#1 格式
+      this.logger.warn('[Alipay] PKCS#8 格式签名失败，尝试 PKCS#1 格式');
+      const cleanKey = privateKey.replace(/\s+/g, '');
+      if (!cleanKey.startsWith('-----BEGIN')) {
+        const formattedKeyPKCS1 = `-----BEGIN RSA PRIVATE KEY-----\n${cleanKey.match(/.{1,64}/g)?.join('\n') || cleanKey}\n-----END RSA PRIVATE KEY-----`;
+        try {
+          const signer = crypto.createSign('RSA-SHA256');
+          signer.update(signData);
+          return signer.sign(formattedKeyPKCS1, 'base64');
+        } catch (e: any) {
+          this.logger.error('[Alipay] PKCS#1 格式签名也失败:', e.message);
+          throw new BadRequestException('支付宝私钥格式错误，请检查配置');
+        }
+      }
+      this.logger.error('[Alipay] 签名失败:', error.message);
+      throw new BadRequestException('支付宝签名失败，请检查私钥配置');
+    }
   }
 
   /**
    * 格式化私钥
    * 支持多种格式的私钥输入
+   * 兼容 OpenSSL 3.x (使用 PKCS#8 格式)
    */
   private formatPrivateKey(key: string): string {
     // 移除所有空白字符
     const cleanKey = key.replace(/\s+/g, '');
 
+    // 如果已经是 PEM 格式，直接返回
     if (cleanKey.startsWith('-----BEGIN')) {
       return key;
     }
 
     // 格式化为标准的PEM格式（每行64字符）
+    // 使用 PKCS#8 格式（兼容 OpenSSL 3.x）
     const formattedKey = cleanKey.match(/.{1,64}/g)?.join('\n') || cleanKey;
-    return `-----BEGIN RSA PRIVATE KEY-----\n${formattedKey}\n-----END RSA PRIVATE KEY-----`;
+
+    // 尝试两种格式：PKCS#8 和 PKCS#1
+    // 先尝试 PKCS#8 格式（推荐，兼容 OpenSSL 3.x）
+    return `-----BEGIN PRIVATE KEY-----\n${formattedKey}\n-----END PRIVATE KEY-----`;
   }
 
   /**
