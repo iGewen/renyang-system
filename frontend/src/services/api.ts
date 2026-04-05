@@ -326,7 +326,8 @@ export const notificationApi = {
 
   // 获取未读消息数量
   getUnreadCount: async (): Promise<{ count: number }> => {
-    return request('/notifications/unread-count');
+    const res = await request<{ unreadCount: number; totalCount: number }>('/notifications/unread-count');
+    return { count: res.unreadCount };
   },
 
   // 标记已读

@@ -1306,10 +1306,70 @@ export const AdminAgreements: React.FC = () => {
 
 // ==================== 审计日志 ====================
 
+// 操作类型中文映射
+const actionMap: Record<string, string> = {
+  login: '登录',
+  logout: '登出',
+  create: '创建',
+  update: '更新',
+  delete: '删除',
+  update_status: '修改状态',
+  update_config: '修改配置',
+  send: '发送',
+  send_announcement: '发送公告',
+  approve: '审核通过',
+  reject: '审核拒绝',
+  adjust: '调整',
+  waive: '豁免',
+};
+
+// 模块中文映射
+const moduleMapFull: Record<string, { label: string; color: string }> = {
+  auth: { label: '认证', color: 'bg-purple-100 text-purple-600' },
+  admin: { label: '管理员', color: 'bg-purple-100 text-purple-600' },
+  user: { label: '用户', color: 'bg-blue-100 text-blue-600' },
+  livestock: { label: '活体', color: 'bg-green-100 text-green-600' },
+  livestock_type: { label: '活体类型', color: 'bg-green-100 text-green-600' },
+  order: { label: '订单', color: 'bg-orange-100 text-orange-600' },
+  adoption: { label: '领养', color: 'bg-yellow-100 text-yellow-600' },
+  feed_bill: { label: '饲料费', color: 'bg-cyan-100 text-cyan-600' },
+  redemption: { label: '买断', color: 'bg-pink-100 text-pink-600' },
+  refund: { label: '退款', color: 'bg-red-100 text-red-600' },
+  notification: { label: '通知', color: 'bg-indigo-100 text-indigo-600' },
+  system_config: { label: '系统配置', color: 'bg-slate-100 text-slate-600' },
+  agreement: { label: '协议', color: 'bg-teal-100 text-teal-600' },
+  config: { label: '配置', color: 'bg-slate-100 text-slate-600' },
+};
+
+// 格式化IP地址（转换IPv6为IPv4）
+const formatIp = (ip: string | undefined): string => {
+  if (!ip) return '-';
+  // 处理IPv6映射的IPv4地址 (如 ::ffff:192.168.1.1)
+  if (ip.startsWith('::ffff:')) {
+    return ip.substring(7);
+  }
+  // 处理本地回环地址
+  if (ip === '::1' || ip === '::') {
+    return '127.0.0.1';
+  }
+  return ip;
+};
+
+// 格式化JSON显示
+const formatJson = (data: any): string => {
+  if (!data) return '无';
+  try {
+    return JSON.stringify(data, null, 2);
+  } catch {
+    return String(data);
+  }
+};
+
 export const AdminAuditLogs: React.FC = () => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [moduleFilter, setModuleFilter] = useState('');
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
 
   useEffect(() => {
     adminApi.getAuditLogs({ module: moduleFilter || undefined })
@@ -1318,34 +1378,32 @@ export const AdminAuditLogs: React.FC = () => {
       .finally(() => setLoading(false));
   }, [moduleFilter]);
 
-  const moduleMap: Record<string, { label: string; color: string }> = {
-    admin: { label: '管理员', color: 'bg-purple-100 text-purple-600' },
-    user: { label: '用户', color: 'bg-blue-100 text-blue-600' },
-    livestock: { label: '活体', color: 'bg-green-100 text-green-600' },
-    order: { label: '订单', color: 'bg-orange-100 text-orange-600' },
-    feed_bill: { label: '饲料费', color: 'bg-cyan-100 text-cyan-600' },
-    redemption: { label: '买断', color: 'bg-pink-100 text-pink-600' },
-    refund: { label: '退款', color: 'bg-red-100 text-red-600' },
-    config: { label: '配置', color: 'bg-slate-100 text-slate-600' },
-  };
-
   if (loading) return <LoadingSpinner />;
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-slate-900">审计日志</h2>
-        <div className="flex gap-2">
-          {['', 'admin', 'user', 'livestock', 'order', 'feed_bill', 'redemption', 'refund', 'config'].map(module => (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setModuleFilter('')}
+            className={cn(
+              'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+              moduleFilter === '' ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            )}
+          >
+            全部
+          </button>
+          {Object.entries(moduleMapFull).map(([key, value]) => (
             <button
-              key={module}
-              onClick={() => setModuleFilter(module)}
+              key={key}
+              onClick={() => setModuleFilter(key)}
               className={cn(
                 'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
-                moduleFilter === module ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                moduleFilter === key ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               )}
             >
-              {module === '' ? '全部' : moduleMap[module]?.label || module}
+              {value.label}
             </button>
           ))}
         </div>
@@ -1360,28 +1418,31 @@ export const AdminAuditLogs: React.FC = () => {
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">操作人</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">模块</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">操作</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">IP</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">敏感</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">描述</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">IP地址</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">操作</th>
               </tr>
             </thead>
             <tbody>
               {logs.map(log => (
-                <tr key={log.id} className="border-b border-slate-50">
+                <tr key={log.id} className="border-b border-slate-50 hover:bg-slate-50">
                   <td className="py-3 px-4 text-sm text-slate-500">{new Date(log.createdAt).toLocaleString()}</td>
                   <td className="py-3 px-4">{log.adminName || '-'}</td>
                   <td className="py-3 px-4">
-                    <span className={cn('px-2 py-1 rounded text-xs font-medium', moduleMap[log.module]?.color || 'bg-slate-100 text-slate-600')}>
-                      {moduleMap[log.module]?.label || log.module}
+                    <span className={cn('px-2 py-1 rounded text-xs font-medium', moduleMapFull[log.module]?.color || 'bg-slate-100 text-slate-600')}>
+                      {moduleMapFull[log.module]?.label || log.module}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-sm">{log.action}</td>
-                  <td className="py-3 px-4 text-sm text-slate-500 font-mono">{log.ip}</td>
+                  <td className="py-3 px-4 text-sm">{actionMap[log.action] || log.action}</td>
+                  <td className="py-3 px-4 text-sm text-slate-600 max-w-xs truncate">{log.remark || '-'}</td>
+                  <td className="py-3 px-4 text-sm text-slate-500 font-mono">{formatIp(log.ip)}</td>
                   <td className="py-3 px-4">
-                    {log.isSensitive ? (
-                      <span className="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-600">敏感</span>
-                    ) : (
-                      <span className="px-2 py-1 rounded text-xs font-medium bg-slate-100 text-slate-500">普通</span>
-                    )}
+                    <button
+                      onClick={() => setSelectedLog(log)}
+                      className="text-brand-primary hover:underline text-sm"
+                    >
+                      详情
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -1390,6 +1451,61 @@ export const AdminAuditLogs: React.FC = () => {
           {logs.length === 0 && <EmptyState icon={<Icons.FileText className="w-12 h-12" />} title="暂无审计日志" />}
         </div>
       </Card>
+
+      {/* 详情弹窗 */}
+      <Modal open={!!selectedLog} onClose={() => setSelectedLog(null)} title="日志详情">
+        {selectedLog && (
+          <div className="p-6 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm text-slate-500">时间</label>
+                <p className="font-medium">{new Date(selectedLog.createdAt).toLocaleString()}</p>
+              </div>
+              <div>
+                <label className="text-sm text-slate-500">操作人</label>
+                <p className="font-medium">{selectedLog.adminName || '-'}</p>
+              </div>
+              <div>
+                <label className="text-sm text-slate-500">模块</label>
+                <p className="font-medium">{moduleMapFull[selectedLog.module]?.label || selectedLog.module}</p>
+              </div>
+              <div>
+                <label className="text-sm text-slate-500">操作类型</label>
+                <p className="font-medium">{actionMap[selectedLog.action] || selectedLog.action}</p>
+              </div>
+              <div>
+                <label className="text-sm text-slate-500">IP地址</label>
+                <p className="font-medium font-mono">{formatIp(selectedLog.ip)}</p>
+              </div>
+              <div>
+                <label className="text-sm text-slate-500">敏感操作</label>
+                <p className="font-medium">{selectedLog.isSensitive ? '是' : '否'}</p>
+              </div>
+            </div>
+            {selectedLog.remark && (
+              <div>
+                <label className="text-sm text-slate-500">描述</label>
+                <p className="font-medium">{selectedLog.remark}</p>
+              </div>
+            )}
+            {selectedLog.beforeData && (
+              <div>
+                <label className="text-sm text-slate-500 block mb-2">修改前数据</label>
+                <pre className="bg-slate-50 p-3 rounded-lg text-sm overflow-x-auto max-h-40">{formatJson(selectedLog.beforeData)}</pre>
+              </div>
+            )}
+            {selectedLog.afterData && (
+              <div>
+                <label className="text-sm text-slate-500 block mb-2">修改后数据</label>
+                <pre className="bg-slate-50 p-3 rounded-lg text-sm overflow-x-auto max-h-40">{formatJson(selectedLog.afterData)}</pre>
+              </div>
+            )}
+            <div className="flex justify-end pt-4">
+              <Button variant="outline" onClick={() => setSelectedLog(null)}>关闭</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
