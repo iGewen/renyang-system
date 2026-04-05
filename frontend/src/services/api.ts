@@ -145,7 +145,7 @@ export const livestockApi = {
 export const orderApi = {
   // 创建领养订单
   create: async (data: { livestockId: string; quantity?: number; clientOrderId: string }): Promise<{ orderId: string; orderNo: string; expireAt: string }> => {
-    return request('/orders', {
+    return request('/orders/adoption', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -153,12 +153,12 @@ export const orderApi = {
 
   // 取消订单
   cancel: async (orderId: string): Promise<{ success: boolean }> => {
-    return request(`/orders/${orderId}/cancel`, { method: 'POST' });
+    return request(`/orders/adoption/${orderId}/cancel`, { method: 'POST' });
   },
 
   // 获取订单详情
   getById: async (orderId: string): Promise<AdoptionOrder> => {
-    return request(`/orders/${orderId}`);
+    return request(`/orders/adoption/${orderId}`);
   },
 
   // 获取我的订单列表
@@ -167,7 +167,7 @@ export const orderApi = {
     if (params?.status) query.set('status', params.status);
     if (params?.page) query.set('page', params.page.toString());
     if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
-    return request(`/orders/my?${query.toString()}`);
+    return request(`/orders/adoption?${query.toString()}`);
   }
 };
 
@@ -233,7 +233,7 @@ export const redemptionApi = {
 export const paymentApi = {
   // 发起支付
   create: async (data: { orderType: 'adoption' | 'feed' | 'redemption' | 'recharge'; orderId: string; paymentMethod: 'alipay' | 'wechat' | 'balance'; amount?: number }): Promise<PaymentResult> => {
-    return request('/payment/create', {
+    return request('/payments', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -241,7 +241,7 @@ export const paymentApi = {
 
   // 查询支付状态
   getStatus: async (paymentNo: string): Promise<{ status: number; paidAt?: string }> => {
-    return request(`/payment/status/${paymentNo}`);
+    return request(`/payments/${paymentNo}`);
   }
 };
 

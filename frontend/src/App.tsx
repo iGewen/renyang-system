@@ -597,7 +597,8 @@ const PaymentPage: React.FC = () => {
     if (!orderData?.orderId) return;
     setIsPaying(true);
     try {
-      const result = await paymentApi.create({ orderType: 'adoption', orderId: orderData.orderId, paymentMethod: method });
+      const amount = orderData?.livestock?.price || 0;
+      const result = await paymentApi.create({ orderType: 'adoption', orderId: orderData.orderId, paymentMethod: method, amount });
       if (result.payUrl) {
         window.location.href = result.payUrl;
       } else {
