@@ -7,8 +7,8 @@ import {
 
 @Entity('sms_codes')
 export class SmsCode {
-  @PrimaryGeneratedColumn('increment')
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column({ length: 11, comment: '手机号' })
   phone: string;
