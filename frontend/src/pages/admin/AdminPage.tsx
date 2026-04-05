@@ -968,7 +968,7 @@ export const AdminConfig: React.FC = () => {
               label="饲料费通知模板"
               value={smsConfig.smsTemplateFeedBill}
               onChange={e => setSmsConfig({ ...smsConfig, smsTemplateFeedBill: e.target.value })}
-              placeholder="模板CODE，变量：${orderNo}（认养编号）、${amount}（饲料费金额）"
+              placeholder="模板CODE，变量：${orderNo}（认养编号）"
             />
             <div className="pt-4">
               <Button onClick={handleSaveSms} loading={saving}>保存短信配置</Button>
