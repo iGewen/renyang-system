@@ -478,8 +478,9 @@ const DetailsPage: React.FC = () => {
     if (!id) return;
     setCreatingOrder(true);
     try {
-      const { orderId, orderNo } = await orderApi.create({ livestockId: id, clientOrderId: `CLIENT-${Date.now()}` });
-      navigate('/payment', { state: { orderId, orderNo, livestock } });
+      const order = await orderApi.create({ livestockId: id, clientOrderId: `CLIENT-${Date.now()}` });
+      // 后端返回完整的 order 对象，ID 字段是 id
+      navigate('/payment', { state: { orderId: order.id, orderNo: order.orderNo, livestock } });
     } catch (error) {
       console.error('Failed to create order:', error);
     } finally {
