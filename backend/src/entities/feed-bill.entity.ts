@@ -20,7 +20,8 @@ export enum FeedBillStatus {
 
 @Entity('feed_bills')
 export class FeedBill {
-  @PrimaryGeneratedColumn('uuid')
+  @Index()
+  @Column({ length: 32, primary: true, comment: '饲料账单ID' })
   id: string;
 
   @Index()
@@ -28,15 +29,15 @@ export class FeedBill {
   billNo: string;
 
   @Index()
-  @Column({ type: 'uuid', comment: '领养记录ID' })
+  @Column({ length: 32, comment: '领养记录ID' })
   adoptionId: string;
 
   @Index()
-  @Column({ type: 'uuid', comment: '用户ID' })
+  @Column({ length: 32, comment: '用户ID' })
   userId: string;
 
   @Index()
-  @Column({ type: 'uuid', comment: '活体ID' })
+  @Column({ length: 32, comment: '活体ID' })
   livestockId: string;
 
   @Index()
@@ -96,7 +97,7 @@ export class FeedBill {
   @Column({ length: 255, nullable: true, comment: '调整原因' })
   adjustReason: string;
 
-  @Column({ type: 'uuid', nullable: true, comment: '操作管理员ID' })
+  @Column({ length: 32, nullable: true, comment: '操作管理员ID' })
   operatorId: string;
 
   @CreateDateColumn({ comment: '创建时间' })

@@ -17,7 +17,8 @@ export enum PaymentStatus {
 
 @Entity('payment_records')
 export class PaymentRecord {
-  @PrimaryGeneratedColumn('uuid')
+  @Index()
+  @Column({ length: 32, primary: true, comment: '支付记录ID' })
   id: string;
 
   @Index()
@@ -29,14 +30,14 @@ export class PaymentRecord {
   outTradeNo: string;
 
   @Index()
-  @Column({ type: 'uuid', comment: '用户ID' })
+  @Column({ length: 32, comment: '用户ID' })
   userId: string;
 
   @Column({ length: 20, comment: '订单类型：adoption/feed/redemption/recharge' })
   orderType: string;
 
   @Index()
-  @Column({ type: 'uuid', comment: '订单ID' })
+  @Column({ length: 32, comment: '订单ID' })
   orderId: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, comment: '支付金额' })

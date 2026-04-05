@@ -12,7 +12,7 @@ export class AuditLog {
   id: number;
 
   @Index()
-  @Column({ type: 'uuid', nullable: true, comment: '管理员ID' })
+  @Column({ length: 32, nullable: true, comment: '管理员ID' })
   adminId: string;
 
   @Column({ length: 50, nullable: true, comment: '管理员用户名' })
@@ -28,7 +28,7 @@ export class AuditLog {
   targetType: string;
 
   @Index()
-  @Column({ type: 'uuid', nullable: true, comment: '目标ID' })
+  @Column({ length: 64, nullable: true, comment: '目标ID' })
   targetId: string;
 
   @Column({ type: 'json', nullable: true, comment: '操作前数据' })

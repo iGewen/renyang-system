@@ -10,11 +10,12 @@ import { User } from './user.entity';
 
 @Entity('balance_logs')
 export class BalanceLog {
-  @PrimaryGeneratedColumn('uuid')
+  @Index()
+  @Column({ length: 32, primary: true, comment: '余额日志ID' })
   id: string;
 
   @Index()
-  @Column({ type: 'uuid', comment: '用户ID' })
+  @Column({ length: 32, comment: '用户ID' })
   userId: string;
 
   @Column({
@@ -35,13 +36,13 @@ export class BalanceLog {
   @Column({ length: 20, nullable: true, comment: '关联类型' })
   relatedType: string;
 
-  @Column({ type: 'uuid', nullable: true, comment: '关联ID' })
+  @Column({ length: 64, nullable: true, comment: '关联ID' })
   relatedId: string;
 
   @Column({ length: 255, nullable: true, comment: '备注' })
   remark: string;
 
-  @Column({ type: 'uuid', nullable: true, comment: '操作管理员ID' })
+  @Column({ length: 32, nullable: true, comment: '操作管理员ID' })
   operatorId: string;
 
   @CreateDateColumn({ comment: '创建时间' })

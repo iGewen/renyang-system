@@ -26,7 +26,8 @@ export enum AdoptionStatus {
 
 @Entity('adoptions')
 export class Adoption {
-  @PrimaryGeneratedColumn('uuid')
+  @Index()
+  @Column({ length: 32, primary: true, comment: '领养ID' })
   id: string;
 
   @Index()
@@ -34,15 +35,15 @@ export class Adoption {
   adoptionNo: string;
 
   @Index()
-  @Column({ type: 'uuid', comment: '订单ID' })
+  @Column({ length: 32, comment: '订单ID' })
   orderId: string;
 
   @Index()
-  @Column({ type: 'uuid', comment: '用户ID' })
+  @Column({ length: 32, comment: '用户ID' })
   userId: string;
 
   @Index()
-  @Column({ type: 'uuid', comment: '活体ID' })
+  @Column({ length: 32, comment: '活体ID' })
   livestockId: string;
 
   @Column({ type: 'json', comment: '活体快照' })
@@ -71,7 +72,7 @@ export class Adoption {
   })
   status: number;
 
-  @Column({ type: 'uuid', nullable: true, comment: '当前饲料费账单ID' })
+  @Column({ length: 64, nullable: true, comment: '当前饲料费账单ID' })
   currentFeedBillId: string;
 
   @Column({

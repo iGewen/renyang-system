@@ -8,11 +8,12 @@ import {
 
 @Entity('notifications')
 export class Notification {
-  @PrimaryGeneratedColumn('uuid')
+  @Index()
+  @Column({ length: 32, primary: true, comment: '通知ID' })
   id: string;
 
   @Index()
-  @Column({ type: 'uuid', nullable: true, comment: '用户ID（为空则全员）' })
+  @Column({ length: 32, nullable: true, comment: '用户ID（为空则全员）' })
   userId: string;
 
   @Column({ length: 100, comment: '标题' })
@@ -27,7 +28,7 @@ export class Notification {
   @Column({ length: 20, nullable: true, comment: '关联类型' })
   relatedType: string;
 
-  @Column({ type: 'uuid', nullable: true, comment: '关联ID' })
+  @Column({ length: 64, nullable: true, comment: '关联ID' })
   relatedId: string;
 
   @Index()

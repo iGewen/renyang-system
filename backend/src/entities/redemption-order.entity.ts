@@ -26,7 +26,8 @@ export enum RedemptionStatus {
 
 @Entity('redemption_orders')
 export class RedemptionOrder {
-  @PrimaryGeneratedColumn('uuid')
+  @Index()
+  @Column({ length: 32, primary: true, comment: '买断订单ID' })
   id: string;
 
   @Index()
@@ -34,15 +35,15 @@ export class RedemptionOrder {
   redemptionNo: string;
 
   @Index()
-  @Column({ type: 'uuid', comment: '领养记录ID' })
+  @Column({ length: 32, comment: '领养记录ID' })
   adoptionId: string;
 
   @Index()
-  @Column({ type: 'uuid', comment: '用户ID' })
+  @Column({ length: 32, comment: '用户ID' })
   userId: string;
 
   @Index()
-  @Column({ type: 'uuid', comment: '活体ID' })
+  @Column({ length: 32, comment: '活体ID' })
   livestockId: string;
 
   @Column({
@@ -71,7 +72,7 @@ export class RedemptionOrder {
   })
   status: number;
 
-  @Column({ type: 'uuid', nullable: true, comment: '审核管理员ID' })
+  @Column({ length: 32, nullable: true, comment: '审核管理员ID' })
   auditAdminId: string;
 
   @Column({ type: 'datetime', nullable: true, comment: '审核时间' })

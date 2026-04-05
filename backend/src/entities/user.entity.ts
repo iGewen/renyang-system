@@ -14,7 +14,8 @@ import { BalanceLog } from './balance-log.entity';
 
 @Entity('users')
 export class User {
-  @PrimaryGeneratedColumn('uuid')
+  @Index()
+  @Column({ length: 32, primary: true, comment: '用户ID' })
   id: string;
 
   @Index()

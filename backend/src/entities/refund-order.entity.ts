@@ -25,7 +25,8 @@ export enum RefundStatus {
 
 @Entity('refund_orders')
 export class RefundOrder {
-  @PrimaryGeneratedColumn('uuid')
+  @Index()
+  @Column({ length: 32, primary: true, comment: '退款订单ID' })
   id: string;
 
   @Index()
@@ -33,14 +34,14 @@ export class RefundOrder {
   refundNo: string;
 
   @Index()
-  @Column({ type: 'uuid', comment: '用户ID' })
+  @Column({ length: 32, comment: '用户ID' })
   userId: string;
 
   @Column({ length: 20, comment: '订单类型：adoption/feed/redemption' })
   orderType: string;
 
   @Index()
-  @Column({ type: 'uuid', comment: '原订单ID' })
+  @Column({ length: 32, comment: '原订单ID' })
   orderId: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, comment: '原订单金额' })
@@ -73,7 +74,7 @@ export class RefundOrder {
   })
   status: number;
 
-  @Column({ type: 'uuid', nullable: true, comment: '审核管理员ID' })
+  @Column({ length: 32, nullable: true, comment: '审核管理员ID' })
   auditAdminId: string;
 
   @Column({ type: 'datetime', nullable: true, comment: '审核时间' })
@@ -82,7 +83,7 @@ export class RefundOrder {
   @Column({ length: 255, nullable: true, comment: '审核备注' })
   auditRemark: string;
 
-  @Column({ type: 'uuid', nullable: true, comment: '操作管理员ID' })
+  @Column({ length: 32, nullable: true, comment: '操作管理员ID' })
   operatorId: string;
 
   @Column({ length: 20, nullable: true, comment: '退款方式' })

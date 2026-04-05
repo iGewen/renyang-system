@@ -12,7 +12,8 @@ import { Livestock } from './livestock.entity';
 
 @Entity('livestock_types')
 export class LivestockType {
-  @PrimaryGeneratedColumn('uuid')
+  @Index()
+  @Column({ length: 32, primary: true, comment: '类型ID' })
   id: string;
 
   @Column({ length: 50, comment: '类型名称' })

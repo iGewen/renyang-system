@@ -21,7 +21,8 @@ export enum OrderStatus {
 
 @Entity('orders')
 export class Order {
-  @PrimaryGeneratedColumn('uuid')
+  @Index()
+  @Column({ length: 32, primary: true, comment: '订单ID' })
   id: string;
 
   @Index()
@@ -29,11 +30,11 @@ export class Order {
   orderNo: string;
 
   @Index()
-  @Column({ type: 'uuid', comment: '用户ID' })
+  @Column({ length: 32, comment: '用户ID' })
   userId: string;
 
   @Index()
-  @Column({ type: 'uuid', comment: '活体ID' })
+  @Column({ length: 32, comment: '活体ID' })
   livestockId: string;
 
   @Column({ type: 'json', comment: '活体快照' })
@@ -74,7 +75,7 @@ export class Order {
   @Column({ type: 'datetime', nullable: true, comment: '取消时间' })
   canceledAt: Date;
 
-  @Column({ type: 'uuid', nullable: true, comment: '客户端幂等键' })
+  @Column({ length: 64, nullable: true, comment: '客户端幂等键' })
   clientOrderId: string;
 
   @CreateDateColumn({ comment: '创建时间' })

@@ -14,7 +14,8 @@ import { Order } from './order.entity';
 
 @Entity('livestock')
 export class Livestock {
-  @PrimaryGeneratedColumn('uuid')
+  @Index()
+  @Column({ length: 32, primary: true, comment: '活体ID' })
   id: string;
 
   @Index()
@@ -22,7 +23,7 @@ export class Livestock {
   name: string;
 
   @Index()
-  @Column({ type: 'uuid', comment: '类型ID' })
+  @Column({ length: 32, comment: '类型ID' })
   typeId: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, comment: '领养价格' })
