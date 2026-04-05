@@ -74,7 +74,7 @@ export class AlipayService {
       throw new BadRequestException('支付宝未配置，请联系管理员配置支付宝参数');
     }
 
-    this.logger.log(`[Alipay] 创建H5支付 - 订单号: ${outTradeNo}, 金额: ${totalAmount}`);
+    this.logger.log(`[Alipay] 创建H5支付 - 订单号: ${outTradeNo}, 金额: ${totalAmount}, AppId: ${appId}`);
 
     const bizContent = {
       out_trade_no: outTradeNo,
@@ -108,6 +108,8 @@ export class AlipayService {
 
     // 构建支付URL
     const payUrl = `${this.gateway}?${this.buildQueryString(params)}`;
+
+    this.logger.log(`[Alipay] 生成支付URL: ${payUrl.substring(0, 200)}...`);
 
     return { payUrl };
   }
