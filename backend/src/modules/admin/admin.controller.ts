@@ -185,6 +185,20 @@ class SendAnnouncementDto {
   content: string;
 }
 
+class SaveAgreementDto {
+  @ApiProperty({ description: '协议键名' })
+  @IsString()
+  agreementKey: string;
+
+  @ApiProperty({ description: '协议标题' })
+  @IsString()
+  title: string;
+
+  @ApiProperty({ description: '协议内容' })
+  @IsString()
+  content: string;
+}
+
 class CreateAdminDto {
   @ApiProperty({ description: '用户名' })
   @IsString()
@@ -834,5 +848,53 @@ export class AdminController {
     const adminId = req.user?.sub;
     const adminName = req.user?.username;
     return this.adminService.auditRefund(id, body.approved, body.remark, adminId, adminName);
+  }
+
+  // =============== 协议管理 ===============
+
+  /**
+   * 获取协议列表
+   */
+  @Get('agreements')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '获取协议列表' })
+  async getAgreements() {
+    return this.adminService.getAgreements();
+  }
+
+  /**
+   * 获取单个协议
+   */
+  @Get('agreements/:key')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '获取单个协议' })
+  @ApiParam({ name: 'key', description: '协议键名' })
+  async getAgreement(@Param('key') key: string) {
+    return this.adminService.getAgreement(key);
+  }
+
+  /**
+   * 保存协议
+   */
+  @Post('agreements')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '保存协议' })
+  async saveAgreement(@Body() dto: SaveAgreementDto, @Req() req: any) {
+    const adminId = req.user?.sub;
+    const adminName = req.user?.username;
+    return this.adminService.saveAgreement(dto, adminId, adminName);
+  }
+
+  /**
+   * 删除协议
+   */
+  @Delete('agreements/:key')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '删除协议' })
+  @ApiParam({ name: 'key', description: '协议键名' })
+  async deleteAgreement(@Param('key') key: string, @Req() req: any) {
+    const adminId = req.user?.sub;
+    const adminName = req.user?.username;
+    return this.adminService.deleteAgreement(key, adminId, adminName);
   }
 }

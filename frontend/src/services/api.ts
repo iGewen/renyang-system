@@ -271,6 +271,20 @@ export const balanceApi = {
   }
 };
 
+// ==================== 协议相关 ====================
+
+export const agreementApi = {
+  // 获取协议内容
+  get: async (type: 'user' | 'adoption' | 'privacy' | 'disclaimer' | string): Promise<{ title: string; content: string; updatedAt: string }> => {
+    return request(`/users/agreements/${type}`);
+  },
+
+  // 获取协议列表
+  getList: async (): Promise<{ key: string; title: string; updatedAt: string }[]> => {
+    return request('/users/agreements');
+  }
+};
+
 // ==================== 退款相关 ====================
 
 export const refundApi = {
@@ -680,5 +694,25 @@ export const adminApi = {
 
   getAuditLogById: async (id: string): Promise<AuditLog> => {
     return request(`/admin/audit-logs/${id}`);
+  },
+
+  // ==================== 协议管理 ====================
+  getAgreements: async (): Promise<{ id: string; agreementKey: string; title: string; content: string; createdAt: string; updatedAt: string }[]> => {
+    return request('/admin/agreements');
+  },
+
+  getAgreement: async (key: string): Promise<{ id: string; agreementKey: string; title: string; content: string; createdAt: string; updatedAt: string }> => {
+    return request(`/admin/agreements/${key}`);
+  },
+
+  saveAgreement: async (data: { agreementKey: string; title: string; content: string }): Promise<{ success: boolean; id: string }> => {
+    return request('/admin/agreements', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteAgreement: async (key: string): Promise<{ success: boolean }> => {
+    return request(`/admin/agreements/${key}`, { method: 'DELETE' });
   }
 };

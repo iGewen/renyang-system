@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState } from './components/ui';
 import { cn } from './lib/utils';
 import type { Livestock, Adoption, FeedBill, User } from './types';
-import { livestockApi, adoptionApi, orderApi, paymentApi, userApi, balanceApi, notificationApi, authApi, adminApi } from './services/api';
+import { livestockApi, adoptionApi, orderApi, paymentApi, balanceApi, notificationApi, authApi, adminApi, agreementApi } from './services/api';
 
 // Lazy load pages for better performance
 const OrdersPage = lazy(() => import('./pages/order/OrdersPage'));
@@ -400,6 +400,9 @@ const DetailsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [showAgreement, setShowAgreement] = useState(false);
+  const [agreementContent, setAgreementContent] = useState<{ title: string; content: string } | null>(null);
+  const [loadingAgreement, setLoadingAgreement] = useState(false);
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -415,6 +418,23 @@ const DetailsPage: React.FC = () => {
     };
     fetchDetails();
   }, [id]);
+
+  const handleShowAgreement = async () => {
+    setLoadingAgreement(true);
+    setShowAgreement(true);
+    try {
+      const data = await agreementApi.get('adoption');
+      setAgreementContent(data);
+    } catch (error) {
+      // 如果没有配置协议，显示默认内容
+      setAgreementContent({
+        title: '云端牧场领养协议',
+        content: '暂无协议内容，请联系管理员配置。',
+      });
+    } finally {
+      setLoadingAgreement(false);
+    }
+  };
 
   const handleConfirm = async () => {
     if (!id) return;
@@ -494,7 +514,7 @@ const DetailsPage: React.FC = () => {
                   <button onClick={() => setAgreed(!agreed)} className={cn("w-5 h-5 rounded flex items-center justify-center border transition-colors", agreed ? "bg-brand-primary border-brand-primary text-white" : "border-slate-300 text-transparent")}>
                     <Icons.Check className="w-3.5 h-3.5" />
                   </button>
-                  <span className="text-sm text-slate-500">我已阅读并同意 <span className="text-brand-primary cursor-pointer font-bold hover:underline">《云端牧场领养协议》</span></span>
+                  <span className="text-sm text-slate-500">我已阅读并同意 <span onClick={handleShowAgreement} className="text-brand-primary cursor-pointer font-bold hover:underline">《云端牧场领养协议》</span></span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
@@ -509,6 +529,19 @@ const DetailsPage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* 协议弹窗 */}
+        <Modal open={showAgreement} onClose={() => setShowAgreement(false)} title={agreementContent?.title || '领养协议'}>
+          <div className="p-6 max-h-[60vh] overflow-y-auto">
+            {loadingAgreement ? (
+              <div className="flex justify-center py-8"><LoadingSpinner /></div>
+            ) : (
+              <div className="prose prose-sm max-w-none text-slate-600 whitespace-pre-wrap">
+                {agreementContent?.content}
+              </div>
+            )}
+          </div>
+        </Modal>
       </div>
     </PageTransition>
   );

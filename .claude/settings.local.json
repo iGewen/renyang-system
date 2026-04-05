@@ -5,7 +5,17 @@
       "Bash(npm install:*)",
       "Bash(mkdir:*)",
       "Bash(ssh:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(where sshpass:*)",
+      "Bash(pip show:*)",
+      "Bash(choco list:*)",
+      "Bash(winget list:*)",
+      "Bash(dir D:\\\\Code\\\\renyang-system:*)",
+      "Bash(pip install:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }
