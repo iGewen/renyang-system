@@ -69,13 +69,29 @@ export class SmsService {
 
   /**
    * 发送验证码
+   * 限制规则：
+   * - 60秒内最多发送5次
+   * - 超过5次则拉黑10分钟
    */
   async sendVerificationCode(phone: string, type: string): Promise<{ success: boolean; code?: string }> {
-    // 检查发送频率限制
-    const limitKey = `sms:limit:${phone}`;
-    const exists = await this.redisService.exists(limitKey);
-    if (exists) {
-      throw new BadRequestException('验证码发送过于频繁，请60秒后重试');
+    // 检查是否被拉黑（10分钟内发送超过5次）
+    const blacklistKey = `sms:blacklist:${phone}`;
+    const isBlacklisted = await this.redisService.exists(blacklistKey);
+    if (isBlacklisted) {
+      const ttl = await this.redisService.ttl(blacklistKey);
+      const minutes = Math.ceil(ttl / 60);
+      throw new BadRequestException(`验证码发送过于频繁，请在${minutes}分钟后重试`);
+    }
+
+    // 检查60秒内发送次数
+    const countKey = `sms:count:${phone}`;
+    const countStr = await this.redisService.get(countKey);
+    const count = parseInt(countStr || '0', 10);
+
+    if (count >= 5) {
+      // 超过5次，拉黑10分钟
+      await this.redisService.set(blacklistKey, '1', 600); // 10分钟
+      throw new BadRequestException('验证码发送次数过多，请在10分钟后重试');
     }
 
     // 生成验证码
@@ -95,8 +111,12 @@ export class SmsService {
     const codeKey = `sms:code:${phone}:${type}`;
     await this.redisService.set(codeKey, code, 300); // 5分钟
 
-    // 设置发送频率限制
-    await this.redisService.set(limitKey, '1', 60); // 60秒
+    // 增加发送次数（60秒窗口）
+    if (count === 0) {
+      await this.redisService.set(countKey, '1', 60);
+    } else {
+      await this.redisService.incr(countKey);
+    }
 
     // 发送短信
     try {
