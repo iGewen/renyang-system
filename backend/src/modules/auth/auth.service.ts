@@ -39,13 +39,6 @@ export class AuthService {
   async sendSmsCode(dto: SendSmsCodeDto): Promise<{ success: boolean }> {
     const { phone, type } = dto;
 
-    // 检查发送频率限制
-    const limitKey = `sms:limit:${phone}`;
-    const exists = await this.redisService.exists(limitKey);
-    if (exists) {
-      throw new BadRequestException('验证码发送过于频繁，请60秒后重试');
-    }
-
     // 检查用户是否存在
     if (type === 'register') {
       const existUser = await this.userRepository.findOne({ where: { phone } });
@@ -59,10 +52,7 @@ export class AuthService {
       }
     }
 
-    // 设置发送频率限制
-    await this.redisService.set(limitKey, '1', 60); // 60秒
-
-    // 调用短信服务发送验证码
+    // 调用短信服务发送验证码（频率限制在SmsService中统一处理）
     return this.smsService.sendVerificationCode(phone, type);
   }
 
