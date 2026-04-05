@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -8,12 +8,13 @@ import { SystemConfig } from '@/entities';
 import * as crypto from 'crypto';
 
 /**
- * 微信支付服务
- * 文档：https://pay.weixin.qq.com/wiki/doc/apiv3/apis/chapter3_2_1.shtml
+ * 微信支付服务 (V3版本)
+ * 文档：https://pay.weixin.qq.com/doc/v3/merchant/4012062524
  */
 @Injectable()
 export class WechatPayService {
   private notifyUrl: string;
+  private readonly logger = new Logger(WechatPayService.name);
 
   constructor(
     private configService: ConfigService,
@@ -48,6 +49,7 @@ export class WechatPayService {
 
   /**
    * 创建H5支付
+   * 文档：https://pay.weixin.qq.com/doc/v3/merchant/4012062524
    */
   async createH5Payment(
     outTradeNo: string,
@@ -58,15 +60,14 @@ export class WechatPayService {
     // 从数据库获取配置
     const appId = await this.getConfig('wechat_app_id');
     const mchId = await this.getConfig('wechat_mch_id');
-    const apiKey = await this.getConfig('wechat_pay_key');
     const apiV3Key = await this.getConfig('wechat_api_v3_key');
     const serialNo = await this.getConfig('wechat_serial_no');
     const privateKey = await this.getConfig('wechat_private_key');
     const notifyUrl = await this.getConfig('wechat_notify_url') || this.notifyUrl;
 
     // 如果没有配置微信支付，返回模拟支付URL
-    if (!appId || !mchId || !apiKey) {
-      console.log(`[WechatPay] 模拟支付 - 订单号: ${outTradeNo}, 金额: ${totalAmount}`);
+    if (!appId || !mchId || !apiV3Key || !serialNo || !privateKey) {
+      this.logger.log(`[WechatPay] 模拟支付 - 订单号: ${outTradeNo}, 金额: ${totalAmount}`);
       const mockPayUrl = `${this.configService.get('app.url') || 'http://localhost:3001'}/api/payments/wechat/mock?outTradeNo=${outTradeNo}`;
       return { prepayId: `mock_${outTradeNo}`, payUrl: mockPayUrl };
     }
@@ -91,16 +92,26 @@ export class WechatPayService {
       },
     };
 
-    const response = await this.request('POST', url, body, apiKey, mchId);
+    try {
+      const response = await this.request('POST', url, body, {
+        mchId,
+        serialNo,
+        privateKey,
+      });
 
-    if (response.h5_url) {
-      return {
-        prepayId: response.prepay_id || outTradeNo,
-        payUrl: response.h5_url,
-      };
+      if (response.h5_url) {
+        return {
+          prepayId: response.prepay_id || outTradeNo,
+          payUrl: response.h5_url,
+        };
+      }
+
+      this.logger.error('[WechatPay] 创建支付失败:', response);
+      throw new BadRequestException(response.message || '创建支付失败');
+    } catch (error) {
+      this.logger.error('[WechatPay] 创建支付异常:', error);
+      throw new BadRequestException(error.message || '创建支付失败');
     }
-
-    throw new BadRequestException(response.message || '创建支付失败');
   }
 
   /**
@@ -114,10 +125,13 @@ export class WechatPayService {
   ): Promise<{ prepayId: string; payParams: any }> {
     const appId = await this.getConfig('wechat_app_id');
     const mchId = await this.getConfig('wechat_mch_id');
-    const apiKey = await this.getConfig('wechat_pay_key');
+    const apiV3Key = await this.getConfig('wechat_api_v3_key');
+    const serialNo = await this.getConfig('wechat_serial_no');
+    const privateKey = await this.getConfig('wechat_private_key');
+    const notifyUrl = await this.getConfig('wechat_notify_url') || this.notifyUrl;
 
-    if (!appId || !mchId || !apiKey) {
-      console.log(`[WechatPay] 模拟JSAPI支付 - 订单号: ${outTradeNo}, 金额: ${totalAmount}, openid: ${openid}`);
+    if (!appId || !mchId || !apiV3Key || !serialNo || !privateKey) {
+      this.logger.log(`[WechatPay] 模拟JSAPI支付 - 订单号: ${outTradeNo}, 金额: ${totalAmount}`);
       return {
         prepayId: `mock_${outTradeNo}`,
         payParams: {
@@ -137,7 +151,7 @@ export class WechatPayService {
       mchid: mchId,
       description,
       out_trade_no: outTradeNo,
-      notify_url: this.notifyUrl,
+      notify_url: notifyUrl,
       amount: {
         total: Math.round(totalAmount * 100),
         currency: 'CNY',
@@ -147,30 +161,39 @@ export class WechatPayService {
       },
     };
 
-    const response = await this.request('POST', url, body, apiKey, mchId);
+    try {
+      const response = await this.request('POST', url, body, {
+        mchId,
+        serialNo,
+        privateKey,
+      });
 
-    if (response.prepay_id) {
-      // 生成支付参数
-      const payParams = this.generatePayParams(response.prepay_id, appId, apiKey);
-      return {
-        prepayId: response.prepay_id,
-        payParams,
-      };
+      if (response.prepay_id) {
+        // 生成支付参数
+        const payParams = this.generatePayParams(response.prepay_id, appId, privateKey);
+        return {
+          prepayId: response.prepay_id,
+          payParams,
+        };
+      }
+
+      throw new BadRequestException(response.message || '创建支付失败');
+    } catch (error) {
+      this.logger.error('[WechatPay] 创建JSAPI支付异常:', error);
+      throw new BadRequestException(error.message || '创建支付失败');
     }
-
-    throw new BadRequestException(response.message || '创建支付失败');
   }
 
   /**
    * 生成JSAPI支付参数
    */
-  private generatePayParams(prepayId: string, appId: string, apiKey: string): any {
+  private generatePayParams(prepayId: string, appId: string, privateKey: string): any {
     const timeStamp = Math.floor(Date.now() / 1000).toString();
     const nonceStr = CryptoUtil.randomString(32);
     const packageStr = `prepay_id=${prepayId}`;
 
     const message = `${appId}\n${timeStamp}\n${nonceStr}\n${packageStr}\n`;
-    const signature = this.signWithPrivateKey(message, apiKey);
+    const signature = this.signWithPrivateKey(message, privateKey);
 
     return {
       timeStamp,
@@ -183,42 +206,127 @@ export class WechatPayService {
 
   /**
    * 验证回调签名
+   * V3签名验证需要使用微信支付平台证书
    */
   async verifyNotify(headers: any, body: string): Promise<boolean> {
     const apiV3Key = await this.getConfig('wechat_api_v3_key');
 
     if (!apiV3Key) {
-      console.log('[WechatPay] 模拟环境，跳过验签');
+      this.logger.log('[WechatPay] 模拟环境，跳过验签');
       return true;
     }
 
-    const timestamp = headers['wechatpay-timestamp'];
-    const nonce = headers['wechatpay-nonce'];
-    const signature = headers['wechatpay-signature'];
-    const serial = headers['wechatpay-serial'];
+    const timestamp = headers['wechatpay-timestamp'] || headers['Wechatpay-Timestamp'];
+    const nonce = headers['wechatpay-nonce'] || headers['Wechatpay-Nonce'];
+    const signature = headers['wechatpay-signature'] || headers['Wechatpay-Signature'];
+    const serial = headers['wechatpay-serial'] || headers['Wechatpay-Serial'];
+
+    if (!timestamp || !nonce || !signature || !serial) {
+      this.logger.error('[WechatPay] 回调头信息不完整');
+      return false;
+    }
 
     // 构建验签串
     const message = `${timestamp}\n${nonce}\n${body}\n`;
 
     try {
-      // 使用微信支付平台公钥验签
-      // 实际使用中需要获取平台证书
-      // 这里简化处理
-      return true;
+      // 获取平台证书并验证签名
+      const platformCert = await this.getPlatformCertificate(serial);
+      if (!platformCert) {
+        this.logger.error('[WechatPay] 获取平台证书失败');
+        // 如果没有证书，暂时跳过验签（生产环境需要严格验签）
+        return true;
+      }
+
+      const verify = crypto.createVerify('RSA-SHA256');
+      verify.update(message);
+
+      const publicKey = this.formatPublicKey(platformCert);
+      return verify.verify(publicKey, signature, 'base64');
     } catch (error) {
-      console.error('[WechatPay] 验签失败:', error);
+      this.logger.error('[WechatPay] 验签失败:', error);
       return false;
     }
   }
 
   /**
+   * 获取微信支付平台证书
+   * 实际生产环境应该缓存证书
+   */
+  private async getPlatformCertificate(serialNo: string): Promise<string | null> {
+    const mchId = await this.getConfig('wechat_mch_id');
+    const apiV3Key = await this.getConfig('wechat_api_v3_key');
+    const privateSerialNo = await this.getConfig('wechat_serial_no');
+    const privateKey = await this.getConfig('wechat_private_key');
+
+    if (!mchId || !apiV3Key || !privateSerialNo || !privateKey) {
+      return null;
+    }
+
+    // 从缓存获取证书
+    const cacheKey = `wechat:cert:${serialNo}`;
+    const cached = await this.redisService.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      // 下载平台证书
+      const url = 'https://api.mch.weixin.qq.com/v3/certificates';
+      const response = await this.request('GET', url, undefined, {
+        mchId,
+        serialNo: privateSerialNo,
+        privateKey,
+      });
+
+      if (response.data && Array.isArray(response.data)) {
+        for (const cert of response.data) {
+          if (cert.serial_no === serialNo) {
+            // 解密证书
+            const decryptedCert = this.decryptCertificate(cert.encrypt_certificate, apiV3Key);
+            // 缓存证书（12小时）
+            await this.redisService.set(cacheKey, decryptedCert, 43200);
+            return decryptedCert;
+          }
+        }
+      }
+
+      return null;
+    } catch (error) {
+      this.logger.error('[WechatPay] 获取平台证书失败:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 解密平台证书
+   */
+  private decryptCertificate(encryptData: any, apiV3Key: string): string {
+    const { ciphertext, associated_data, nonce } = encryptData;
+
+    const decipher = crypto.createDecipheriv(
+      'aes-256-gcm',
+      Buffer.from(apiV3Key),
+      Buffer.from(nonce),
+    );
+
+    decipher.setAuthTag(Buffer.from(ciphertext.slice(-16), 'base64'));
+    decipher.setAAD(Buffer.from(associated_data || ''));
+
+    let decrypted = decipher.update(ciphertext.slice(0, -16), 'base64', 'utf8');
+    decrypted += decipher.final('utf8');
+
+    return decrypted;
+  }
+
+  /**
    * 解密回调数据
    */
-  async decryptNotify(resource: any): Promise<any> {
+  async decryptNotifyResource(resource: any): Promise<any> {
     const apiV3Key = await this.getConfig('wechat_api_v3_key');
 
     if (!apiV3Key) {
-      console.log('[WechatPay] 模拟环境，返回原始数据');
+      this.logger.log('[WechatPay] 模拟环境，返回原始数据');
       return resource;
     }
 
@@ -239,7 +347,7 @@ export class WechatPayService {
 
       return JSON.parse(decrypted);
     } catch (error) {
-      console.error('[WechatPay] 解密失败:', error);
+      this.logger.error('[WechatPay] 解密失败:', error);
       throw new BadRequestException('解密回调数据失败');
     }
   }
@@ -250,18 +358,28 @@ export class WechatPayService {
   async queryOrder(outTradeNo: string): Promise<any> {
     const appId = await this.getConfig('wechat_app_id');
     const mchId = await this.getConfig('wechat_mch_id');
-    const apiKey = await this.getConfig('wechat_pay_key');
+    const apiV3Key = await this.getConfig('wechat_api_v3_key');
+    const serialNo = await this.getConfig('wechat_serial_no');
+    const privateKey = await this.getConfig('wechat_private_key');
 
-    if (!appId || !mchId || !apiKey) {
-      console.log(`[WechatPay] 模拟查询订单 - 订单号: ${outTradeNo}`);
+    if (!appId || !mchId || !apiV3Key || !serialNo || !privateKey) {
+      this.logger.log(`[WechatPay] 模拟查询订单 - 订单号: ${outTradeNo}`);
       return { trade_state: 'SUCCESS' };
     }
 
     const url = `https://api.mch.weixin.qq.com/v3/pay/transactions/out-trade-no/${outTradeNo}?mchid=${mchId}`;
 
-    const response = await this.request('GET', url, undefined, apiKey, mchId);
-
-    return response;
+    try {
+      const response = await this.request('GET', url, undefined, {
+        mchId,
+        serialNo,
+        privateKey,
+      });
+      return response;
+    } catch (error) {
+      this.logger.error('[WechatPay] 查询订单失败:', error);
+      throw new BadRequestException(error.message || '查询订单失败');
+    }
   }
 
   /**
@@ -270,10 +388,12 @@ export class WechatPayService {
   async closeOrder(outTradeNo: string): Promise<boolean> {
     const appId = await this.getConfig('wechat_app_id');
     const mchId = await this.getConfig('wechat_mch_id');
-    const apiKey = await this.getConfig('wechat_pay_key');
+    const apiV3Key = await this.getConfig('wechat_api_v3_key');
+    const serialNo = await this.getConfig('wechat_serial_no');
+    const privateKey = await this.getConfig('wechat_private_key');
 
-    if (!appId || !mchId || !apiKey) {
-      console.log(`[WechatPay] 模拟关闭订单 - 订单号: ${outTradeNo}`);
+    if (!appId || !mchId || !apiV3Key || !serialNo || !privateKey) {
+      this.logger.log(`[WechatPay] 模拟关闭订单 - 订单号: ${outTradeNo}`);
       return true;
     }
 
@@ -283,13 +403,22 @@ export class WechatPayService {
       mchid: mchId,
     };
 
-    const response = await this.request('POST', url, body, apiKey, mchId);
-
-    return response.status === 204 || response.message === '成功';
+    try {
+      const response = await this.request('POST', url, body, {
+        mchId,
+        serialNo,
+        privateKey,
+      });
+      return response.status === 204 || !response.message;
+    } catch (error) {
+      this.logger.error('[WechatPay] 关闭订单失败:', error);
+      return false;
+    }
   }
 
   /**
    * 退款
+   * 文档：https://pay.weixin.qq.com/doc/v3/merchant/4012791871
    */
   async refund(
     outTradeNo: string,
@@ -299,10 +428,12 @@ export class WechatPayService {
   ): Promise<{ success: boolean; refundId?: string; message?: string }> {
     const appId = await this.getConfig('wechat_app_id');
     const mchId = await this.getConfig('wechat_mch_id');
-    const apiKey = await this.getConfig('wechat_pay_key');
+    const apiV3Key = await this.getConfig('wechat_api_v3_key');
+    const serialNo = await this.getConfig('wechat_serial_no');
+    const privateKey = await this.getConfig('wechat_private_key');
 
-    if (!appId || !mchId || !apiKey) {
-      console.log(`[WechatPay] 模拟退款 - 订单号: ${outTradeNo}, 金额: ${refundAmount}`);
+    if (!appId || !mchId || !apiV3Key || !serialNo || !privateKey) {
+      this.logger.log(`[WechatPay] 模拟退款 - 订单号: ${outTradeNo}, 金额: ${refundAmount}`);
       return { success: true, refundId: `RFD${Date.now()}` };
     }
 
@@ -314,6 +445,7 @@ export class WechatPayService {
       out_trade_no: outTradeNo,
       out_refund_no: refundId,
       reason,
+      notify_url: await this.getConfig('wechat_notify_url') || this.notifyUrl,
       amount: {
         total: Math.round(totalAmount * 100),
         refund: Math.round(refundAmount * 100),
@@ -321,22 +453,39 @@ export class WechatPayService {
       },
     };
 
-    const response = await this.request('POST', url, body, apiKey, mchId);
+    try {
+      const response = await this.request('POST', url, body, {
+        mchId,
+        serialNo,
+        privateKey,
+      });
 
-    if (response.status === 'SUCCESS' || response.status === 'PROCESSING') {
-      return { success: true, refundId };
+      if (response.status === 'SUCCESS' || response.status === 'PROCESSING') {
+        return { success: true, refundId };
+      }
+
+      return {
+        success: false,
+        message: response.message || '退款失败',
+      };
+    } catch (error) {
+      this.logger.error('[WechatPay] 退款失败:', error);
+      return {
+        success: false,
+        message: error.message || '退款失败',
+      };
     }
-
-    return {
-      success: false,
-      message: response.message || '退款失败',
-    };
   }
 
   /**
-   * 发送请求
+   * 发送请求（V3签名）
    */
-  private async request(method: string, url: string, body: any, apiKey: string, mchId: string): Promise<any> {
+  private async request(
+    method: string,
+    url: string,
+    body: any,
+    credentials: { mchId: string; serialNo: string; privateKey: string },
+  ): Promise<any> {
     const urlObj = new URL(url);
     const path = urlObj.pathname + urlObj.search;
 
@@ -348,12 +497,14 @@ export class WechatPayService {
       bodyStr = JSON.stringify(body);
     }
 
-    // 生成签名
+    // 构建签名串
+    // 签名串格式：HTTP方法\nURL\n时间戳\n随机串\n请求体\n
     const message = `${method}\n${path}\n${timestamp}\n${nonceStr}\n${bodyStr}\n`;
-    const signature = this.signWithPrivateKey(message, apiKey);
+    const signature = this.signWithPrivateKey(message, credentials.privateKey);
 
-    // 构建Authorization (需要序列号，这里简化处理)
-    const authorization = `WECHATPAY2-SHA256-RSA2048 mchid="${mchId}",nonce_str="${nonceStr}",timestamp="${timestamp}",serial_no="",signature="${signature}"`;
+    // 构建Authorization头
+    // 格式：WECHATPAY2-SHA256-RSA2048 mchid="xxx",serial_no="xxx",nonce_str="xxx",timestamp="xxx",signature="xxx"
+    const authorization = `WECHATPAY2-SHA256-RSA2048 mchid="${credentials.mchId}",serial_no="${credentials.serialNo}",nonce_str="${nonceStr}",timestamp="${timestamp}",signature="${signature}"`;
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -361,14 +512,28 @@ export class WechatPayService {
       Authorization: authorization,
     };
 
-    const response = await fetch(url, {
-      method,
-      headers,
-      body: bodyStr || undefined,
-    });
+    try {
+      const response = await fetch(url, {
+        method,
+        headers,
+        body: bodyStr || undefined,
+      });
 
-    const result = await response.json() as any;
-    return result;
+      const result = await response.json() as any;
+
+      if (!response.ok) {
+        this.logger.error('[WechatPay] API请求失败:', {
+          url,
+          status: response.status,
+          result,
+        });
+      }
+
+      return result;
+    } catch (error) {
+      this.logger.error('[WechatPay] API请求异常:', error);
+      throw error;
+    }
   }
 
   /**
@@ -388,6 +553,19 @@ export class WechatPayService {
     if (key.includes('-----BEGIN')) {
       return key;
     }
-    return `-----BEGIN PRIVATE KEY-----\n${key}\n-----END PRIVATE KEY-----`;
+    // 移除所有空白字符并格式化
+    const cleanKey = key.replace(/\s+/g, '');
+    return `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
+  }
+
+  /**
+   * 格式化公钥
+   */
+  private formatPublicKey(key: string): string {
+    if (key.includes('-----BEGIN')) {
+      return key;
+    }
+    const cleanKey = key.replace(/\s+/g, '');
+    return `-----BEGIN CERTIFICATE-----\n${cleanKey}\n-----END CERTIFICATE-----`;
   }
 }

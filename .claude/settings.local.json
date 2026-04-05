@@ -15,7 +15,10 @@
       "Bash(winget list:*)",
       "Bash(dir D:\\\\Code\\\\renyang-system:*)",
       "Bash(pip install:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "WebFetch(domain:pay.weixin.qq.com)",
+      "WebFetch(domain:modelscope.cn)",
+      "WebSearch"
     ]
   }
 }
