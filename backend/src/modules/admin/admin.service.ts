@@ -716,9 +716,20 @@ export class AdminService {
       ? configValue
       : JSON.stringify(configValue);
 
+    // 根据配置键名自动判断类型
+    const getConfigType = (key: string): string => {
+      if (key.startsWith('site_') || key.startsWith('contact_')) return 'basic';
+      if (key.startsWith('alipay_') || key.startsWith('wechat_')) return 'payment';
+      if (key.startsWith('aliyun_') || key.startsWith('sms_')) return 'sms';
+      return 'other';
+    };
+
+    const configType = getConfigType(configKey);
+
     if (config) {
       const beforeData = config.configValue;
       config.configValue = valueStr;
+      config.configType = configType; // 更新类型
       await this.systemConfigRepository.save(config);
 
       await this.createAuditLog({
@@ -738,7 +749,7 @@ export class AdminService {
         id: IdUtil.generate('SC'),
         configKey,
         configValue: valueStr,
-        configType: 'other',
+        configType,
       });
       await this.systemConfigRepository.save(config);
 

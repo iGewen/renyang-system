@@ -717,41 +717,39 @@ export const AdminConfig: React.FC = () => {
       const res = await adminApi.getConfigs();
       setConfigs(res);
 
-      // 解析配置到表单
+      // 解析配置到表单 - 不依赖configType，直接按key匹配
       res.forEach((config: SystemConfig) => {
-        if (config.configType === 'basic') {
-          if (config.configKey === 'site_name') setBasicConfig(prev => ({ ...prev, siteName: config.configValue }));
-          if (config.configKey === 'site_title') setBasicConfig(prev => ({ ...prev, siteTitle: config.configValue }));
-          if (config.configKey === 'site_description') setBasicConfig(prev => ({ ...prev, siteDescription: config.configValue }));
-          if (config.configKey === 'site_keywords') setBasicConfig(prev => ({ ...prev, siteKeywords: config.configValue }));
-          if (config.configKey === 'contact_phone') setBasicConfig(prev => ({ ...prev, contactPhone: config.configValue }));
-          if (config.configKey === 'contact_email') setBasicConfig(prev => ({ ...prev, contactEmail: config.configValue }));
-        }
-        if (config.configType === 'payment') {
-          if (config.configKey === 'alipay_app_id') setPaymentConfig(prev => ({ ...prev, alipayAppId: config.configValue }));
-          if (config.configKey === 'alipay_private_key') setPaymentConfig(prev => ({ ...prev, alipayPrivateKey: config.configValue }));
-          if (config.configKey === 'alipay_public_key') setPaymentConfig(prev => ({ ...prev, alipayPublicKey: config.configValue }));
-          if (config.configKey === 'alipay_notify_url') setPaymentConfig(prev => ({ ...prev, alipayNotifyUrl: config.configValue }));
-          if (config.configKey === 'alipay_return_url') setPaymentConfig(prev => ({ ...prev, alipayReturnUrl: config.configValue }));
-          if (config.configKey === 'wechat_app_id') setPaymentConfig(prev => ({ ...prev, wechatAppId: config.configValue }));
-          if (config.configKey === 'wechat_mch_id') setPaymentConfig(prev => ({ ...prev, wechatMchId: config.configValue }));
-          if (config.configKey === 'wechat_pay_key') setPaymentConfig(prev => ({ ...prev, wechatPayKey: config.configValue }));
-          if (config.configKey === 'wechat_api_v3_key') setPaymentConfig(prev => ({ ...prev, wechatApiV3Key: config.configValue }));
-          if (config.configKey === 'wechat_serial_no') setPaymentConfig(prev => ({ ...prev, wechatSerialNo: config.configValue }));
-          if (config.configKey === 'wechat_private_key') setPaymentConfig(prev => ({ ...prev, wechatPrivateKey: config.configValue }));
-          if (config.configKey === 'wechat_notify_url') setPaymentConfig(prev => ({ ...prev, wechatNotifyUrl: config.configValue }));
-        }
-        if (config.configType === 'sms') {
-          if (config.configKey === 'aliyun_access_key_id') setSmsConfig(prev => ({ ...prev, aliyunAccessKeyId: config.configValue }));
-          if (config.configKey === 'aliyun_access_key_secret') setSmsConfig(prev => ({ ...prev, aliyunAccessKeySecret: config.configValue }));
-          if (config.configKey === 'aliyun_sign_name') setSmsConfig(prev => ({ ...prev, aliyunSignName: config.configValue }));
-          // 短信模板
-          if (config.configKey === 'sms_template_login') setSmsConfig(prev => ({ ...prev, smsTemplateLogin: config.configValue }));
-          if (config.configKey === 'sms_template_register') setSmsConfig(prev => ({ ...prev, smsTemplateRegister: config.configValue }));
-          if (config.configKey === 'sms_template_reset_password') setSmsConfig(prev => ({ ...prev, smsTemplateResetPassword: config.configValue }));
-          if (config.configKey === 'sms_template_order') setSmsConfig(prev => ({ ...prev, smsTemplateOrder: config.configValue }));
-          if (config.configKey === 'sms_template_feed_bill') setSmsConfig(prev => ({ ...prev, smsTemplateFeedBill: config.configValue }));
-        }
+        // 基础配置
+        if (config.configKey === 'site_name') setBasicConfig(prev => ({ ...prev, siteName: config.configValue }));
+        if (config.configKey === 'site_title') setBasicConfig(prev => ({ ...prev, siteTitle: config.configValue }));
+        if (config.configKey === 'site_description') setBasicConfig(prev => ({ ...prev, siteDescription: config.configValue }));
+        if (config.configKey === 'site_keywords') setBasicConfig(prev => ({ ...prev, siteKeywords: config.configValue }));
+        if (config.configKey === 'contact_phone') setBasicConfig(prev => ({ ...prev, contactPhone: config.configValue }));
+        if (config.configKey === 'contact_email') setBasicConfig(prev => ({ ...prev, contactEmail: config.configValue }));
+
+        // 支付配置
+        if (config.configKey === 'alipay_app_id') setPaymentConfig(prev => ({ ...prev, alipayAppId: config.configValue }));
+        if (config.configKey === 'alipay_private_key') setPaymentConfig(prev => ({ ...prev, alipayPrivateKey: config.configValue }));
+        if (config.configKey === 'alipay_public_key') setPaymentConfig(prev => ({ ...prev, alipayPublicKey: config.configValue }));
+        if (config.configKey === 'alipay_notify_url') setPaymentConfig(prev => ({ ...prev, alipayNotifyUrl: config.configValue }));
+        if (config.configKey === 'alipay_return_url') setPaymentConfig(prev => ({ ...prev, alipayReturnUrl: config.configValue }));
+        if (config.configKey === 'wechat_app_id') setPaymentConfig(prev => ({ ...prev, wechatAppId: config.configValue }));
+        if (config.configKey === 'wechat_mch_id') setPaymentConfig(prev => ({ ...prev, wechatMchId: config.configValue }));
+        if (config.configKey === 'wechat_pay_key') setPaymentConfig(prev => ({ ...prev, wechatPayKey: config.configValue }));
+        if (config.configKey === 'wechat_api_v3_key') setPaymentConfig(prev => ({ ...prev, wechatApiV3Key: config.configValue }));
+        if (config.configKey === 'wechat_serial_no') setPaymentConfig(prev => ({ ...prev, wechatSerialNo: config.configValue }));
+        if (config.configKey === 'wechat_private_key') setPaymentConfig(prev => ({ ...prev, wechatPrivateKey: config.configValue }));
+        if (config.configKey === 'wechat_notify_url') setPaymentConfig(prev => ({ ...prev, wechatNotifyUrl: config.configValue }));
+
+        // 短信配置
+        if (config.configKey === 'aliyun_access_key_id') setSmsConfig(prev => ({ ...prev, aliyunAccessKeyId: config.configValue }));
+        if (config.configKey === 'aliyun_access_key_secret') setSmsConfig(prev => ({ ...prev, aliyunAccessKeySecret: config.configValue }));
+        if (config.configKey === 'aliyun_sign_name') setSmsConfig(prev => ({ ...prev, aliyunSignName: config.configValue }));
+        if (config.configKey === 'sms_template_login') setSmsConfig(prev => ({ ...prev, smsTemplateLogin: config.configValue }));
+        if (config.configKey === 'sms_template_register') setSmsConfig(prev => ({ ...prev, smsTemplateRegister: config.configValue }));
+        if (config.configKey === 'sms_template_reset_password') setSmsConfig(prev => ({ ...prev, smsTemplateResetPassword: config.configValue }));
+        if (config.configKey === 'sms_template_order') setSmsConfig(prev => ({ ...prev, smsTemplateOrder: config.configValue }));
+        if (config.configKey === 'sms_template_feed_bill') setSmsConfig(prev => ({ ...prev, smsTemplateFeedBill: config.configValue }));
       });
     } catch (error) {
       console.error('加载配置失败', error);
