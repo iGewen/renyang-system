@@ -881,7 +881,7 @@ const ProfilePage: React.FC = () => {
           <div className="absolute bottom-0 left-0 right-0 px-8 translate-y-1/2 lg:hidden">
             <Card className="p-6 grid grid-cols-3 gap-4 text-center">
               <Link to="/balance">
-                <p className="text-2xl font-display font-bold text-brand-primary">¥{profile?.balance?.toFixed(0) || '0'}</p>
+                <p className="text-2xl font-display font-bold text-brand-primary">¥{parseFloat(profile?.balance || '0').toFixed(0)}</p>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">账户余额</p>
               </Link>
               <div className="border-x border-slate-100">
@@ -899,7 +899,7 @@ const ProfilePage: React.FC = () => {
           <div className="hidden lg:grid grid-cols-3 gap-8">
             <Link to="/balance">
               <Card className="p-10 flex flex-col items-center hover:shadow-md transition-shadow">
-                <p className="text-4xl font-display font-bold text-brand-primary mb-2">¥{profile?.balance?.toFixed(0) || '0'}</p>
+                <p className="text-4xl font-display font-bold text-brand-primary mb-2">¥{parseFloat(profile?.balance || '0').toFixed(0)}</p>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">账户余额</p>
               </Card>
             </Link>
@@ -1000,13 +1000,13 @@ const ProfilePage: React.FC = () => {
 
 const BalancePage: React.FC = () => {
   const navigate = useNavigate();
-  const [balance, setBalance] = useState(0);
+  const [balance, setBalance] = useState<number>(0);
   const [showRecharge, setShowRecharge] = useState(false);
   const [rechargeAmount, setRechargeAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'alipay' | 'wechat'>('alipay');
 
   useEffect(() => {
-    balanceApi.get().then(res => setBalance(res.balance)).catch(() => {});
+    balanceApi.get().then(res => setBalance(parseFloat(res.balance) || 0)).catch(() => {});
   }, []);
 
   const handleRecharge = async () => {
