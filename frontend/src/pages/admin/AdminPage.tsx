@@ -700,7 +700,12 @@ export const AdminConfig: React.FC = () => {
     aliyunAccessKeyId: '',
     aliyunAccessKeySecret: '',
     aliyunSignName: '',
-    aliyunTemplateCode: '',
+    // 短信模板
+    smsTemplateLogin: '',        // 登录验证码
+    smsTemplateRegister: '',     // 注册验证码
+    smsTemplateResetPassword: '',// 找回密码验证码
+    smsTemplateOrder: '',        // 订单通知
+    smsTemplateFeedBill: '',     // 饲料费通知
   });
 
   useEffect(() => {
@@ -740,7 +745,12 @@ export const AdminConfig: React.FC = () => {
           if (config.configKey === 'aliyun_access_key_id') setSmsConfig(prev => ({ ...prev, aliyunAccessKeyId: config.configValue }));
           if (config.configKey === 'aliyun_access_key_secret') setSmsConfig(prev => ({ ...prev, aliyunAccessKeySecret: config.configValue }));
           if (config.configKey === 'aliyun_sign_name') setSmsConfig(prev => ({ ...prev, aliyunSignName: config.configValue }));
-          if (config.configKey === 'aliyun_template_code') setSmsConfig(prev => ({ ...prev, aliyunTemplateCode: config.configValue }));
+          // 短信模板
+          if (config.configKey === 'sms_template_login') setSmsConfig(prev => ({ ...prev, smsTemplateLogin: config.configValue }));
+          if (config.configKey === 'sms_template_register') setSmsConfig(prev => ({ ...prev, smsTemplateRegister: config.configValue }));
+          if (config.configKey === 'sms_template_reset_password') setSmsConfig(prev => ({ ...prev, smsTemplateResetPassword: config.configValue }));
+          if (config.configKey === 'sms_template_order') setSmsConfig(prev => ({ ...prev, smsTemplateOrder: config.configValue }));
+          if (config.configKey === 'sms_template_feed_bill') setSmsConfig(prev => ({ ...prev, smsTemplateFeedBill: config.configValue }));
         }
       });
     } catch (error) {
@@ -801,7 +811,12 @@ export const AdminConfig: React.FC = () => {
         adminApi.updateConfig('aliyun_access_key_id', smsConfig.aliyunAccessKeyId),
         adminApi.updateConfig('aliyun_access_key_secret', smsConfig.aliyunAccessKeySecret),
         adminApi.updateConfig('aliyun_sign_name', smsConfig.aliyunSignName),
-        adminApi.updateConfig('aliyun_template_code', smsConfig.aliyunTemplateCode),
+        // 短信模板
+        adminApi.updateConfig('sms_template_login', smsConfig.smsTemplateLogin),
+        adminApi.updateConfig('sms_template_register', smsConfig.smsTemplateRegister),
+        adminApi.updateConfig('sms_template_reset_password', smsConfig.smsTemplateResetPassword),
+        adminApi.updateConfig('sms_template_order', smsConfig.smsTemplateOrder),
+        adminApi.updateConfig('sms_template_feed_bill', smsConfig.smsTemplateFeedBill),
       ]);
       toast.success('保存成功');
     } catch (error: any) {
@@ -913,10 +928,48 @@ export const AdminConfig: React.FC = () => {
         <Card className="p-6">
           <h3 className="text-lg font-bold text-slate-900 mb-4">阿里云短信配置</h3>
           <div className="space-y-4 max-w-2xl">
-            <Input label="Access Key ID" value={smsConfig.aliyunAccessKeyId} onChange={e => setSmsConfig({ ...smsConfig, aliyunAccessKeyId: e.target.value })} placeholder="阿里云 Access Key ID" />
-            <Input label="Access Key Secret" value={smsConfig.aliyunAccessKeySecret} onChange={e => setSmsConfig({ ...smsConfig, aliyunAccessKeySecret: e.target.value })} placeholder="阿里云 Access Key Secret" type="password" />
-            <Input label="短信签名" value={smsConfig.aliyunSignName} onChange={e => setSmsConfig({ ...smsConfig, aliyunSignName: e.target.value })} placeholder="短信签名名称" />
-            <Input label="短信模板Code" value={smsConfig.aliyunTemplateCode} onChange={e => setSmsConfig({ ...smsConfig, aliyunTemplateCode: e.target.value })} placeholder="短信模板Code" />
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="Access Key ID" value={smsConfig.aliyunAccessKeyId} onChange={e => setSmsConfig({ ...smsConfig, aliyunAccessKeyId: e.target.value })} placeholder="阿里云 Access Key ID" />
+              <Input label="Access Key Secret" value={smsConfig.aliyunAccessKeySecret} onChange={e => setSmsConfig({ ...smsConfig, aliyunAccessKeySecret: e.target.value })} placeholder="阿里云 Access Key Secret" type="password" />
+            </div>
+            <Input label="短信签名" value={smsConfig.aliyunSignName} onChange={e => setSmsConfig({ ...smsConfig, aliyunSignName: e.target.value })} placeholder="短信签名名称，如：云端牧场" />
+          </div>
+
+          <h3 className="text-lg font-bold text-slate-900 mt-8 mb-4">短信模板配置</h3>
+          <p className="text-sm text-slate-500 mb-4">
+            请在阿里云短信控制台创建对应模板，填写模板CODE（如：SMS_123456789）
+          </p>
+          <div className="space-y-4 max-w-2xl">
+            <Input
+              label="登录验证码模板"
+              value={smsConfig.smsTemplateLogin}
+              onChange={e => setSmsConfig({ ...smsConfig, smsTemplateLogin: e.target.value })}
+              placeholder="模板CODE，变量：${code}"
+            />
+            <Input
+              label="注册验证码模板"
+              value={smsConfig.smsTemplateRegister}
+              onChange={e => setSmsConfig({ ...smsConfig, smsTemplateRegister: e.target.value })}
+              placeholder="模板CODE，变量：${code}"
+            />
+            <Input
+              label="找回密码验证码模板"
+              value={smsConfig.smsTemplateResetPassword}
+              onChange={e => setSmsConfig({ ...smsConfig, smsTemplateResetPassword: e.target.value })}
+              placeholder="模板CODE，变量：${code}"
+            />
+            <Input
+              label="订单通知模板"
+              value={smsConfig.smsTemplateOrder}
+              onChange={e => setSmsConfig({ ...smsConfig, smsTemplateOrder: e.target.value })}
+              placeholder="模板CODE，变量：${orderNo}（认养编号）"
+            />
+            <Input
+              label="饲料费通知模板"
+              value={smsConfig.smsTemplateFeedBill}
+              onChange={e => setSmsConfig({ ...smsConfig, smsTemplateFeedBill: e.target.value })}
+              placeholder="模板CODE，变量：${orderNo}（认养编号）、${amount}（饲料费金额）"
+            />
             <div className="pt-4">
               <Button onClick={handleSaveSms} loading={saving}>保存短信配置</Button>
             </div>

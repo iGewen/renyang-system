@@ -626,7 +626,7 @@ export const adminApi = {
   updateConfig: async (key: string, value: any): Promise<SystemConfig> => {
     return request(`/admin/system-config`, {
       method: 'POST',
-      body: JSON.stringify({ key, value }),
+      body: JSON.stringify({ configKey: key, configValue: value }),
     });
   },
 

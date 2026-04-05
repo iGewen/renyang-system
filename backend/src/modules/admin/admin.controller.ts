@@ -171,7 +171,7 @@ class UpdateSystemConfigDto {
   configKey: string;
 
   @ApiProperty({ description: '配置值' })
-  @IsObject()
+  @IsOptional()
   configValue: any;
 }
 
