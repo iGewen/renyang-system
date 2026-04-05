@@ -14,8 +14,10 @@ export default {
         }
       },
       fontFamily: {
-        display: ['LXGW WenKai', 'serif'],
-        sans: ['LXGW WenKai', 'system-ui', '-apple-system', 'sans-serif'],
+        // 品牌标题使用 Noto Serif SC
+        display: ['Noto Serif SC', 'serif'],
+        // 品牌副标题及其他文字使用 Noto Sans SC
+        sans: ['Noto Sans SC', 'system-ui', '-apple-system', 'sans-serif'],
       }
     },
   },
