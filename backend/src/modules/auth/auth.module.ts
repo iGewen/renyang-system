@@ -8,12 +8,14 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { User } from '@/entities/user.entity';
 import { SmsCode } from '@/entities/sms-code.entity';
+import { SystemConfig } from '@/entities/system-config.entity';
 import { RedisService } from '@/common/utils/redis.service';
+import { SmsService } from '@/services/sms.service';
 
 @Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, SmsCode]),
+    TypeOrmModule.forFeature([User, SmsCode, SystemConfig]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       useFactory: (configService: ConfigService) => ({
@@ -26,7 +28,7 @@ import { RedisService } from '@/common/utils/redis.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RedisService],
+  providers: [AuthService, JwtStrategy, RedisService, SmsService],
   exports: [AuthService, JwtStrategy],
 })
 export class AuthModule {}
