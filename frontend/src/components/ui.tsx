@@ -1,6 +1,132 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
+
+// ==================== Toast 通知系统 ====================
+
+type ToastType = 'success' | 'error' | 'warning' | 'info';
+
+interface Toast {
+  id: string;
+  type: ToastType;
+  message: string;
+}
+
+interface ToastContextValue {
+  showToast: (type: ToastType, message: string) => void;
+  success: (message: string) => void;
+  error: (message: string) => void;
+  warning: (message: string) => void;
+  info: (message: string) => void;
+}
+
+const ToastContext = createContext<ToastContextValue | null>(null);
+
+export const useToast = () => {
+  const context = useContext(ToastContext);
+  if (!context) {
+    throw new Error('useToast must be used within a ToastProvider');
+  }
+  return context;
+};
+
+// 用于去重的消息缓存
+const recentMessages = new Map<string, number>();
+
+export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const showToast = useCallback((type: ToastType, message: string) => {
+    // 去重：检查最近3秒内是否已显示过相同消息
+    const key = `${type}:${message}`;
+    const now = Date.now();
+    const lastShown = recentMessages.get(key);
+    if (lastShown && now - lastShown < 3000) {
+      return; // 跳过重复消息
+    }
+    recentMessages.set(key, now);
+
+    // 清理过期的缓存
+    setTimeout(() => {
+      if (recentMessages.get(key) === now) {
+        recentMessages.delete(key);
+      }
+    }, 3000);
+
+    const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    setToasts(prev => [...prev, { id, type, message }]);
+
+    // 3秒后自动消失
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 3000);
+  }, []);
+
+  const success = useCallback((message: string) => showToast('success', message), [showToast]);
+  const error = useCallback((message: string) => showToast('error', message), [showToast]);
+  const warning = useCallback((message: string) => showToast('warning', message), [showToast]);
+  const info = useCallback((message: string) => showToast('info', message), [showToast]);
+
+  const removeToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  const iconMap = {
+    success: <Icons.CheckCircle2 className="w-5 h-5" />,
+    error: <Icons.X className="w-5 h-5" />,
+    warning: <Icons.AlertTriangle className="w-5 h-5" />,
+    info: <Icons.Info className="w-5 h-5" />,
+  };
+
+  const styleMap = {
+    success: 'bg-green-50 border-green-200 text-green-800',
+    error: 'bg-red-50 border-red-200 text-red-800',
+    warning: 'bg-orange-50 border-orange-200 text-orange-800',
+    info: 'bg-blue-50 border-blue-200 text-blue-800',
+  };
+
+  const iconStyleMap = {
+    success: 'text-green-500',
+    error: 'text-red-500',
+    warning: 'text-orange-500',
+    info: 'text-blue-500',
+  };
+
+  return (
+    <ToastContext.Provider value={{ showToast, success, error, warning, info }}>
+      {children}
+      {/* Toast 容器 - 固定在右上角 */}
+      <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 max-w-sm">
+        <AnimatePresence>
+          {toasts.map(toast => (
+            <motion.div
+              key={toast.id}
+              initial={{ opacity: 0, x: 100, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 100, scale: 0.95 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className={cn(
+                'flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg backdrop-blur-sm',
+                styleMap[toast.type]
+              )}
+            >
+              <span className={iconStyleMap[toast.type]}>
+                {iconMap[toast.type]}
+              </span>
+              <span className="flex-1 text-sm font-medium">{toast.message}</span>
+              <button
+                onClick={() => removeToast(toast.id)}
+                className="text-current opacity-50 hover:opacity-100 transition-opacity"
+              >
+                <Icons.X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+    </ToastContext.Provider>
+  );
+};
 
 // ==================== 图标组件 (SVG) ====================
 

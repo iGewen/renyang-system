@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState } from '../../components/ui';
+import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState, ToastProvider, useToast } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { adminApi } from '../../services/api';
 import type { Livestock, LivestockType, AdoptionOrder, FeedBill, User, DashboardStats, SystemConfig, AuditLog, Notification } from '../../types';
@@ -145,6 +145,7 @@ export const AdminDashboard: React.FC = () => {
 // ==================== 活体管理 ====================
 
 export const AdminLivestock: React.FC = () => {
+  const toast = useToast();
   const [types, setTypes] = useState<LivestockType[]>([]);
   const [livestock, setLivestock] = useState<Livestock[]>([]);
   const [loading, setLoading] = useState(true);
@@ -180,8 +181,9 @@ export const AdminLivestock: React.FC = () => {
       setShowTypeModal(false);
       setEditingType(null);
       setTypeForm({ name: '', description: '' });
+      toast.success('保存成功');
     } catch (error: any) {
-      alert(error.message || '保存失败');
+      toast.error(error.message || '保存失败');
     }
   };
 
@@ -190,8 +192,9 @@ export const AdminLivestock: React.FC = () => {
     try {
       await adminApi.deleteLivestockType(id);
       setTypes(types.filter(t => t.id !== id));
+      toast.success('删除成功');
     } catch (error: any) {
-      alert(error.message || '删除失败');
+      toast.error(error.message || '删除失败');
     }
   };
 
@@ -218,8 +221,9 @@ export const AdminLivestock: React.FC = () => {
       setShowLivestockModal(false);
       setEditingLivestock(null);
       setLivestockForm({ name: '', typeId: '', price: '', monthlyFeedFee: '', redemptionMonths: '12', stock: '', description: '', image: '' });
+      toast.success('保存成功');
     } catch (error: any) {
-      alert(error.message || '保存失败');
+      toast.error(error.message || '保存失败');
     }
   };
 
@@ -228,8 +232,9 @@ export const AdminLivestock: React.FC = () => {
       const newStatus = currentStatus === 1 || currentStatus === 'on_sale' ? 'off_sale' : 'on_sale';
       await adminApi.updateLivestockStatus(id, newStatus);
       setLivestock(livestock.map(l => l.id === id ? { ...l, status: newStatus } : l));
+      toast.success('状态更新成功');
     } catch (error: any) {
-      alert(error.message || '操作失败');
+      toast.error(error.message || '操作失败');
     }
   };
 
@@ -238,8 +243,9 @@ export const AdminLivestock: React.FC = () => {
     try {
       await adminApi.deleteLivestock(id);
       setLivestock(livestock.filter(l => l.id !== id));
+      toast.success('删除成功');
     } catch (error: any) {
-      alert(error.message || '删除失败');
+      toast.error(error.message || '删除失败');
     }
   };
 
@@ -504,6 +510,7 @@ export const AdminFeedBills: React.FC = () => {
 // ==================== 买断管理 ====================
 
 export const AdminRedemptions: React.FC = () => {
+  const toast = useToast();
   const [redemptions, setRedemptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
@@ -528,8 +535,9 @@ export const AdminRedemptions: React.FC = () => {
       await adminApi.auditRedemption(id, { approved });
       const res = await adminApi.getRedemptions({ status: statusFilter || undefined });
       setRedemptions(res.list || []);
+      toast.success(approved ? '已通过审核' : '已拒绝');
     } catch (error: any) {
-      alert(error.message || '操作失败');
+      toast.error(error.message || '操作失败');
     }
   };
 
@@ -657,6 +665,7 @@ export const AdminUsers: React.FC = () => {
 // ==================== 系统配置 ====================
 
 export const AdminConfig: React.FC = () => {
+  const toast = useToast();
   const [configs, setConfigs] = useState<SystemConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -752,9 +761,9 @@ export const AdminConfig: React.FC = () => {
         adminApi.updateConfig('contact_phone', basicConfig.contactPhone),
         adminApi.updateConfig('contact_email', basicConfig.contactEmail),
       ]);
-      alert('保存成功');
+      toast.success('保存成功');
     } catch (error: any) {
-      alert(error.message || '保存失败');
+      toast.error(error.message || '保存失败');
     } finally {
       setSaving(false);
     }
@@ -777,9 +786,9 @@ export const AdminConfig: React.FC = () => {
         adminApi.updateConfig('wechat_private_key', paymentConfig.wechatPrivateKey),
         adminApi.updateConfig('wechat_notify_url', paymentConfig.wechatNotifyUrl),
       ]);
-      alert('保存成功');
+      toast.success('保存成功');
     } catch (error: any) {
-      alert(error.message || '保存失败');
+      toast.error(error.message || '保存失败');
     } finally {
       setSaving(false);
     }
@@ -794,9 +803,9 @@ export const AdminConfig: React.FC = () => {
         adminApi.updateConfig('aliyun_sign_name', smsConfig.aliyunSignName),
         adminApi.updateConfig('aliyun_template_code', smsConfig.aliyunTemplateCode),
       ]);
-      alert('保存成功');
+      toast.success('保存成功');
     } catch (error: any) {
-      alert(error.message || '保存失败');
+      toast.error(error.message || '保存失败');
     } finally {
       setSaving(false);
     }
@@ -921,6 +930,7 @@ export const AdminConfig: React.FC = () => {
 // ==================== 站内信管理 ====================
 
 export const AdminNotifications: React.FC = () => {
+  const toast = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSendModal, setShowSendModal] = useState(false);
@@ -949,7 +959,7 @@ export const AdminNotifications: React.FC = () => {
 
   const handleSend = async () => {
     if (!formData.title || !formData.content) {
-      alert('请填写标题和内容');
+      toast.warning('请填写标题和内容');
       return;
     }
 
@@ -961,12 +971,12 @@ export const AdminNotifications: React.FC = () => {
         type: formData.type,
         userIds: formData.userIds ? formData.userIds.split(',').map(s => s.trim()) : undefined,
       });
-      alert('发送成功');
+      toast.success('发送成功');
       setShowSendModal(false);
       setFormData({ title: '', content: '', type: 'system', userIds: '' });
       loadNotifications();
     } catch (error: any) {
-      alert(error.message || '发送失败');
+      toast.error(error.message || '发送失败');
     } finally {
       setSending(false);
     }
@@ -1084,6 +1094,7 @@ interface Agreement {
 }
 
 export const AdminAgreements: React.FC = () => {
+  const toast = useToast();
   const [agreements, setAgreements] = useState<Agreement[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -1148,19 +1159,19 @@ export const AdminAgreements: React.FC = () => {
 
   const handleSave = async () => {
     if (!formData.agreementKey || !formData.title || !formData.content) {
-      alert('请填写完整信息');
+      toast.warning('请填写完整信息');
       return;
     }
 
     setSaving(true);
     try {
       await adminApi.saveAgreement(formData);
-      alert('保存成功');
+      toast.success('保存成功');
       setEditingKey(null);
       setFormData({ agreementKey: '', title: '', content: '' });
       loadAgreements();
     } catch (error: any) {
-      alert(error.message || '保存失败');
+      toast.error(error.message || '保存失败');
     } finally {
       setSaving(false);
     }
@@ -1171,10 +1182,10 @@ export const AdminAgreements: React.FC = () => {
 
     try {
       await adminApi.deleteAgreement(key);
-      alert('删除成功');
+      toast.success('删除成功');
       loadAgreements();
     } catch (error: any) {
-      alert(error.message || '删除失败');
+      toast.error(error.message || '删除失败');
     }
   };
 
@@ -1579,32 +1590,34 @@ const AdminPage: React.FC<AdminPageProps> = ({ activeMenu: initialMenu }) => {
   };
 
   return (
-    <PageTransition>
-      <AdminLayout activeMenu={activeMenu} onMenuChange={handleMenuChange} adminInfo={adminInfo} onLogout={handleLogout}>
-        <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-6 z-30">
-          <h2 className="text-lg font-bold text-slate-900">
-            {activeMenu === 'dashboard' && '控制台'}
-            {activeMenu === 'livestock' && '活体管理'}
-            {activeMenu === 'orders' && '订单管理'}
-            {activeMenu === 'feed' && '饲料费管理'}
-            {activeMenu === 'redemption' && '买断管理'}
-            {activeMenu === 'users' && '用户管理'}
-            {activeMenu === 'notifications' && '站内信'}
-            {activeMenu === 'agreements' && '协议管理'}
-            {activeMenu === 'logs' && '审计日志'}
-            {activeMenu === 'config' && '系统配置'}
-          </h2>
-          <div className="flex items-center gap-4">
-            <button className="p-2 text-slate-400 hover:bg-slate-50 rounded-full relative">
-              <Icons.Bell className="w-5 h-5" />
-            </button>
+    <ToastProvider>
+      <PageTransition>
+        <AdminLayout activeMenu={activeMenu} onMenuChange={handleMenuChange} adminInfo={adminInfo} onLogout={handleLogout}>
+          <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-6 z-30">
+            <h2 className="text-lg font-bold text-slate-900">
+              {activeMenu === 'dashboard' && '控制台'}
+              {activeMenu === 'livestock' && '活体管理'}
+              {activeMenu === 'orders' && '订单管理'}
+              {activeMenu === 'feed' && '饲料费管理'}
+              {activeMenu === 'redemption' && '买断管理'}
+              {activeMenu === 'users' && '用户管理'}
+              {activeMenu === 'notifications' && '站内信'}
+              {activeMenu === 'agreements' && '协议管理'}
+              {activeMenu === 'logs' && '审计日志'}
+              {activeMenu === 'config' && '系统配置'}
+            </h2>
+            <div className="flex items-center gap-4">
+              <button className="p-2 text-slate-400 hover:bg-slate-50 rounded-full relative">
+                <Icons.Bell className="w-5 h-5" />
+              </button>
+            </div>
+          </header>
+          <div className="flex-1 overflow-y-auto">
+            {renderContent()}
           </div>
-        </header>
-        <div className="flex-1 overflow-y-auto">
-          {renderContent()}
-        </div>
-      </AdminLayout>
-    </PageTransition>
+        </AdminLayout>
+      </PageTransition>
+    </ToastProvider>
   );
 };
 
