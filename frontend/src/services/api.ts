@@ -250,7 +250,7 @@ export const paymentApi = {
 export const balanceApi = {
   // 获取余额
   get: async (): Promise<{ balance: number }> => {
-    return request('/user/balance');
+    return request('/balance');
   },
 
   // 获取余额流水
@@ -259,14 +259,14 @@ export const balanceApi = {
     if (params?.type) query.set('type', params.type);
     if (params?.page) query.set('page', params.page.toString());
     if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
-    return request(`/user/balance/logs?${query.toString()}`);
+    return request(`/balance/logs?${query.toString()}`);
   },
 
   // 充值余额
   recharge: async (amount: number, paymentMethod: 'alipay' | 'wechat'): Promise<PaymentResult> => {
-    return request('/user/balance/recharge', {
+    return request('/payments', {
       method: 'POST',
-      body: JSON.stringify({ amount, paymentMethod }),
+      body: JSON.stringify({ orderType: 'recharge', orderId: `recharge_${Date.now()}`, amount, paymentMethod }),
     });
   }
 };

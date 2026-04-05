@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PageTransition, Icons, Card, Button, Input, EmptyState, Badge } from '../components/ui';
+import { motion } from 'framer-motion';
+import { PageTransition, Icons, Card, Button, Input, EmptyState, Badge, useToast } from '../components/ui';
 import { balanceApi } from '../services/api';
 import type { BalanceLog } from '../types';
 
 export const BalancePage: React.FC = () => {
   const navigate = useNavigate();
+  const { error, success } = useToast();
   const [balance, setBalance] = useState(0);
   const [logs, setLogs] = useState<BalanceLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRecharge, setShowRecharge] = useState(false);
   const [rechargeAmount, setRechargeAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'alipay' | 'wechat'>('alipay');
+  const [recharging, setRecharging] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -35,22 +38,25 @@ export const BalancePage: React.FC = () => {
   const handleRecharge = async () => {
     const amount = parseFloat(rechargeAmount);
     if (!amount || amount <= 0) {
-      alert('请输入正确的金额');
+      error('请输入正确的金额');
       return;
     }
 
+    setRecharging(true);
     try {
       const result = await balanceApi.recharge(amount, paymentMethod);
       if (result.payUrl) {
         // 跳转到支付页面
         window.location.href = result.payUrl;
       } else {
-        alert('充值成功');
+        success('充值成功');
         setShowRecharge(false);
         fetchData();
       }
-    } catch (error: any) {
-      alert(error.message || '充值失败');
+    } catch (err: any) {
+      error(err.message || '充值失败');
+    } finally {
+      setRecharging(false);
     }
   };
 
@@ -224,7 +230,7 @@ export const BalancePage: React.FC = () => {
                 </div>
               </div>
 
-              <Button className="w-full mt-6" size="lg" onClick={handleRecharge}>
+              <Button className="w-full mt-6" size="lg" onClick={handleRecharge} loading={recharging}>
                 确认充值
               </Button>
             </motion.div>

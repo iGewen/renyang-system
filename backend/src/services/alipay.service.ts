@@ -68,11 +68,10 @@ export class AlipayService {
     const notifyUrl = await this.getConfig('alipay_notify_url') || this.notifyUrl;
     const returnUrl = await this.getConfig('alipay_return_url') || this.returnUrl;
 
-    // 如果没有配置支付宝，返回模拟支付URL
+    // 检查必要配置
     if (!appId || !privateKey) {
-      this.logger.log(`[Alipay] 模拟支付 - 订单号: ${outTradeNo}, 金额: ${totalAmount}`);
-      const mockPayUrl = `${this.configService.get('app.url') || 'http://localhost:3001'}/api/payments/alipay/mock?outTradeNo=${outTradeNo}`;
-      return { payUrl: mockPayUrl };
+      this.logger.error('[Alipay] 支付宝未配置，请在后台配置支付宝参数');
+      throw new BadRequestException('支付宝未配置，请联系管理员配置支付宝参数');
     }
 
     this.logger.log(`[Alipay] 创建H5支付 - 订单号: ${outTradeNo}, 金额: ${totalAmount}`);

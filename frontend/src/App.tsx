@@ -1,7 +1,7 @@
 import React, { useState, useEffect, createContext, useContext, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState } from './components/ui';
+import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState, useToast } from './components/ui';
 import { cn } from './lib/utils';
 import type { Livestock, Adoption, FeedBill, User } from './types';
 import { livestockApi, adoptionApi, orderApi, paymentApi, balanceApi, notificationApi, authApi, adminApi, agreementApi } from './services/api';
@@ -590,6 +590,7 @@ const DetailsPage: React.FC = () => {
 const PaymentPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { error } = useToast();
   const orderData = location.state as any;
   const [isPaying, setIsPaying] = useState(false);
 
@@ -604,8 +605,8 @@ const PaymentPage: React.FC = () => {
       } else {
         navigate('/success', { state: orderData });
       }
-    } catch (error) {
-      console.error('Payment failed:', error);
+    } catch (err: any) {
+      error(err.message || '支付失败，请重试');
     } finally {
       setIsPaying(false);
     }
@@ -1001,6 +1002,7 @@ const ProfilePage: React.FC = () => {
 
 const BalancePage: React.FC = () => {
   const navigate = useNavigate();
+  const { error, success } = useToast();
   const [balance, setBalance] = useState<number>(0);
   const [showRecharge, setShowRecharge] = useState(false);
   const [rechargeAmount, setRechargeAmount] = useState('');
@@ -1012,13 +1014,13 @@ const BalancePage: React.FC = () => {
 
   const handleRecharge = async () => {
     const amount = parseFloat(rechargeAmount);
-    if (!amount || amount <= 0) { alert('请输入正确的金额'); return; }
+    if (!amount || amount <= 0) { error('请输入正确的金额'); return; }
     try {
       const result = await balanceApi.recharge(amount, paymentMethod);
       if (result.payUrl) window.location.href = result.payUrl;
-      else { alert('充值成功'); setShowRecharge(false); setBalance(prev => prev + amount); }
-    } catch (error: any) {
-      alert(error.message || '充值失败');
+      else { success('充值成功'); setShowRecharge(false); setBalance(prev => prev + amount); }
+    } catch (err: any) {
+      error(err.message || '充值失败');
     }
   };
 

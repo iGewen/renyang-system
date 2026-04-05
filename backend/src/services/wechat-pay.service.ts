@@ -65,11 +65,10 @@ export class WechatPayService {
     const privateKey = await this.getConfig('wechat_private_key');
     const notifyUrl = await this.getConfig('wechat_notify_url') || this.notifyUrl;
 
-    // 如果没有配置微信支付，返回模拟支付URL
+    // 检查必要配置
     if (!appId || !mchId || !apiV3Key || !serialNo || !privateKey) {
-      this.logger.log(`[WechatPay] 模拟支付 - 订单号: ${outTradeNo}, 金额: ${totalAmount}`);
-      const mockPayUrl = `${this.configService.get('app.url') || 'http://localhost:3001'}/api/payments/wechat/mock?outTradeNo=${outTradeNo}`;
-      return { prepayId: `mock_${outTradeNo}`, payUrl: mockPayUrl };
+      this.logger.error('[WechatPay] 微信支付未配置，请在后台配置微信支付参数');
+      throw new BadRequestException('微信支付未配置，请联系管理员配置微信支付参数');
     }
 
     const url = 'https://api.mch.weixin.qq.com/v3/pay/transactions/h5';
@@ -131,17 +130,8 @@ export class WechatPayService {
     const notifyUrl = await this.getConfig('wechat_notify_url') || this.notifyUrl;
 
     if (!appId || !mchId || !apiV3Key || !serialNo || !privateKey) {
-      this.logger.log(`[WechatPay] 模拟JSAPI支付 - 订单号: ${outTradeNo}, 金额: ${totalAmount}`);
-      return {
-        prepayId: `mock_${outTradeNo}`,
-        payParams: {
-          timeStamp: Math.floor(Date.now() / 1000).toString(),
-          nonceStr: CryptoUtil.randomString(32),
-          package: `prepay_id=mock_${outTradeNo}`,
-          signType: 'RSA',
-          paySign: 'mock_sign',
-        },
-      };
+      this.logger.error('[WechatPay] 微信支付未配置，请在后台配置微信支付参数');
+      throw new BadRequestException('微信支付未配置，请联系管理员配置微信支付参数');
     }
 
     const url = 'https://api.mch.weixin.qq.com/v3/pay/transactions/jsapi';
