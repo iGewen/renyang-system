@@ -590,22 +590,43 @@ const DetailsPage: React.FC = () => {
 const PaymentPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { error } = useToast();
+  const { error, success } = useToast();
   const orderData = location.state as any;
   const [isPaying, setIsPaying] = useState(false);
 
+  // 检查是否有订单数据
+  useEffect(() => {
+    if (!orderData?.orderId) {
+      console.error('PaymentPage: 没有订单数据', orderData);
+      error('订单数据不存在，请重新下单');
+      navigate('/');
+    }
+  }, [orderData, navigate, error]);
+
   const handlePay = async (method: 'alipay' | 'wechat' | 'balance') => {
-    if (!orderData?.orderId) return;
+    if (!orderData?.orderId) {
+      error('订单数据不存在，请重新下单');
+      navigate('/');
+      return;
+    }
+
     setIsPaying(true);
     try {
       const amount = orderData?.livestock?.price || 0;
+      console.log('发起支付:', { orderType: 'adoption', orderId: orderData.orderId, paymentMethod: method, amount });
       const result = await paymentApi.create({ orderType: 'adoption', orderId: orderData.orderId, paymentMethod: method, amount });
+      console.log('支付结果:', result);
+
       if (result.payUrl) {
+        // 跳转到支付页面
         window.location.href = result.payUrl;
       } else {
+        // 余额支付成功，跳转到成功页
+        success('支付成功');
         navigate('/success', { state: orderData });
       }
     } catch (err: any) {
+      console.error('支付失败:', err);
       error(err.message || '支付失败，请重试');
     } finally {
       setIsPaying(false);
