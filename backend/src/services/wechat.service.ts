@@ -74,7 +74,7 @@ export class WechatService {
 
     // 查找或创建用户
     let user = await this.userRepository.findOne({
-      where: { wechatOpenid: tokenData.openid },
+      where: { wechatOpenId: tokenData.openid },
     });
 
     let isNewUser = false;
@@ -84,8 +84,8 @@ export class WechatService {
       isNewUser = true;
       user = this.userRepository.create({
         id: IdUtil.generate('U'),
-        wechatOpenid: tokenData.openid,
-        wechatUnionid: tokenData.unionid,
+        wechatOpenId: tokenData.openid,
+        wechatUnionId: tokenData.unionid,
         nickname: userInfo.nickname || `微信用户${userInfo.openid.slice(-6)}`,
         avatar: userInfo.headimgurl,
         balance: 0,
@@ -145,16 +145,16 @@ export class WechatService {
 
     if (user) {
       // 手机号已注册，绑定微信
-      user.wechatOpenid = userData.openid;
-      user.wechatUnionid = userData.unionid;
+      user.wechatOpenId = userData.openid;
+      user.wechatUnionId = userData.unionid;
       await this.userRepository.save(user);
     } else {
       // 创建新用户
       user = this.userRepository.create({
         id: userData.userId || IdUtil.generate('U'),
         phone,
-        wechatOpenid: userData.openid,
-        wechatUnionid: userData.unionid,
+        wechatOpenId: userData.openid,
+        wechatUnionId: userData.unionid,
         nickname: userData.userInfo?.nickname || `用户${phone.slice(-4)}`,
         avatar: userData.userInfo?.headimgurl,
         balance: 0,

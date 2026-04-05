@@ -32,10 +32,10 @@ export class User {
 
   @Index()
   @Column({ length: 64, nullable: true, unique: true, comment: '微信OpenID' })
-  wechatOpenid: string;
+  wechatOpenId: string;
 
   @Column({ length: 64, nullable: true, comment: '微信UnionID' })
-  wechatUnionid: string;
+  wechatUnionId: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0, comment: '账户余额（元）' })
   balance: number;

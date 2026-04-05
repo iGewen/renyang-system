@@ -14,7 +14,8 @@ export default {
         }
       },
       fontFamily: {
-        display: ['Playfair Display', 'serif'],
+        display: ['LXGW WenKai', 'serif'],
+        sans: ['LXGW WenKai', 'system-ui', '-apple-system', 'sans-serif'],
       }
     },
   },

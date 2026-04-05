@@ -24,6 +24,9 @@ export interface User {
   avatar?: string;
   balance: number;
   status: 'normal' | 'restricted' | 'banned';
+  wechatOpenId?: string;
+  wechatUnionId?: string;
+  lastLoginAt?: string;
   createdAt: string;
   stats?: {
     adoptions: number;

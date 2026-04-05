@@ -50,6 +50,9 @@ const AuthPage: React.FC = () => {
   const [countdown, setCountdown] = useState(0);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [agreed, setAgreed] = useState(false);
+  const [showAgreement, setShowAgreement] = useState(false);
+  const [agreementContent, setAgreementContent] = useState<{ title: string; content: string } | null>(null);
 
   const handleSendCode = async () => {
     if (!phone || !/^1\d{10}$/.test(phone)) {
@@ -100,6 +103,7 @@ const AuthPage: React.FC = () => {
     if (!code) newErrors.code = '请输入验证码';
     if (!password || password.length < 6) newErrors.password = '密码至少6位';
     if (password !== confirmPassword) newErrors.confirmPassword = '两次密码不一致';
+    if (!agreed) newErrors.agreed = '请阅读并同意用户协议和隐私政策';
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
 
     setLoading(true);
@@ -111,6 +115,19 @@ const AuthPage: React.FC = () => {
       setErrors({ submit: error.message || '注册失败' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleShowAgreement = async (type: 'user' | 'privacy') => {
+    setShowAgreement(true);
+    try {
+      const data = await agreementApi.get(type);
+      setAgreementContent(data);
+    } catch {
+      setAgreementContent({
+        title: type === 'user' ? '用户协议' : '隐私政策',
+        content: '暂无协议内容，请联系管理员配置。',
+      });
     }
   };
 
@@ -137,7 +154,7 @@ const AuthPage: React.FC = () => {
     <PageTransition>
       <div className="min-h-screen bg-brand-bg flex flex-col">
         <div className="p-6">
-          <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center">
+          <button onClick={() => navigate('/')} className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center">
             <Icons.ArrowLeft className="w-5 h-5 text-brand-primary" />
           </button>
         </div>
@@ -193,6 +210,18 @@ const AuthPage: React.FC = () => {
                     suffix={<button onClick={() => setShowPassword(!showPassword)} className="text-slate-400">{showPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}</button>} error={errors.password} />
                   <Input label="确认密码" type="password" placeholder="请再次输入密码" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} icon={<Icons.Lock className="w-5 h-5" />} error={errors.confirmPassword} />
                 </div>
+                <div className="mt-4 flex items-start gap-2">
+                  <button onClick={() => setAgreed(!agreed)} className={cn("w-5 h-5 rounded flex-shrink-0 flex items-center justify-center border transition-colors mt-0.5", agreed ? "bg-brand-primary border-brand-primary text-white" : "border-slate-300 text-transparent")}>
+                    <Icons.Check className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="text-sm text-slate-500">
+                    我已阅读并同意
+                    <span onClick={() => handleShowAgreement('user')} className="text-brand-primary cursor-pointer font-medium">《用户协议》</span>
+                    和
+                    <span onClick={() => handleShowAgreement('privacy')} className="text-brand-primary cursor-pointer font-medium">《隐私政策》</span>
+                  </span>
+                </div>
+                {errors.agreed && <p className="text-red-500 text-sm mt-2">{errors.agreed}</p>}
                 {errors.submit && <p className="text-red-500 text-sm mt-4 text-center">{errors.submit}</p>}
                 <div className="flex justify-center items-center mt-4 text-sm">
                   <span className="text-slate-500">已有账号？</span>
@@ -224,6 +253,15 @@ const AuthPage: React.FC = () => {
             )}
           </AnimatePresence>
         </div>
+
+        {/* 协议弹窗 */}
+        <Modal open={showAgreement} onClose={() => setShowAgreement(false)} title={agreementContent?.title || '协议'}>
+          <div className="p-6 max-h-[60vh] overflow-y-auto">
+            <div className="prose prose-sm max-w-none text-slate-600 whitespace-pre-wrap">
+              {agreementContent?.content}
+            </div>
+          </div>
+        </Modal>
       </div>
     </PageTransition>
   );
@@ -341,7 +379,7 @@ const Navbar: React.FC<{ title: string; showBack?: boolean; transparent?: boolea
         </div>
         {rightContent || (
           <div className="flex gap-3">
-            <Link to="/notifications" className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-400 hover:text-brand-primary transition-colors relative">
+            <Link to="/notifications" className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-600 hover:text-brand-primary transition-colors relative">
               <Icons.Bell className="w-5 h-5" />
               <NotificationBadge />
             </Link>
