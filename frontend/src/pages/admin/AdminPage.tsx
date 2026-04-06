@@ -4,6 +4,7 @@ import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, M
 import { cn } from '../../lib/utils';
 import { adminApi } from '../../services/api';
 import type { Livestock, LivestockType, AdoptionOrder, FeedBill, User, DashboardStats, SystemConfig, AuditLog, Notification } from '../../types';
+import { OrderStatus, UserStatus, FeedBillStatus, RedemptionStatus, getOrderStatusText, getUserStatusText, getFeedBillStatusText, getRedemptionStatusText } from '../../types/enums';
 
 // ==================== 后台管理布局 ====================
 
@@ -379,11 +380,12 @@ export const AdminOrders: React.FC = () => {
       .finally(() => setLoading(false));
   }, [statusFilter]);
 
-  const statusMap: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
-    pending: { label: '待支付', variant: 'warning' },
-    paid: { label: '已支付', variant: 'success' },
-    cancelled: { label: '已取消', variant: 'default' },
-    expired: { label: '已过期', variant: 'danger' }
+  // 订单状态映射 - 使用数字枚举
+  const orderStatusMap: Record<number, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
+    [OrderStatus.PENDING_PAYMENT]: { label: '待支付', variant: 'warning' },
+    [OrderStatus.PAID]: { label: '已支付', variant: 'success' },
+    [OrderStatus.CANCELLED]: { label: '已取消', variant: 'default' },
+    [OrderStatus.REFUNDED]: { label: '已退款', variant: 'info' },
   };
 
   if (loading) return <LoadingSpinner />;
@@ -393,9 +395,9 @@ export const AdminOrders: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-slate-900">订单管理</h2>
         <div className="flex gap-2">
-          {['', 'pending', 'paid', 'cancelled'].map(status => (
-            <button key={status} onClick={() => setStatusFilter(status)} className={cn('px-4 py-2 rounded-lg text-sm font-medium transition-colors', statusFilter === status ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}>
-              {status === '' ? '全部' : statusMap[status]?.label || status}
+          {[0, OrderStatus.PENDING_PAYMENT, OrderStatus.PAID, OrderStatus.CANCELLED].map(status => (
+            <button key={status} onClick={() => setStatusFilter(status === 0 ? '' : String(status))} className={cn('px-4 py-2 rounded-lg text-sm font-medium transition-colors', statusFilter === (status === 0 ? '' : String(status)) ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}>
+              {status === 0 ? '全部' : orderStatusMap[status]?.label || '未知'}
             </button>
           ))}
         </div>
@@ -422,7 +424,7 @@ export const AdminOrders: React.FC = () => {
                   <td className="py-3 px-4">{order.livestock?.name || '-'}</td>
                   <td className="py-3 px-4">¥{order.totalAmount}</td>
                   <td className="py-3 px-4">
-                    <Badge variant={statusMap[order.status]?.variant || 'default'}>{statusMap[order.status]?.label || order.status}</Badge>
+                    <Badge variant={orderStatusMap[order.status as number]?.variant || 'default'}>{orderStatusMap[order.status as number]?.label || order.status}</Badge>
                   </td>
                   <td className="py-3 px-4 text-sm text-slate-500">{new Date(order.createdAt).toLocaleString()}</td>
                 </tr>
@@ -450,11 +452,12 @@ export const AdminFeedBills: React.FC = () => {
       .finally(() => setLoading(false));
   }, [statusFilter]);
 
-  const statusMap: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
-    unpaid: { label: '待支付', variant: 'warning' },
-    paid: { label: '已支付', variant: 'success' },
-    overdue: { label: '已逾期', variant: 'danger' },
-    waived: { label: '已免除', variant: 'default' }
+  // 饲料费状态映射 - 使用数字枚举
+  const feedBillStatusMap: Record<number, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
+    [FeedBillStatus.PENDING]: { label: '待支付', variant: 'warning' },
+    [FeedBillStatus.PAID]: { label: '已支付', variant: 'success' },
+    [FeedBillStatus.OVERDUE]: { label: '已逾期', variant: 'danger' },
+    [FeedBillStatus.WAIVED]: { label: '已豁免', variant: 'default' },
   };
 
   if (loading) return <LoadingSpinner />;
@@ -464,9 +467,9 @@ export const AdminFeedBills: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-slate-900">饲料费管理</h2>
         <div className="flex gap-2">
-          {['', 'unpaid', 'paid', 'overdue'].map(status => (
-            <button key={status} onClick={() => setStatusFilter(status)} className={cn('px-4 py-2 rounded-lg text-sm font-medium transition-colors', statusFilter === status ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}>
-              {status === '' ? '全部' : statusMap[status]?.label || status}
+          {[0, FeedBillStatus.PENDING, FeedBillStatus.PAID, FeedBillStatus.OVERDUE].map(status => (
+            <button key={status} onClick={() => setStatusFilter(status === 0 ? '' : String(status))} className={cn('px-4 py-2 rounded-lg text-sm font-medium transition-colors', statusFilter === (status === 0 ? '' : String(status)) ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}>
+              {status === 0 ? '全部' : feedBillStatusMap[status]?.label || '未知'}
             </button>
           ))}
         </div>
@@ -493,7 +496,7 @@ export const AdminFeedBills: React.FC = () => {
                   <td className="py-3 px-4">¥{bill.amount}</td>
                   <td className="py-3 px-4">¥{bill.lateFeeAmount || 0}</td>
                   <td className="py-3 px-4">
-                    <Badge variant={statusMap[bill.status]?.variant || 'default'}>{statusMap[bill.status]?.label || bill.status}</Badge>
+                    <Badge variant={feedBillStatusMap[bill.status as number]?.variant || 'default'}>{feedBillStatusMap[bill.status as number]?.label || bill.status}</Badge>
                   </td>
                   <td className="py-3 px-4 text-sm text-slate-500">{bill.dueDate ? new Date(bill.dueDate).toLocaleDateString() : '-'}</td>
                 </tr>
@@ -522,12 +525,13 @@ export const AdminRedemptions: React.FC = () => {
       .finally(() => setLoading(false));
   }, [statusFilter]);
 
-  const statusMap: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
-    pending: { label: '待审核', variant: 'warning' },
-    approved: { label: '已通过', variant: 'success' },
-    rejected: { label: '已拒绝', variant: 'danger' },
-    paid: { label: '已支付', variant: 'info' },
-    completed: { label: '已完成', variant: 'success' }
+  // 买断状态映射 - 使用数字枚举
+  const redemptionStatusMap: Record<number, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
+    [RedemptionStatus.PENDING_AUDIT]: { label: '待审核', variant: 'warning' },
+    [RedemptionStatus.AUDIT_PASSED]: { label: '审核通过', variant: 'success' },
+    [RedemptionStatus.AUDIT_REJECTED]: { label: '审核拒绝', variant: 'danger' },
+    [RedemptionStatus.PAID]: { label: '已支付', variant: 'info' },
+    [RedemptionStatus.CANCELLED]: { label: '已取消', variant: 'default' },
   };
 
   const handleAudit = async (id: string, approved: boolean) => {
@@ -548,9 +552,9 @@ export const AdminRedemptions: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-slate-900">买断管理</h2>
         <div className="flex gap-2">
-          {['', 'pending', 'approved', 'rejected'].map(status => (
-            <button key={status} onClick={() => setStatusFilter(status)} className={cn('px-4 py-2 rounded-lg text-sm font-medium transition-colors', statusFilter === status ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}>
-              {status === '' ? '全部' : statusMap[status]?.label || status}
+          {[0, RedemptionStatus.PENDING_AUDIT, RedemptionStatus.AUDIT_PASSED, RedemptionStatus.AUDIT_REJECTED].map(status => (
+            <button key={status} onClick={() => setStatusFilter(status === 0 ? '' : String(status))} className={cn('px-4 py-2 rounded-lg text-sm font-medium transition-colors', statusFilter === (status === 0 ? '' : String(status)) ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}>
+              {status === 0 ? '全部' : redemptionStatusMap[status]?.label || '未知'}
             </button>
           ))}
         </div>
@@ -577,10 +581,10 @@ export const AdminRedemptions: React.FC = () => {
                   <td className="py-3 px-4">{item.adoption?.livestock?.name || '-'}</td>
                   <td className="py-3 px-4">¥{item.amount}</td>
                   <td className="py-3 px-4">
-                    <Badge variant={statusMap[item.status]?.variant || 'default'}>{statusMap[item.status]?.label || item.status}</Badge>
+                    <Badge variant={redemptionStatusMap[item.status as number]?.variant || 'default'}>{redemptionStatusMap[item.status as number]?.label || item.status}</Badge>
                   </td>
                   <td className="py-3 px-4">
-                    {item.status === 'pending' && (
+                    {item.status === RedemptionStatus.PENDING_AUDIT && (
                       <div className="flex gap-2">
                         <button onClick={() => handleAudit(item.id, true)} className="text-green-600 text-sm font-medium">通过</button>
                         <button onClick={() => handleAudit(item.id, false)} className="text-red-500 text-sm font-medium">拒绝</button>
@@ -612,10 +616,11 @@ export const AdminUsers: React.FC = () => {
       .finally(() => setLoading(false));
   }, [keyword]);
 
-  const statusMap: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
-    normal: { label: '正常', variant: 'success' },
-    restricted: { label: '受限', variant: 'warning' },
-    banned: { label: '封禁', variant: 'danger' }
+  // 用户状态映射 - 使用数字枚举
+  const userStatusMap: Record<number, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
+    [UserStatus.NORMAL]: { label: '正常', variant: 'success' },
+    [UserStatus.RESTRICTED]: { label: '受限', variant: 'warning' },
+    [UserStatus.BANNED]: { label: '封禁', variant: 'danger' },
   };
 
   if (loading) return <LoadingSpinner />;
@@ -648,7 +653,7 @@ export const AdminUsers: React.FC = () => {
                   <td className="py-3 px-4">{user.nickname || '-'}</td>
                   <td className="py-3 px-4">¥{typeof user.balance === 'number' ? user.balance.toFixed(2) : parseFloat(user.balance || '0').toFixed(2)}</td>
                   <td className="py-3 px-4">
-                    <Badge variant={statusMap[user.status]?.variant || 'default'}>{statusMap[user.status]?.label || user.status}</Badge>
+                    <Badge variant={userStatusMap[user.status as number]?.variant || 'default'}>{userStatusMap[user.status as number]?.label || user.status}</Badge>
                   </td>
                   <td className="py-3 px-4 text-sm text-slate-500">{new Date(user.createdAt).toLocaleDateString()}</td>
                 </tr>
