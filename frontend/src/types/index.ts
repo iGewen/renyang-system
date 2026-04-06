@@ -245,7 +245,7 @@ export interface Notification {
   userId?: string;
   title: string;
   content: string;
-  type: number;  // 1系统 2订单 3饲料费 4买断 5余额
+  type: string;  // system/order/feed/redemption/balance
   relatedType?: string;
   relatedId?: string;
   isRead: number;  // 0未读 1已读

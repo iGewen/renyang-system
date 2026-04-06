@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Icons, PageTransition, LoadingSpinner, Button, Card, Modal } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { adoptionApi } from '../../services/api';
+import { FeedBillStatus } from '../../types/enums';
 import type { FeedBill } from '../../types';
 
 const FeedBillDetailPage: React.FC = () => {
@@ -52,6 +53,16 @@ const FeedBillDetailPage: React.FC = () => {
     return new Date(dateStr).toLocaleDateString('zh-CN');
   };
 
+  const getStatusConfig = (status: number) => {
+    const map: Record<number, { label: string; color: string }> = {
+      [FeedBillStatus.PENDING]: { label: '待支付', color: 'text-orange-600 bg-orange-50' },
+      [FeedBillStatus.PAID]: { label: '已支付', color: 'text-green-600 bg-green-50' },
+      [FeedBillStatus.OVERDUE]: { label: '已逾期', color: 'text-red-600 bg-red-50' },
+      [FeedBillStatus.WAIVED]: { label: '已免除', color: 'text-slate-600 bg-slate-100' },
+    };
+    return map[status] || { label: '未知', color: 'text-slate-600 bg-slate-100' };
+  };
+
   if (loading) return <LoadingSpinner />;
   if (!bill) {
     return (
@@ -63,7 +74,8 @@ const FeedBillDetailPage: React.FC = () => {
     );
   }
 
-  const totalAmount = (bill.adjustedAmount || bill.originalAmount) + bill.lateFeeAmount;
+  const totalAmount = (bill.adjustedAmount ?? bill.originalAmount) + bill.lateFeeAmount;
+  const statusConfig = getStatusConfig(bill.status);
 
   return (
     <PageTransition>
@@ -83,17 +95,8 @@ const FeedBillDetailPage: React.FC = () => {
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-slate-900">{bill.billMonth} 月饲料费</h3>
-              <span className={cn(
-                'px-3 py-1 rounded-full text-sm font-medium',
-                bill.status === 'paid' ? 'text-green-600 bg-green-50' :
-                bill.status === 'overdue' ? 'text-red-600 bg-red-50' :
-                bill.status === 'waived' ? 'text-slate-600 bg-slate-100' :
-                'text-orange-600 bg-orange-50'
-              )}>
-                {bill.status === 'pending' ? '待支付' :
-                 bill.status === 'paid' ? '已支付' :
-                 bill.status === 'overdue' ? '已逾期' :
-                 bill.status === 'waived' ? '已免除' : bill.status}
+              <span className={cn('px-3 py-1 rounded-full text-sm font-medium', statusConfig.color)}>
+                {statusConfig.label}
               </span>
             </div>
             <div className="text-center py-4">
@@ -148,7 +151,7 @@ const FeedBillDetailPage: React.FC = () => {
           </Card>
 
           {/* Payment Button */}
-          {bill.status === 'pending' && (
+          {bill.status === FeedBillStatus.PENDING && (
             <Button
               className="w-full"
               size="lg"

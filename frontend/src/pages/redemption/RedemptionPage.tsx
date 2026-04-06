@@ -34,9 +34,9 @@ const RedemptionPage: React.FC = () => {
     if (!id) return;
     setSubmitting(true);
     try {
-      const result = await adoptionApi.applyRedemption(id, `CLIENT-${Date.now()}`);
+      const result = await adoptionApi.applyRedemption(id);
       setShowConfirmModal(false);
-      alert(`买断申请已提交，买断编号: ${result.redemptionNo}`);
+      alert(`买断申请已提交！\n买断编号: ${result.redemptionNo}\n买断金额: ¥${result.amount}`);
       navigate(`/adoption/${id}`);
     } catch (error: any) {
       alert(error.message || '申请失败');

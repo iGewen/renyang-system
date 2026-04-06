@@ -203,11 +203,16 @@ export const adoptionApi = {
   },
 
   // 申请买断
-  applyRedemption: async (adoptionId: string, clientOrderId: string): Promise<{ redemptionId: string; redemptionNo: string; amount: number; type: 'full' | 'early' }> => {
-    return request(`/adoptions/${adoptionId}/redemption`, {
+  applyRedemption: async (adoptionId: string): Promise<{ redemptionId: string; redemptionNo: string; amount: number; type: 'full' | 'early' }> => {
+    const result = await request(`/redemptions/apply/${adoptionId}`, {
       method: 'POST',
-      body: JSON.stringify({ clientOrderId }),
     });
+    return {
+      redemptionId: result.redemption.id,
+      redemptionNo: result.redemption.redemptionNo,
+      amount: result.redemption.finalAmount,
+      type: result.type,
+    };
   }
 };
 

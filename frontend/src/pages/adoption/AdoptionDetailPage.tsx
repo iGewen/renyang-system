@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, EmptyState } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { adoptionApi } from '../../services/api';
+import { FeedBillStatus } from '../../types/enums';
 import type { Adoption, FeedBill } from '../../types';
 
 const AdoptionDetailPage: React.FC = () => {
@@ -33,17 +34,27 @@ const AdoptionDetailPage: React.FC = () => {
     fetchData();
   }, [id]);
 
-  const getStatusConfig = (status: string) => {
-    const map: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default'; color: string }> = {
-      active: { label: '领养中', variant: 'success', color: 'text-green-600 bg-green-50' },
-      feed_overdue: { label: '饲料费逾期', variant: 'danger', color: 'text-red-600 bg-red-50' },
-      exception: { label: '异常', variant: 'danger', color: 'text-red-600 bg-red-50' },
-      redeemable: { label: '可买断', variant: 'info', color: 'text-blue-600 bg-blue-50' },
-      redemption_pending: { label: '买断审核中', variant: 'warning', color: 'text-orange-600 bg-orange-50' },
-      redeemed: { label: '已买断', variant: 'default', color: 'text-slate-600 bg-slate-100' },
-      terminated: { label: '已终止', variant: 'default', color: 'text-slate-600 bg-slate-100' }
+  const getStatusConfig = (status: number) => {
+    const map: Record<number, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default'; color: string }> = {
+      1: { label: '领养中', variant: 'success', color: 'text-green-600 bg-green-50' },
+      2: { label: '饲料费逾期', variant: 'danger', color: 'text-red-600 bg-red-50' },
+      3: { label: '异常', variant: 'danger', color: 'text-red-600 bg-red-50' },
+      4: { label: '可买断', variant: 'info', color: 'text-blue-600 bg-blue-50' },
+      5: { label: '买断审核中', variant: 'warning', color: 'text-orange-600 bg-orange-50' },
+      6: { label: '已买断', variant: 'default', color: 'text-slate-600 bg-slate-100' },
+      7: { label: '已终止', variant: 'default', color: 'text-slate-600 bg-slate-100' }
     };
-    return map[status] || { label: status, variant: 'default', color: 'text-slate-600 bg-slate-100' };
+    return map[status] || { label: '未知', variant: 'default', color: 'text-slate-600 bg-slate-100' };
+  };
+
+  const getBillStatusConfig = (status: number) => {
+    const map: Record<number, { label: string; color: string }> = {
+      [FeedBillStatus.PENDING]: { label: '待支付', color: 'text-orange-600 bg-orange-50' },
+      [FeedBillStatus.PAID]: { label: '已支付', color: 'text-green-600 bg-green-50' },
+      [FeedBillStatus.OVERDUE]: { label: '已逾期', color: 'text-red-600 bg-red-50' },
+      [FeedBillStatus.WAIVED]: { label: '已免除', color: 'text-slate-600 bg-slate-100' }
+    };
+    return map[status] || { label: '未知', color: 'text-slate-600 bg-slate-100' };
   };
 
   const formatDate = (dateStr: string) => {
@@ -156,7 +167,7 @@ const AdoptionDetailPage: React.FC = () => {
                 </div>
               </Card>
 
-              {(adoption.status === 'redeemable' || adoption.status === 'active') && (
+              {(adoption.status === 4 || adoption.status === 1) && (
                 <Button
                   className="w-full"
                   size="lg"
@@ -187,12 +198,7 @@ const AdoptionDetailPage: React.FC = () => {
                 <EmptyState icon={<Icons.FileText className="w-16 h-16" />} title="暂无饲料费账单" />
               ) : (
                 feedBills.map(bill => {
-                  const billStatusConfig = {
-                    pending: { label: '待支付', color: 'text-orange-600 bg-orange-50' },
-                    paid: { label: '已支付', color: 'text-green-600 bg-green-50' },
-                    overdue: { label: '已逾期', color: 'text-red-600 bg-red-50' },
-                    waived: { label: '已免除', color: 'text-slate-600 bg-slate-100' }
-                  }[bill.status] || { label: bill.status, color: 'text-slate-600 bg-slate-100' };
+                  const billStatusConfig = getBillStatusConfig(bill.status);
 
                   return (
                     <Card key={bill.id} className="p-4" onClick={() => navigate(`/feed-bill/${bill.id}`)}>
@@ -206,7 +212,7 @@ const AdoptionDetailPage: React.FC = () => {
                         <div>
                           <p className="text-slate-500 text-xs">账单金额</p>
                           <p className="text-xl font-bold text-brand-primary">
-                            ¥{bill.adjustedAmount || bill.originalAmount}
+                            ¥{bill.adjustedAmount ?? bill.originalAmount}
                           </p>
                         </div>
                         {bill.lateFeeAmount > 0 && (
@@ -216,13 +222,13 @@ const AdoptionDetailPage: React.FC = () => {
                           </div>
                         )}
                       </div>
-                      {bill.status === 'pending' && (
+                      {bill.status === FeedBillStatus.PENDING && (
                         <Button
                           size="sm"
                           className="w-full mt-3"
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/feed-bill/${bill.id}/pay`);
+                            navigate(`/feed-bill/${bill.id}`);
                           }}
                         >
                           立即支付
