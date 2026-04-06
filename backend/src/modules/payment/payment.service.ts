@@ -67,9 +67,12 @@ export class PaymentService {
     const lockKey = `payment:balance:${payment.userId}`;
 
     return this.redisService.withLock(lockKey, 30000, async () => {
+      console.log(`[PayWithBalance] Starting payment ${payment.paymentNo} for order ${payment.orderId}`);
+
       // 检查余额 - 重新从数据库获取最新余额
       const user = await this.userService.findOne(payment.userId);
       if (!user) {
+        console.error(`[PayWithBalance] User not found: ${payment.userId}`);
         throw new BadRequestException('用户不存在');
       }
 
@@ -77,15 +80,20 @@ export class PaymentService {
       const userBalance = Number(user.balance);
       const paymentAmount = Number(payment.amount);
 
+      console.log(`[PayWithBalance] User balance: ${userBalance}, Payment amount: ${paymentAmount}`);
+
       if (isNaN(userBalance) || isNaN(paymentAmount)) {
+        console.error(`[PayWithBalance] Invalid balance data: userBalance=${userBalance}, paymentAmount=${paymentAmount}`);
         throw new BadRequestException('余额数据异常');
       }
 
       if (userBalance < paymentAmount) {
+        console.error(`[PayWithBalance] Insufficient balance: ${userBalance} < ${paymentAmount}`);
         throw new BadRequestException(`余额不足，当前余额: ${userBalance.toFixed(2)}元，需要支付: ${paymentAmount.toFixed(2)}元`);
       }
 
       // 扣减余额
+      console.log(`[PayWithBalance] Deducting ${paymentAmount} from user ${payment.userId}`);
       await this.userService.updateBalance(
         payment.userId,
         -paymentAmount,
@@ -97,8 +105,16 @@ export class PaymentService {
       payment.paidAt = new Date();
       await this.paymentRepository.save(payment);
 
+      console.log(`[PayWithBalance] Payment ${payment.paymentNo} status updated to SUCCESS`);
+
       // 处理支付成功
-      await this.handlePaymentSuccess(payment);
+      try {
+        await this.handlePaymentSuccess(payment);
+        console.log(`[PayWithBalance] handlePaymentSuccess completed for payment ${payment.paymentNo}`);
+      } catch (error) {
+        console.error(`[PayWithBalance] handlePaymentSuccess failed for payment ${payment.paymentNo}:`, error);
+        throw error;
+      }
 
       return { paymentNo: payment.paymentNo };
     });

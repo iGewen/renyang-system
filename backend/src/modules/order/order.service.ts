@@ -152,17 +152,27 @@ export class OrderService {
   }
 
   async handlePaymentSuccess(orderId: string, paymentNo: string, paymentMethod: string) {
+    console.log(`[OrderService.handlePaymentSuccess] Called with orderId=${orderId}, paymentNo=${paymentNo}, paymentMethod=${paymentMethod}`);
+
     const order = await this.orderRepository.findOne({ where: { id: orderId } });
     if (!order) {
+      console.error(`[OrderService.handlePaymentSuccess] Order not found: ${orderId}`);
       throw new BadRequestException('订单不存在');
     }
 
+    console.log(`[OrderService.handlePaymentSuccess] Order found: id=${order.id}, status=${order.status}, totalAmount=${order.totalAmount}`);
+
     if (order.status !== OrderStatus.PENDING_PAYMENT) {
+      console.log(`[OrderService.handlePaymentSuccess] Order already processed, status=${order.status}`);
       return order; // 已处理，幂等返回
     }
 
+    console.log(`[OrderService.handlePaymentSuccess] Processing payment for order ${orderId}`);
+
     // 使用事务处理
     return this.dataSource.transaction(async (manager) => {
+      console.log(`[OrderService.handlePaymentSuccess] Starting transaction for order ${orderId}`);
+
       // 更新订单状态
       order.status = OrderStatus.PAID;
       order.paidAt = new Date();
@@ -170,21 +180,31 @@ export class OrderService {
       order.paymentMethod = paymentMethod;
       order.paidAmount = order.totalAmount;
       await manager.save(order);
+      console.log(`[OrderService.handlePaymentSuccess] Order status updated to PAID`);
 
       // 扣减库存
-      await this.livestockService.updateStock(order.livestockId, -1);
+      try {
+        await this.livestockService.updateStock(order.livestockId, -1);
+        console.log(`[OrderService.handlePaymentSuccess] Stock deducted for livestock ${order.livestockId}`);
+      } catch (error) {
+        console.error(`[OrderService.handlePaymentSuccess] Failed to deduct stock:`, error);
+      }
 
       // 释放库存锁
       if (order.clientOrderId) {
         const lockStockKey = `livestock:lock:${order.livestockId}:${order.clientOrderId}`;
         await this.redisService.del(lockStockKey);
+        console.log(`[OrderService.handlePaymentSuccess] Stock lock released`);
       }
 
       // 从延时队列移除
       await this.redisService.zrem('delay:queue:order', order.id);
+      console.log(`[OrderService.handlePaymentSuccess] Removed from delay queue`);
 
       // 创建领养记录
       const livestock = order.livestockSnapshot;
+      console.log(`[OrderService.handlePaymentSuccess] Creating adoption record for user ${order.userId}, livestock ${order.livestockId}`);
+
       const adoption = manager.create(Adoption, {
         id: IdUtil.generate('ADP'),
         adoptionNo: IdUtil.generateAdoptionNo(),
@@ -201,8 +221,12 @@ export class OrderService {
         isException: 0,
       });
       await manager.save(adoption);
+      console.log(`[OrderService.handlePaymentSuccess] Adoption created: ${adoption.id}`);
 
       return order;
+    }).catch(error => {
+      console.error(`[OrderService.handlePaymentSuccess] Transaction failed:`, error);
+      throw error;
     });
   }
 
