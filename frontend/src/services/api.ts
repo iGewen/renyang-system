@@ -176,7 +176,7 @@ export const orderApi = {
 export const adoptionApi = {
   // 获取我的领养列表
   getMyAdoptions: async (): Promise<Adoption[]> => {
-    return request('/adoptions/my');
+    return request('/adoptions');
   },
 
   // 获取领养详情

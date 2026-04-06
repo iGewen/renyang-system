@@ -944,7 +944,7 @@ const ProfilePage: React.FC = () => {
           <div className="absolute bottom-0 left-0 right-0 px-6 translate-y-1/2">
             <Card className="p-3 grid grid-cols-3 gap-2 text-center">
               <Link to="/balance">
-                <p className="text-lg font-display font-bold text-brand-primary">¥{parseFloat(profile?.balance || '0').toFixed(0)}</p>
+                <p className="text-lg font-display font-bold text-brand-primary">¥{parseFloat(profile?.balance || '0').toFixed(2)}</p>
                 <p className="text-[10px] text-slate-400">余额</p>
               </Link>
               <div className="border-x border-slate-100">
@@ -962,7 +962,7 @@ const ProfilePage: React.FC = () => {
           <div className="hidden lg:grid grid-cols-3 gap-6">
             <Link to="/balance">
               <Card className="p-6 flex flex-col items-center hover:shadow-md transition-shadow">
-                <p className="text-3xl font-display font-bold text-brand-primary mb-1">¥{parseFloat(profile?.balance || '0').toFixed(0)}</p>
+                <p className="text-3xl font-display font-bold text-brand-primary mb-1">¥{parseFloat(profile?.balance || '0').toFixed(2)}</p>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">账户余额</p>
               </Card>
             </Link>

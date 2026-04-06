@@ -66,7 +66,7 @@ export const NotificationPage: React.FC = () => {
     }
   };
 
-  const handleNotificationClick = async (notification: NotificationItem) => {
+  const handleNotificationClick = (notification: NotificationItem) => {
     // 展开或收起消息
     if (expandedId === notification.id) {
       setExpandedId(null);
@@ -74,11 +74,17 @@ export const NotificationPage: React.FC = () => {
       setExpandedId(notification.id);
     }
     // 如果未读，标记为已读
-    const isUnread = typeof notification.isRead === 'number'
-      ? notification.isRead === 0
-      : notification.isRead === false;
+    const isUnread = isNotificationUnread(notification);
     if (isUnread) {
-      await handleRead(notification.id);
+      // 异步标记已读，不阻塞UI
+      notificationApi.markRead(notification.id).then(() => {
+        setNotifications(prev =>
+          prev.map(n => n.id === notification.id ? { ...n, isRead: 1 } : n)
+        );
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }).catch(error => {
+        console.error('Failed to mark as read:', error);
+      });
     }
   };
 

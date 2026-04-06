@@ -100,14 +100,6 @@ export class PaymentService {
         `支付订单: ${payment.outTradeNo}`,
       );
 
-      // 扣减余额
-      console.log(`[PayWithBalance] Deducting ${paymentAmount} from user ${payment.userId}`);
-      await this.userService.updateBalance(
-        payment.userId,
-        -paymentAmount,
-        `支付订单: ${payment.outTradeNo}`,
-      );
-
       // 处理支付成功（会更新状态为SUCCESS并处理订单）
       // 注意：这里不先更新payment状态，让handlePaymentSuccess来更新
       try {
