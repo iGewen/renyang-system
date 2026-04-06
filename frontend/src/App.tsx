@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLoca
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState, useToast } from './components/ui';
 import { cn } from './lib/utils';
-import type { Livestock, Adoption, FeedBill, User } from './types';
+import type { Livestock, Adoption, FeedBill, User, Order } from './types';
+import { AdoptionStatus, OrderStatus, getAdoptionStatusText, getOrderStatusText } from './types/enums';
 import { livestockApi, adoptionApi, orderApi, paymentApi, balanceApi, notificationApi, authApi, adminApi, agreementApi } from './services/api';
 
 // Lazy load pages for better performance
@@ -761,17 +762,17 @@ const MyAdoptionsPage: React.FC = () => {
     fetchAdoptions();
   }, []);
 
-  const getStatusBadge = (status: string) => {
-    const map: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
-      active: { label: '领养中', variant: 'success' },
-      feed_overdue: { label: '饲料费逾期', variant: 'danger' },
-      exception: { label: '异常', variant: 'danger' },
-      redeemable: { label: '可买断', variant: 'info' },
-      redemption_pending: { label: '买断审核中', variant: 'warning' },
-      redeemed: { label: '已买断', variant: 'default' },
-      terminated: { label: '已终止', variant: 'default' }
+  const getStatusBadge = (status: number) => {
+    const map: Record<number, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
+      [AdoptionStatus.ACTIVE]: { label: '领养中', variant: 'success' },
+      [AdoptionStatus.FEED_OVERDUE]: { label: '饲料费逾期', variant: 'danger' },
+      [AdoptionStatus.EXCEPTION]: { label: '异常', variant: 'danger' },
+      [AdoptionStatus.REDEEMABLE]: { label: '可买断', variant: 'info' },
+      [AdoptionStatus.REDEMPTION_PENDING]: { label: '买断审核中', variant: 'warning' },
+      [AdoptionStatus.REDEEMED]: { label: '已买断', variant: 'default' },
+      [AdoptionStatus.TERMINATED]: { label: '已终止', variant: 'default' }
     };
-    const config = map[status] || { label: status, variant: 'default' };
+    const config = map[status] || { label: getAdoptionStatusText(status), variant: 'default' };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -810,7 +811,7 @@ const MyAdoptionsPage: React.FC = () => {
                   </div>
                   <div className="flex gap-3">
                     <Button variant="outline" size="sm" className="flex-1" onClick={(e) => { e.stopPropagation(); navigate(`/adoption/${item.id}/feed-bills`); }}>饲料费</Button>
-                    {(item.status === 'redeemable' || item.status === 'active') && (
+                    {(item.status === AdoptionStatus.REDEEMABLE || item.status === AdoptionStatus.ACTIVE) && (
                       <Button size="sm" className="flex-1" onClick={(e) => { e.stopPropagation(); navigate(`/adoption/${item.id}/redemption`); }}>申请买断</Button>
                     )}
                   </div>

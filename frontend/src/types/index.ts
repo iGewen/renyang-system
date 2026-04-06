@@ -22,12 +22,14 @@ export interface User {
   phone: string;
   nickname?: string;
   avatar?: string;
-  balance: number;
-  status: 'normal' | 'restricted' | 'banned';
+  balance: string | number;  // 后端返回字符串
+  status: number;  // 1正常 2限制 3封禁
   wechatOpenId?: string;
   wechatUnionId?: string;
   lastLoginAt?: string;
+  lastLoginIp?: string;
   createdAt: string;
+  updatedAt?: string;
   stats?: {
     adoptions: number;
     days: number;
@@ -38,7 +40,7 @@ export interface User {
 export interface BalanceLog {
   id: string;
   userId: string;
-  type: 'recharge' | 'consume' | 'refund' | 'adjust';
+  type: number;  // 1充值 2消费 3退款 4调整
   amount: number;
   balanceBefore: number;
   balanceAfter: number;
@@ -56,7 +58,9 @@ export interface LivestockType {
   code: string;
   icon?: string;
   sortOrder: number;
-  status: 'enabled' | 'disabled';
+  status: number;  // 1启用 2禁用
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Livestock {
@@ -64,40 +68,47 @@ export interface Livestock {
   name: string;
   typeId: string;
   typeName?: string;
-  type: 'sheep' | 'chicken' | 'ostrich';
+  type?: 'sheep' | 'chicken' | 'ostrich';  // 前端兼容字段
   price: number;
   monthlyFeedFee: number;
   redemptionMonths: number;
   description: string;
   images: string[];
   mainImage: string;
-  image: string; // 兼容旧字段
+  image: string;  // 兼容旧字段
   stock: number;
   soldCount: number;
-  status: 'on_sale' | 'off_sale';
+  status: number;  // 1在售 2下架
   sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // ==================== 订单相关 ====================
 
-export interface AdoptionOrder {
+export interface Order {
   id: string;
   orderNo: string;
   userId: string;
   livestockId: string;
-  livestockSnapshot: Livestock;
+  livestockSnapshot: Livestock | null;
   quantity: number;
   totalAmount: number;
   paidAmount: number;
-  paymentMethod?: 'alipay' | 'wechat' | 'balance';
+  paymentMethod?: string;
   paymentNo?: string;
   paidAt?: string;
-  status: 'pending_payment' | 'paid' | 'cancelled' | 'refunded';
-  expireAt: string;
+  status: number;  // 1待支付 2已支付 3已取消 4已退款
+  expireAt?: string;
   cancelReason?: string;
   canceledAt?: string;
+  clientOrderId?: string;
   createdAt: string;
+  updatedAt?: string;
 }
+
+// 兼容旧名称
+export type AdoptionOrder = Order;
 
 // ==================== 领养相关 ====================
 
@@ -107,21 +118,22 @@ export interface Adoption {
   orderId: string;
   userId: string;
   livestockId: string;
-  livestockSnapshot: Livestock;
-  livestock?: Livestock; // 兼容旧字段
+  livestockSnapshot: Livestock | null;
+  livestock?: Livestock;  // 兼容旧字段
   startDate: string;
   redemptionMonths: number;
   feedMonthsPaid: number;
   totalFeedAmount: number;
   lateFeeAmount: number;
-  status: 'active' | 'feed_overdue' | 'exception' | 'redeemable' | 'redemption_pending' | 'redeemed' | 'terminated';
+  status: number;  // 1领养中 2饲料费逾期 3异常 4可买断 5买断审核中 6已买断 7已终止
   currentFeedBillId?: string;
-  isException: boolean;
+  isException: number;  // 0否 1是
   exceptionReason?: string;
   exceptionAt?: string;
-  days?: number; // 已领养天数
-  nextPayment?: string; // 下次付款日期
+  days?: number;  // 已领养天数（计算字段）
+  nextPayment?: string;  // 下次付款日期（计算字段）
   createdAt: string;
+  updatedAt?: string;
 }
 
 // ==================== 饲料费相关 ====================
@@ -142,7 +154,7 @@ export interface FeedBill {
   lateFeeAmount: number;
   totalLateFee: number;
   lateFeeStartDate?: string;
-  status: 'pending' | 'paid' | 'overdue' | 'waived';
+  status: number;  // 1待支付 2已支付 3逾期 4已豁免
   paidAmount: number;
   paymentMethod?: string;
   paymentNo?: string;
@@ -162,12 +174,12 @@ export interface RedemptionOrder {
   adoptionId: string;
   userId: string;
   livestockId: string;
-  type: 'full' | 'early';
+  type: 'full' | 'early';  // 全额买断/提前买断
   originalAmount: number;
   adjustedAmount?: number;
   finalAmount: number;
   adjustReason?: string;
-  status: 'pending_audit' | 'audit_passed' | 'audit_rejected' | 'paid' | 'cancelled';
+  status: number;  // 1待审核 2审核通过 3审核拒绝 4已支付 5已取消
   auditAdminId?: string;
   auditAt?: string;
   auditRemark?: string;
@@ -193,7 +205,7 @@ export interface RefundOrder {
   refundLivestock: 'yes' | 'no';
   reason: string;
   type: 'user_apply' | 'admin_operate' | 'system_auto';
-  status: 'pending_audit' | 'audit_passed' | 'audit_rejected' | 'refunded' | 'cancelled';
+  status: number;  // 1待审核 2审核通过 3审核拒绝 4已退款 5已取消
   auditAdminId?: string;
   auditAt?: string;
   auditRemark?: string;
@@ -204,6 +216,22 @@ export interface RefundOrder {
 }
 
 // ==================== 支付相关 ====================
+
+export interface PaymentRecord {
+  id: string;
+  paymentNo: string;
+  outTradeNo: string;
+  userId: string;
+  orderType: 'adoption' | 'feed' | 'redemption' | 'recharge';
+  orderId: string;
+  amount: number;
+  paymentMethod: 'alipay' | 'wechat' | 'balance';
+  status: number;  // 1待支付 2支付成功 3支付失败 4已关闭
+  paidAt?: string;
+  notifyAt?: string;
+  notifyData?: any;
+  createdAt: string;
+}
 
 export interface PaymentResult {
   payUrl?: string;
@@ -217,10 +245,10 @@ export interface Notification {
   userId?: string;
   title: string;
   content: string;
-  type: 'system' | 'order' | 'feed' | 'redemption' | 'balance';
+  type: number;  // 1系统 2订单 3饲料费 4买断 5余额
   relatedType?: string;
   relatedId?: string;
-  isRead: boolean;
+  isRead: number;  // 0未读 1已读
   readAt?: string;
   createdAt: string;
 }
@@ -234,9 +262,10 @@ export interface Admin {
   phone?: string;
   avatar?: string;
   role: 'super_admin' | 'admin';
-  status: 'enabled' | 'disabled';
+  status: number;  // 1启用 2禁用
   lastLoginAt?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface DashboardStats {
@@ -275,7 +304,7 @@ export interface AuditLog {
   targetId?: string;
   beforeData?: any;
   afterData?: any;
-  isSensitive: boolean;
+  isSensitive: number;  // 0否 1是
   remark?: string;
   ip: string;
   createdAt: string;
@@ -289,8 +318,21 @@ export interface SystemConfig {
   configValue: any;
   configType: 'payment' | 'sms' | 'business' | 'other';
   description: string;
-  isEncrypted: boolean;
+  isEncrypted: number;  // 0否 1是
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-// ==================== 常量 ====================
-// 注意：所有数据都从后端 API 获取，不再使用模拟数据
+// ==================== 协议相关 ====================
+
+export interface Agreement {
+  id: string;
+  agreementKey: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 导出枚举和工具函数
+export * from './enums';

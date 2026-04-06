@@ -4,20 +4,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, EmptyState } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { orderApi } from '../../services/api';
-import type { AdoptionOrder } from '../../types';
+import type { Order } from '../../types';
+import { OrderStatus, getOrderStatusText } from '../../types/enums';
 
-type OrderStatus = 'all' | 'pending_payment' | 'paid' | 'cancelled' | 'refunded';
+type OrderFilterTab = 'all' | 'pending_payment' | 'paid' | 'cancelled' | 'refunded';
 
 const OrdersPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [orders, setOrders] = useState<AdoptionOrder[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<OrderStatus>('all');
+  const [activeTab, setActiveTab] = useState<OrderFilterTab>('all');
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const statusParam = params.get('status') as OrderStatus;
+    const statusParam = params.get('status') as OrderFilterTab;
     if (statusParam) setActiveTab(statusParam);
   }, [location.search]);
 
@@ -25,8 +26,15 @@ const OrdersPage: React.FC = () => {
     const fetchOrders = async () => {
       setLoading(true);
       try {
+        // 状态过滤：前端使用字符串，API需要数字
+        const statusNumber = activeTab === 'all' ? undefined :
+          activeTab === 'pending_payment' ? OrderStatus.PENDING_PAYMENT :
+          activeTab === 'paid' ? OrderStatus.PAID :
+          activeTab === 'cancelled' ? OrderStatus.CANCELLED :
+          activeTab === 'refunded' ? OrderStatus.REFUNDED : undefined;
+
         const data = await orderApi.getMyOrders({
-          status: activeTab === 'all' ? undefined : activeTab
+          status: statusNumber
         });
         setOrders(data.list);
       } catch (error) {
@@ -38,14 +46,14 @@ const OrdersPage: React.FC = () => {
     fetchOrders();
   }, [activeTab]);
 
-  const getStatusConfig = (status: string) => {
-    const map: Record<string, { label: string; variant: 'warning' | 'success' | 'default' | 'danger'; color: string }> = {
-      pending_payment: { label: '待付款', variant: 'warning', color: 'text-orange-600 bg-orange-50' },
-      paid: { label: '已支付', variant: 'success', color: 'text-green-600 bg-green-50' },
-      cancelled: { label: '已取消', variant: 'default', color: 'text-slate-500 bg-slate-100' },
-      refunded: { label: '已退款', variant: 'danger', color: 'text-red-600 bg-red-50' }
+  const getStatusConfig = (status: number) => {
+    const map: Record<number, { label: string; variant: 'warning' | 'success' | 'default' | 'danger'; color: string }> = {
+      [OrderStatus.PENDING_PAYMENT]: { label: '待付款', variant: 'warning', color: 'text-orange-600 bg-orange-50' },
+      [OrderStatus.PAID]: { label: '已支付', variant: 'success', color: 'text-green-600 bg-green-50' },
+      [OrderStatus.CANCELLED]: { label: '已取消', variant: 'default', color: 'text-slate-500 bg-slate-100' },
+      [OrderStatus.REFUNDED]: { label: '已退款', variant: 'danger', color: 'text-red-600 bg-red-50' }
     };
-    return map[status] || { label: status, variant: 'default', color: 'text-slate-500 bg-slate-100' };
+    return map[status] || { label: getOrderStatusText(status), variant: 'default', color: 'text-slate-500 bg-slate-100' };
   };
 
   const formatDate = (dateStr: string) => {
@@ -144,7 +152,7 @@ const OrdersPage: React.FC = () => {
                         <p className="text-lg font-bold text-brand-primary">¥{order.totalAmount}</p>
                       </div>
                     </div>
-                    {order.status === 'pending_payment' && (
+                    {order.status === OrderStatus.PENDING_PAYMENT && (
                       <div className="flex gap-3 mt-4 pt-4 border-t border-slate-100">
                         <Button
                           variant="outline"
