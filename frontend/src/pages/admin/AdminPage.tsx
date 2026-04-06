@@ -605,15 +605,35 @@ export const AdminRedemptions: React.FC = () => {
 // ==================== 用户管理 ====================
 
 export const AdminUsers: React.FC = () => {
+  const toast = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
 
+  // 弹窗状态
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showBalanceModal, setShowBalanceModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [newStatus, setNewStatus] = useState<number>(1);
+  const [editForm, setEditForm] = useState({ nickname: '', phone: '' });
+  const [balanceForm, setBalanceForm] = useState({ amount: '', reason: '' });
+  const [submitting, setSubmitting] = useState(false);
+
+  const loadUsers = async () => {
+    setLoading(true);
+    try {
+      const res = await adminApi.getUsers({ keyword: keyword || undefined });
+      setUsers(res.list || []);
+    } catch (error) {
+      console.error('Failed to load users:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    adminApi.getUsers({ keyword: keyword || undefined })
-      .then(res => setUsers(res.list || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    loadUsers();
   }, [keyword]);
 
   // 用户状态映射 - 使用数字枚举
@@ -623,13 +643,85 @@ export const AdminUsers: React.FC = () => {
     [UserStatus.BANNED]: { label: '封禁', variant: 'danger' },
   };
 
+  const handleStatusChange = async () => {
+    if (!selectedUser) return;
+    setSubmitting(true);
+    try {
+      await adminApi.updateUserStatus(selectedUser.id, newStatus);
+      toast.success('状态更新成功');
+      setShowStatusModal(false);
+      loadUsers();
+    } catch (error: any) {
+      toast.error(error.message || '操作失败');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditUser = async () => {
+    if (!selectedUser) return;
+    setSubmitting(true);
+    try {
+      await adminApi.updateUserInfo(selectedUser.id, editForm);
+      toast.success('用户信息更新成功');
+      setShowEditModal(false);
+      loadUsers();
+    } catch (error: any) {
+      toast.error(error.message || '操作失败');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleAdjustBalance = async () => {
+    if (!selectedUser) return;
+    const amount = parseFloat(balanceForm.amount);
+    if (isNaN(amount) || amount === 0) {
+      toast.error('请输入有效的金额');
+      return;
+    }
+    if (!balanceForm.reason.trim()) {
+      toast.error('请填写调整原因');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await adminApi.adjustUserBalance(selectedUser.id, amount, balanceForm.reason);
+      toast.success('余额调整成功');
+      setShowBalanceModal(false);
+      loadUsers();
+    } catch (error: any) {
+      toast.error(error.message || '操作失败');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const openStatusModal = (user: User) => {
+    setSelectedUser(user);
+    setNewStatus(user.status);
+    setShowStatusModal(true);
+  };
+
+  const openEditModal = (user: User) => {
+    setSelectedUser(user);
+    setEditForm({ nickname: user.nickname || '', phone: user.phone });
+    setShowEditModal(true);
+  };
+
+  const openBalanceModal = (user: User) => {
+    setSelectedUser(user);
+    setBalanceForm({ amount: '', reason: '' });
+    setShowBalanceModal(true);
+  };
+
   if (loading) return <LoadingSpinner />;
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-slate-900">用户管理</h2>
-        <Input placeholder="搜索用户" value={keyword} onChange={e => setKeyword(e.target.value)} icon={<Icons.Search className="w-5 h-5" />} className="w-64" />
+        <Input placeholder="搜索用户（手机号/昵称）" value={keyword} onChange={e => setKeyword(e.target.value)} icon={<Icons.Search className="w-5 h-5" />} className="w-64" />
       </div>
 
       <Card className="p-6">
@@ -643,6 +735,7 @@ export const AdminUsers: React.FC = () => {
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">余额</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">状态</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">注册时间</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -651,11 +744,18 @@ export const AdminUsers: React.FC = () => {
                   <td className="py-3 px-4 font-mono text-sm">{user.id?.substring(0, 8)}</td>
                   <td className="py-3 px-4">{user.phone}</td>
                   <td className="py-3 px-4">{user.nickname || '-'}</td>
-                  <td className="py-3 px-4">¥{typeof user.balance === 'number' ? user.balance.toFixed(2) : parseFloat(user.balance || '0').toFixed(2)}</td>
+                  <td className="py-3 px-4 font-medium">¥{typeof user.balance === 'number' ? user.balance.toFixed(2) : parseFloat(user.balance || '0').toFixed(2)}</td>
                   <td className="py-3 px-4">
                     <Badge variant={userStatusMap[user.status as number]?.variant || 'default'}>{userStatusMap[user.status as number]?.label || user.status}</Badge>
                   </td>
                   <td className="py-3 px-4 text-sm text-slate-500">{new Date(user.createdAt).toLocaleDateString()}</td>
+                  <td className="py-3 px-4">
+                    <div className="flex gap-2">
+                      <button onClick={() => openStatusModal(user)} className="text-blue-600 text-sm hover:underline">状态</button>
+                      <button onClick={() => openEditModal(user)} className="text-brand-primary text-sm hover:underline">编辑</button>
+                      <button onClick={() => openBalanceModal(user)} className="text-green-600 text-sm hover:underline">调余额</button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -663,6 +763,84 @@ export const AdminUsers: React.FC = () => {
           {users.length === 0 && <EmptyState icon={<Icons.Users className="w-12 h-12" />} title="暂无用户数据" />}
         </div>
       </Card>
+
+      {/* 状态修改弹窗 */}
+      <Modal open={showStatusModal} onClose={() => setShowStatusModal(false)} title="修改用户状态">
+        <div className="p-6 space-y-4">
+          <p className="text-sm text-slate-600">用户：{selectedUser?.phone} ({selectedUser?.nickname || '未设置昵称'})</p>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">选择状态</label>
+            <select
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none"
+              value={newStatus}
+              onChange={e => setNewStatus(Number(e.target.value))}
+            >
+              <option value={1}>正常</option>
+              <option value={2}>受限</option>
+              <option value={3}>封禁</option>
+            </select>
+          </div>
+          <div className="flex gap-3 pt-4">
+            <Button variant="outline" className="flex-1" onClick={() => setShowStatusModal(false)}>取消</Button>
+            <Button className="flex-1" onClick={handleStatusChange} loading={submitting}>确认</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* 编辑用户弹窗 */}
+      <Modal open={showEditModal} onClose={() => setShowEditModal(false)} title="编辑用户信息">
+        <div className="p-6 space-y-4">
+          <Input
+            label="手机号"
+            value={editForm.phone}
+            onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
+            placeholder="请输入手机号"
+          />
+          <Input
+            label="昵称"
+            value={editForm.nickname}
+            onChange={e => setEditForm({ ...editForm, nickname: e.target.value })}
+            placeholder="请输入昵称"
+          />
+          <div className="flex gap-3 pt-4">
+            <Button variant="outline" className="flex-1" onClick={() => setShowEditModal(false)}>取消</Button>
+            <Button className="flex-1" onClick={handleEditUser} loading={submitting}>保存</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* 调整余额弹窗 */}
+      <Modal open={showBalanceModal} onClose={() => setShowBalanceModal(false)} title="调整用户余额">
+        <div className="p-6 space-y-4">
+          <div className="p-4 bg-slate-50 rounded-xl">
+            <p className="text-sm text-slate-500">当前余额</p>
+            <p className="text-2xl font-bold text-brand-primary">
+              ¥{typeof selectedUser?.balance === 'number' ? selectedUser.balance.toFixed(2) : parseFloat(selectedUser?.balance || '0').toFixed(2)}
+            </p>
+          </div>
+          <Input
+            label="调整金额"
+            type="number"
+            value={balanceForm.amount}
+            onChange={e => setBalanceForm({ ...balanceForm, amount: e.target.value })}
+            placeholder="正数为增加，负数为扣减"
+          />
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">调整原因</label>
+            <textarea
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none"
+              rows={3}
+              value={balanceForm.reason}
+              onChange={e => setBalanceForm({ ...balanceForm, reason: e.target.value })}
+              placeholder="请输入调整原因（必填）"
+            />
+          </div>
+          <div className="flex gap-3 pt-4">
+            <Button variant="outline" className="flex-1" onClick={() => setShowBalanceModal(false)}>取消</Button>
+            <Button className="flex-1" onClick={handleAdjustBalance} loading={submitting}>确认调整</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

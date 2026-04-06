@@ -248,11 +248,95 @@ export class AdminService {
       targetId: userId,
       beforeData: { status: user.status },
       afterData: { status },
-      remark: `更新用户状态为: ${status === 1 ? '启用' : '禁用'}`,
+      remark: `更新用户状态为: ${status === 1 ? '正常' : status === 2 ? '受限' : '封禁'}`,
       ip,
     });
 
     return { success: true };
+  }
+
+  /**
+   * 更新用户信息
+   */
+  async updateUserInfo(userId: string, data: { nickname?: string; phone?: string }, adminId: string, adminName: string, ip?: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('用户不存在');
+    }
+
+    // 如果修改手机号，检查是否已存在
+    if (data.phone && data.phone !== user.phone) {
+      const existing = await this.userRepository.findOne({ where: { phone: data.phone } });
+      if (existing) {
+        throw new BadRequestException('该手机号已被使用');
+      }
+    }
+
+    const beforeData = { nickname: user.nickname, phone: user.phone };
+    await this.userRepository.update(userId, data);
+
+    await this.createAuditLog({
+      adminId,
+      adminName,
+      module: 'user',
+      action: 'update',
+      targetType: 'user',
+      targetId: userId,
+      beforeData,
+      afterData: data,
+      remark: '更新用户信息',
+      ip,
+    });
+
+    return { success: true };
+  }
+
+  /**
+   * 调整用户余额
+   */
+  async adjustUserBalance(userId: string, amount: number, reason: string, adminId: string, adminName: string, ip?: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('用户不存在');
+    }
+
+    const beforeBalance = parseFloat(user.balance.toString()) || 0;
+    const afterBalance = beforeBalance + amount;
+
+    if (afterBalance < 0) {
+      throw new BadRequestException('余额不足');
+    }
+
+    // 更新余额
+    await this.userRepository.update(userId, { balance: afterBalance });
+
+    // 记录余额变动日志
+    const balanceLog = this.dataSource.getRepository('BalanceLog').create({
+      id: IdUtil.generate('BL'),
+      userId,
+      type: 4, // 调整
+      amount,
+      balanceBefore: beforeBalance,
+      balanceAfter: afterBalance,
+      relatedType: 'admin_adjust',
+      remark: `管理员调整: ${reason}`,
+    });
+    await this.dataSource.getRepository('BalanceLog').save(balanceLog);
+
+    await this.createAuditLog({
+      adminId,
+      adminName,
+      module: 'user',
+      action: 'adjust',
+      targetType: 'user',
+      targetId: userId,
+      beforeData: { balance: beforeBalance },
+      afterData: { balance: afterBalance, amount, reason },
+      remark: `调整用户余额: ${amount >= 0 ? '+' : ''}${amount}元, 原因: ${reason}`,
+      ip,
+    });
+
+    return { success: true, balance: afterBalance };
   }
 
   // =============== 活体类型管理 ===============

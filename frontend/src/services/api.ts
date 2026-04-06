@@ -587,6 +587,27 @@ export const adminApi = {
     return request(`/admin/users/${id}/balance-logs`);
   },
 
+  updateUserStatus: async (id: string, status: number): Promise<{ success: boolean }> => {
+    return request(`/admin/users/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  updateUserInfo: async (id: string, data: { nickname?: string; phone?: string }): Promise<{ success: boolean }> => {
+    return request(`/admin/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  adjustUserBalance: async (id: string, amount: number, reason: string): Promise<{ success: boolean; balance: number }> => {
+    return request(`/admin/users/${id}/balance`, {
+      method: 'POST',
+      body: JSON.stringify({ amount, reason }),
+    });
+  },
+
   adjustUserBalance: async (id: string, data: { amount: number; reason: string; confirmPassword: string }): Promise<User> => {
     return request(`/admin/users/${id}/balance`, {
       method: 'PUT',

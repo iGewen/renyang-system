@@ -355,6 +355,42 @@ export class AdminController {
     return this.adminService.updateUserStatus(id, status, adminId, adminName, ip);
   }
 
+  /**
+   * 更新用户信息
+   */
+  @Put('users/:id')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '更新用户信息' })
+  @ApiParam({ name: 'id', description: '用户ID' })
+  async updateUserInfo(
+    @Param('id') id: string,
+    @Body() body: { nickname?: string; phone?: string },
+    @Req() req: any,
+  ) {
+    const adminId = req.user?.sub;
+    const adminName = req.user?.username;
+    const ip = this.getClientIp(req);
+    return this.adminService.updateUserInfo(id, body, adminId, adminName, ip);
+  }
+
+  /**
+   * 调整用户余额
+   */
+  @Post('users/:id/balance')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '调整用户余额' })
+  @ApiParam({ name: 'id', description: '用户ID' })
+  async adjustUserBalance(
+    @Param('id') id: string,
+    @Body() body: { amount: number; reason: string },
+    @Req() req: any,
+  ) {
+    const adminId = req.user?.sub;
+    const adminName = req.user?.username;
+    const ip = this.getClientIp(req);
+    return this.adminService.adjustUserBalance(id, body.amount, body.reason, adminId, adminName, ip);
+  }
+
   // =============== 活体类型管理 ===============
 
   /**
