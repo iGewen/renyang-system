@@ -173,7 +173,9 @@ export class PaymentService {
    * 处理支付成功
    */
   async handlePaymentSuccess(payment: PaymentRecord) {
+    // 检查支付记录状态（幂等处理）
     if (payment.status === PaymentStatus.SUCCESS) {
+      console.log(`Payment ${payment.paymentNo} already processed, skipping...`);
       return; // 幂等处理
     }
 
@@ -182,20 +184,30 @@ export class PaymentService {
     payment.paidAt = new Date();
     await this.paymentRepository.save(payment);
 
+    console.log(`Payment ${payment.paymentNo} success, processing order type: ${payment.orderType}, orderId: ${payment.orderId}`);
+
     // 根据订单类型处理
     switch (payment.orderType) {
       case 'adoption':
-        await this.orderService.handlePaymentSuccess(
-          payment.orderId,
-          payment.paymentNo,
-          payment.paymentMethod,
-        );
+        try {
+          const order = await this.orderService.handlePaymentSuccess(
+            payment.orderId,
+            payment.paymentNo,
+            payment.paymentMethod,
+          );
+          console.log(`Order ${payment.orderId} payment success, new status: ${order?.status}`);
+        } catch (error) {
+          console.error(`Failed to handle adoption order payment success: ${payment.orderId}`, error);
+          throw error;
+        }
         break;
       case 'feed':
         // TODO: 处理饲料费支付
+        console.log(`Feed bill payment success: ${payment.orderId}`);
         break;
       case 'redemption':
         // TODO: 处理买断支付
+        console.log(`Redemption payment success: ${payment.orderId}`);
         break;
       case 'recharge':
         // 余额充值
@@ -204,6 +216,7 @@ export class PaymentService {
           payment.amount,
           `余额充值: ${payment.paymentNo}`,
         );
+        console.log(`Recharge success: ${payment.paymentNo}, amount: ${payment.amount}`);
         break;
     }
   }

@@ -19,7 +19,8 @@
       "WebFetch(domain:pay.weixin.qq.com)",
       "WebFetch(domain:modelscope.cn)",
       "WebSearch",
-      "WebFetch(domain:developers.weixin.qq.com)"
+      "WebFetch(domain:developers.weixin.qq.com)",
+      "Bash(dir:*)"
     ]
   }
 }

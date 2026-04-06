@@ -1,19 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { PageTransition, Icons, Card, Badge, EmptyState, Modal } from '../components/ui';
+import { PageTransition, Icons, Card, EmptyState } from '../components/ui';
 import { notificationApi } from '../services/api';
-import type { Notification } from '../types';
+
+interface NotificationItem {
+  id: string;
+  userId?: string;
+  title: string;
+  content: string;
+  type: string;
+  relatedType?: string;
+  relatedId?: string;
+  isRead: number | boolean;
+  readAt?: string;
+  createdAt: string;
+}
 
 export const NotificationPage: React.FC = () => {
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
-  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -25,8 +35,8 @@ export const NotificationPage: React.FC = () => {
         notificationApi.getList({ isRead: activeTab === 'unread' ? 0 : undefined }),
         notificationApi.getUnreadCount()
       ]);
-      setNotifications(listRes.list);
-      setUnreadCount(countRes.count);
+      setNotifications(listRes.list || []);
+      setUnreadCount(countRes.count || 0);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
     } finally {
@@ -38,7 +48,7 @@ export const NotificationPage: React.FC = () => {
     try {
       await notificationApi.markRead(id);
       setNotifications(prev =>
-        prev.map(n => n.id === id ? { ...n, isRead: true } : n)
+        prev.map(n => n.id === id ? { ...n, isRead: 1 } : n)
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
@@ -49,14 +59,14 @@ export const NotificationPage: React.FC = () => {
   const handleReadAll = async () => {
     try {
       await notificationApi.markAllRead();
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: 1 })));
       setUnreadCount(0);
     } catch (error) {
       console.error('Failed to mark all as read:', error);
     }
   };
 
-  const handleNotificationClick = async (notification: Notification) => {
+  const handleNotificationClick = async (notification: NotificationItem) => {
     // 展开或收起消息
     if (expandedId === notification.id) {
       setExpandedId(null);
@@ -64,9 +74,18 @@ export const NotificationPage: React.FC = () => {
       setExpandedId(notification.id);
     }
     // 如果未读，标记为已读
-    if (!notification.isRead) {
+    const isUnread = typeof notification.isRead === 'number'
+      ? notification.isRead === 0
+      : notification.isRead === false;
+    if (isUnread) {
       await handleRead(notification.id);
     }
+  };
+
+  const isNotificationUnread = (notification: NotificationItem) => {
+    return typeof notification.isRead === 'number'
+      ? notification.isRead === 0
+      : notification.isRead === false;
   };
 
   const getTypeIcon = (type: string) => {
@@ -111,7 +130,7 @@ export const NotificationPage: React.FC = () => {
             <h1 className="text-lg font-bold text-slate-900">消息中心</h1>
             <button
               onClick={handleReadAll}
-              className="text-sm text-brand-primary font-medium"
+              className="text-sm text-brand-primary font-medium disabled:text-slate-300"
               disabled={unreadCount === 0}
             >
               全部已读
@@ -153,36 +172,39 @@ export const NotificationPage: React.FC = () => {
             />
           ) : (
             <div className="space-y-3">
-              {notifications.map(notification => (
-                <motion.div
-                  key={notification.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
-                  <Card
-                    className={`p-4 cursor-pointer transition-all ${!notification.isRead ? 'bg-blue-50/50 border-blue-100' : ''} ${expandedId === notification.id ? 'ring-2 ring-brand-primary/20' : ''}`}
-                    onClick={() => handleNotificationClick(notification)}
+              {notifications.map(notification => {
+                const isUnread = isNotificationUnread(notification);
+                return (
+                  <motion.div
+                    key={notification.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
                   >
-                    <div className="flex gap-4">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${getTypeColor(notification.type)}`}>
-                        {getTypeIcon(notification.type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <h3 className="font-medium text-slate-900 truncate">{notification.title}</h3>
-                          {!notification.isRead && (
-                            <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0 ml-2" />
-                          )}
+                    <Card
+                      className={`p-4 cursor-pointer transition-all ${isUnread ? 'bg-blue-50/50 border-blue-100' : ''} ${expandedId === notification.id ? 'ring-2 ring-brand-primary/20' : ''}`}
+                      onClick={() => handleNotificationClick(notification)}
+                    >
+                      <div className="flex gap-4">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${getTypeColor(notification.type)}`}>
+                          {getTypeIcon(notification.type)}
                         </div>
-                        <p className={`text-sm text-slate-500 mb-2 ${expandedId === notification.id ? '' : 'line-clamp-2'}`}>{notification.content}</p>
-                        <p className="text-xs text-slate-400">
-                          {new Date(notification.createdAt).toLocaleString()}
-                        </p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <h3 className="font-medium text-slate-900 truncate">{notification.title}</h3>
+                            {isUnread && (
+                              <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0 ml-2" />
+                            )}
+                          </div>
+                          <p className={`text-sm text-slate-500 mb-2 ${expandedId === notification.id ? '' : 'line-clamp-2'}`}>{notification.content}</p>
+                          <p className="text-xs text-slate-400">
+                            {new Date(notification.createdAt).toLocaleString()}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </Card>
-                </motion.div>
-              ))}
+                    </Card>
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </div>

@@ -922,46 +922,43 @@ const ProfilePage: React.FC = () => {
   return (
     <PageTransition>
       <div className="min-h-screen bg-brand-bg pb-28">
-        <div className="relative h-56 bg-brand-primary">
+        <div className="relative h-40 bg-brand-primary">
           <div className="absolute inset-0 overflow-hidden opacity-10 pointer-events-none">
-            <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
-            <div className="absolute bottom-0 right-0 w-96 h-96 bg-brand-accent rounded-full translate-x-1/3 translate-y-1/3 blur-3xl" />
+            <div className="absolute top-0 left-0 w-48 h-48 bg-white rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
+            <div className="absolute bottom-0 right-0 w-64 h-64 bg-brand-accent rounded-full translate-x-1/3 translate-y-1/3 blur-3xl" />
           </div>
-          <div className="relative z-10 px-6 pt-12 flex items-center gap-4">
+          <div className="relative z-10 px-6 pt-10 flex items-center gap-4">
             <div className="relative">
-              <div className="w-16 h-16 rounded-2xl border-2 border-white/20 overflow-hidden bg-white/10 backdrop-blur-md">
+              <div className="w-14 h-14 rounded-xl border-2 border-white/20 overflow-hidden bg-white/10 backdrop-blur-md">
                 <img src={profile?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               </div>
-              <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-brand-accent rounded-full border-2 border-brand-primary flex items-center justify-center">
-                <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-brand-primary flex items-center justify-center">
+                <div className="w-1.5 h-1.5 bg-white rounded-full" />
               </div>
             </div>
             <div className="flex-1">
-              <h2 className="text-2xl font-display font-bold text-white tracking-tight">{profile?.nickname || '智慧牧场主'}</h2>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="px-2 py-0.5 bg-white/10 backdrop-blur-md rounded-full text-[10px] text-white/80 font-bold border border-white/10 uppercase tracking-widest">黄金会员</span>
-                <span className="text-xs text-white/60 font-mono">{profile?.phone || '未绑定手机'}</span>
-              </div>
+              <h2 className="text-xl font-display font-bold text-white tracking-tight">{profile?.nickname || '智慧牧场主'}</h2>
+              <p className="text-xs text-white/70 mt-0.5 font-mono">{profile?.phone || '未绑定手机'}</p>
             </div>
           </div>
           <div className="absolute bottom-0 left-0 right-0 px-6 translate-y-1/2">
-            <Card className="p-4 grid grid-cols-3 gap-2 text-center">
+            <Card className="p-3 grid grid-cols-3 gap-2 text-center">
               <Link to="/balance">
-                <p className="text-xl font-display font-bold text-brand-primary">¥{parseFloat(profile?.balance || '0').toFixed(0)}</p>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">账户余额</p>
+                <p className="text-lg font-display font-bold text-brand-primary">¥{parseFloat(profile?.balance || '0').toFixed(0)}</p>
+                <p className="text-[10px] text-slate-400">余额</p>
               </Link>
               <div className="border-x border-slate-100">
-                <p className="text-xl font-display font-bold text-brand-primary">{profile?.stats?.adoptions || 0}</p>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">领养活体</p>
+                <p className="text-lg font-display font-bold text-brand-primary">{profile?.stats?.adoptions || 0}</p>
+                <p className="text-[10px] text-slate-400">领养</p>
               </div>
               <div>
-                <p className="text-xl font-display font-bold text-brand-primary">{profile?.stats?.days || 0}</p>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">领养天数</p>
+                <p className="text-lg font-display font-bold text-brand-primary">{profile?.stats?.days || 0}</p>
+                <p className="text-[10px] text-slate-400">天数</p>
               </div>
             </Card>
           </div>
         </div>
-        <div className="max-w-screen-xl mx-auto px-6 mt-20 lg:mt-12 space-y-8">
+        <div className="max-w-screen-xl mx-auto px-6 mt-16 space-y-6">
           <div className="hidden lg:grid grid-cols-3 gap-6">
             <Link to="/balance">
               <Card className="p-6 flex flex-col items-center hover:shadow-md transition-shadow">
