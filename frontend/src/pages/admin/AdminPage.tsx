@@ -566,8 +566,8 @@ export const AdminRedemptions: React.FC = () => {
             <thead>
               <tr className="border-b border-slate-100">
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">买断单号</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">用户</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">活体</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">用户手机</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">活体编号</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">金额</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">状态</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">操作</th>
@@ -577,9 +577,9 @@ export const AdminRedemptions: React.FC = () => {
               {redemptions.map(item => (
                 <tr key={item.id} className="border-b border-slate-50">
                   <td className="py-3 px-4 font-mono text-sm">{item.redemptionNo}</td>
-                  <td className="py-3 px-4">{item.adoption?.user?.phone || '-'}</td>
-                  <td className="py-3 px-4">{item.adoption?.livestock?.name || '-'}</td>
-                  <td className="py-3 px-4">¥{item.amount}</td>
+                  <td className="py-3 px-4">{item.user?.phone || '-'}</td>
+                  <td className="py-3 px-4">{item.livestock?.name || item.livestockId || '-'}</td>
+                  <td className="py-3 px-4">¥{item.finalAmount || item.originalAmount || 0}</td>
                   <td className="py-3 px-4">
                     <Badge variant={redemptionStatusMap[item.status as number]?.variant || 'default'}>{redemptionStatusMap[item.status as number]?.label || item.status}</Badge>
                   </td>

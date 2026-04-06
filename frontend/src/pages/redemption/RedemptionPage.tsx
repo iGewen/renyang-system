@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Icons, PageTransition, LoadingSpinner, Button, Card, Modal, Input } from '../../components/ui';
+import { Icons, PageTransition, LoadingSpinner, Button, Card } from '../../components/ui';
 import { cn } from '../../lib/utils';
-import { adoptionApi, redemptionApi } from '../../services/api';
+import { adoptionApi } from '../../services/api';
 import type { Adoption } from '../../types';
 
 const RedemptionPage: React.FC = () => {
@@ -14,6 +14,7 @@ const RedemptionPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [submitResult, setSubmitResult] = useState<{ success: boolean; redemptionNo?: string; amount?: number; error?: string } | null>(null);
 
   useEffect(() => {
     const fetchAdoption = async () => {
@@ -35,11 +36,18 @@ const RedemptionPage: React.FC = () => {
     setSubmitting(true);
     try {
       const result = await adoptionApi.applyRedemption(id);
+      setSubmitResult({
+        success: true,
+        redemptionNo: result.redemptionNo,
+        amount: result.amount,
+      });
       setShowConfirmModal(false);
-      alert(`买断申请已提交！\n买断编号: ${result.redemptionNo}\n买断金额: ¥${result.amount}`);
-      navigate(`/adoption/${id}`);
     } catch (error: any) {
-      alert(error.message || '申请失败');
+      setSubmitResult({
+        success: false,
+        error: error.message || '申请失败，请重试',
+      });
+      setShowConfirmModal(false);
     } finally {
       setSubmitting(false);
     }
@@ -50,6 +58,64 @@ const RedemptionPage: React.FC = () => {
   };
 
   if (loading) return <LoadingSpinner />;
+
+  // 显示提交结果页面
+  if (submitResult) {
+    return (
+      <PageTransition>
+        <div className="min-h-screen bg-brand-bg flex flex-col items-center justify-center p-6">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-full max-w-md"
+          >
+            <Card className="p-8 text-center">
+              {submitResult.success ? (
+                <>
+                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Icons.CheckCircle2 className="w-10 h-10 text-green-500" />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-900 mb-2">买断申请已提交</h2>
+                  <p className="text-slate-500 text-sm mb-6">请等待管理员审核，审核通过后将以短信通知您</p>
+
+                  <div className="bg-slate-50 rounded-xl p-4 mb-6 text-left">
+                    <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                      <span className="text-slate-500 text-sm">买断编号</span>
+                      <span className="font-mono text-slate-900">{submitResult.redemptionNo}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-slate-500 text-sm">买断金额</span>
+                      <span className="font-bold text-brand-primary">¥{submitResult.amount?.toFixed(2) || '0.00'}</span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Icons.X className="w-10 h-10 text-red-500" />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-900 mb-2">申请失败</h2>
+                  <p className="text-slate-500 text-sm mb-6">{submitResult.error}</p>
+                </>
+              )}
+
+              <div className="flex gap-3">
+                <Button variant="outline" className="flex-1" onClick={() => navigate(`/adoption/${id}`)}>
+                  返回详情
+                </Button>
+                {submitResult.success && (
+                  <Button className="flex-1" onClick={() => navigate('/my-adoptions')}>
+                    查看我的牧场
+                  </Button>
+                )}
+              </div>
+            </Card>
+          </motion.div>
+        </div>
+      </PageTransition>
+    );
+  }
+
   if (!adoption) {
     return (
       <PageTransition>

@@ -25,29 +25,8 @@ export class AdoptionController {
   }
 
   /**
-   * 获取领养详情
-   */
-  @Get(':id')
-  async getById(
-    @Param('id') id: string,
-    @CurrentUser('id') userId: string,
-  ) {
-    return this.adoptionService.getById(id, userId);
-  }
-
-  /**
-   * 获取饲料费账单列表
-   */
-  @Get(':id/feed-bills')
-  async getFeedBills(
-    @Param('id') id: string,
-    @CurrentUser('id') userId: string,
-  ) {
-    return this.adoptionService.getFeedBills(id, userId);
-  }
-
-  /**
    * 获取饲料费账单详情
+   * 注意：此路由必须放在 :id 路由之前，否则 feed-bills 会被当作 id 匹配
    */
   @Get('feed-bills/:billId')
   async getFeedBillById(
@@ -69,6 +48,28 @@ export class AdoptionController {
     @Body() dto: PayFeedBillDto,
   ) {
     return this.adoptionService.payFeedBill(billId, userId, dto.paymentMethod);
+  }
+
+  /**
+   * 获取领养详情
+   */
+  @Get(':id')
+  async getById(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.adoptionService.getById(id, userId);
+  }
+
+  /**
+   * 获取饲料费账单列表
+   */
+  @Get(':id/feed-bills')
+  async getFeedBills(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.adoptionService.getFeedBills(id, userId);
   }
 
   /**
