@@ -116,7 +116,7 @@ export class AuthService {
     }
 
     if (user.status === 2) {
-      throw new UnauthorizedException('您的账号受限，暂时无法登录，如有疑问请联系客服');
+      // 受限用户可以登录，但在交易接口会被拦截
     }
 
     const isPasswordValid = await PasswordUtil.compare(password, user.password);
@@ -156,7 +156,7 @@ export class AuthService {
     }
 
     if (user.status === 2) {
-      throw new UnauthorizedException('您的账号受限，暂时无法登录，如有疑问请联系客服');
+      // 受限用户可以登录，但在交易接口会被拦截
     }
 
     // 更新最后登录时间
@@ -283,7 +283,7 @@ export class AuthService {
     }
 
     if (user.status === 2) {
-      throw new UnauthorizedException('您的账号受限，暂时无法登录，如有疑问请联系客服');
+      // 受限用户可以登录，但在交易接口会被拦截
     }
     return user;
   }
