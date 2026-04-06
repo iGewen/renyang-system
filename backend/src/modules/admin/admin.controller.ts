@@ -103,6 +103,11 @@ class CreateLivestockDto {
   @IsOptional()
   images?: string[];
 
+  @ApiPropertyOptional({ description: '主图URL' })
+  @IsString()
+  @IsOptional()
+  mainImage?: string;
+
   @ApiPropertyOptional({ description: '描述' })
   @IsString()
   @IsOptional()
@@ -148,6 +153,11 @@ class UpdateLivestockDto {
   @ApiPropertyOptional({ description: '图片列表', type: [String] })
   @IsOptional()
   images?: string[];
+
+  @ApiPropertyOptional({ description: '主图URL' })
+  @IsString()
+  @IsOptional()
+  mainImage?: string;
 
   @ApiPropertyOptional({ description: '描述' })
   @IsString()
