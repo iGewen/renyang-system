@@ -527,7 +527,7 @@ export const adminApi = {
 
   auditRedemption: async (id: string, data: { approved: boolean; adjustedAmount?: number; remark?: string }): Promise<RedemptionOrder> => {
     return request(`/admin/redemptions/${id}/audit`, {
-      method: 'PUT',
+      method: 'POST',
       body: JSON.stringify(data),
     });
   },
