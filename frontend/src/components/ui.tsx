@@ -24,8 +24,15 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 
 export const useToast = () => {
   const context = useContext(ToastContext);
+  // 如果不在 ToastProvider 内，返回一个空实现，避免报错
   if (!context) {
-    throw new Error('useToast must be used within a ToastProvider');
+    return {
+      showToast: () => {},
+      success: () => {},
+      error: () => console.error,
+      warning: () => console.warn,
+      info: () => console.info,
+    };
   }
   return context;
 };
@@ -67,59 +74,73 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const warning = useCallback((message: string) => showToast('warning', message), [showToast]);
   const info = useCallback((message: string) => showToast('info', message), [showToast]);
 
-  const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
-  }, []);
-
+  // 图标使用更合适的样式
   const iconMap = {
-    success: <Icons.CheckCircle2 className="w-5 h-5" />,
-    error: <Icons.X className="w-5 h-5" />,
-    warning: <Icons.AlertTriangle className="w-5 h-5" />,
-    info: <Icons.Info className="w-5 h-5" />,
+    success: (
+      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+    ),
+    error: (
+      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="15" y1="9" x2="9" y2="15" />
+        <line x1="9" y1="9" x2="15" y2="15" />
+      </svg>
+    ),
+    warning: (
+      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+        <line x1="12" y1="9" x2="12" y2="13" />
+        <line x1="12" y1="17" x2="12.01" y2="17" />
+      </svg>
+    ),
+    info: (
+      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="16" x2="12" y2="12" />
+        <line x1="12" y1="8" x2="12.01" y2="8" />
+      </svg>
+    ),
   };
 
+  // 更现代的配色方案
   const styleMap = {
-    success: 'bg-green-50 border-green-200 text-green-800',
-    error: 'bg-red-50 border-red-200 text-red-800',
-    warning: 'bg-orange-50 border-orange-200 text-orange-800',
-    info: 'bg-blue-50 border-blue-200 text-blue-800',
+    success: 'bg-emerald-50 border-emerald-100 text-emerald-800 shadow-emerald-100',
+    error: 'bg-red-50 border-red-100 text-red-800 shadow-red-100',
+    warning: 'bg-amber-50 border-amber-100 text-amber-800 shadow-amber-100',
+    info: 'bg-blue-50 border-blue-100 text-blue-800 shadow-blue-100',
   };
 
   const iconStyleMap = {
-    success: 'text-green-500',
-    error: 'text-red-500',
-    warning: 'text-orange-500',
-    info: 'text-blue-500',
+    success: 'text-emerald-500 bg-emerald-100 rounded-full p-0.5',
+    error: 'text-red-500 bg-red-100 rounded-full p-0.5',
+    warning: 'text-amber-500 bg-amber-100 rounded-full p-0.5',
+    info: 'text-blue-500 bg-blue-100 rounded-full p-0.5',
   };
 
   return (
     <ToastContext.Provider value={{ showToast, success, error, warning, info }}>
       {children}
-      {/* Toast 容器 - 固定在右上角 */}
-      <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 max-w-sm">
+      {/* Toast 容器 - 固定在顶部居中 */}
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-2 max-w-sm w-[calc(100%-2rem)]">
         <AnimatePresence>
           {toasts.map(toast => (
             <motion.div
               key={toast.id}
-              initial={{ opacity: 0, x: 100, scale: 0.95 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: 100, scale: 0.95 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
+              initial={{ opacity: 0, y: -20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
               className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg backdrop-blur-sm',
+                'flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg',
                 styleMap[toast.type]
               )}
             >
-              <span className={iconStyleMap[toast.type]}>
+              <span className={cn('flex-shrink-0', iconStyleMap[toast.type])}>
                 {iconMap[toast.type]}
               </span>
               <span className="flex-1 text-sm font-medium">{toast.message}</span>
-              <button
-                onClick={() => removeToast(toast.id)}
-                className="text-current opacity-50 hover:opacity-100 transition-opacity"
-              >
-                <Icons.X className="w-4 h-4" />
-              </button>
             </motion.div>
           ))}
         </AnimatePresence>

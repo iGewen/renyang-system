@@ -309,7 +309,7 @@ const HomePage: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="pb-32">
+      <div className="min-h-screen pb-28">
         <Navbar title="云端牧场" transparent rightContent={rightContent} />
         <div className="max-w-screen-xl mx-auto px-6 pt-2 pb-8">
           <header className="mb-10">
@@ -409,8 +409,8 @@ const TabBar: React.FC = () => {
   const location = useLocation();
   const isActive = (path: string) => location.pathname === path;
   return (
-    <div className="fixed bottom-6 left-0 right-0 z-50 pointer-events-none">
-      <div className="max-w-md md:max-w-lg mx-auto px-6 pointer-events-auto">
+    <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
+      <div className="max-w-md md:max-w-lg mx-auto px-6 pb-6 pointer-events-auto">
         <div className="bg-brand-primary/95 backdrop-blur-md rounded-[32px] flex justify-around items-center py-3 px-4 safe-area-bottom shadow-2xl shadow-brand-primary/40 border border-white/10">
           <Link to="/" className={cn("flex flex-col items-center justify-center gap-1 transition-colors duration-200 min-w-[60px]", isActive('/') ? "text-white" : "text-white/40 hover:text-white/60")}>
             <Icons.Home className="w-6 h-6" />
@@ -494,7 +494,7 @@ const DetailsPage: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="pb-32">
+      <div className="pb-28">
         <Navbar title="领养确认" showBack />
         <div className="max-w-screen-xl mx-auto px-6 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -780,7 +780,7 @@ const MyAdoptionsPage: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="pb-32">
+      <div className="pb-28">
         <Navbar title="我的牧场" />
         <div className="max-w-screen-xl mx-auto px-6 py-8">
           <div className="mb-8">
@@ -880,7 +880,7 @@ const ProfilePage: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-brand-bg pb-48">
+      <div className="min-h-screen bg-brand-bg pb-28">
         <div className="relative h-80 bg-brand-primary">
           <div className="absolute inset-0 overflow-hidden opacity-10 pointer-events-none">
             <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
