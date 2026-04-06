@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Query, UseGuards, SetMetadata } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth, ApiProperty } from '@nestjs/swagger';
 import { OrderService } from './order.service';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { UserStatusGuard, UserStatus, MIN_STATUS_KEY } from '@/common/guards/user-status.guard';
 import { IsString, IsNotEmpty } from 'class-validator';
 
 class CreateOrderDto {
@@ -26,6 +27,8 @@ export class OrderController {
    */
   @Post('adoption')
   @ApiBearerAuth('JWT-auth')
+  @UseGuards(UserStatusGuard)
+  @SetMetadata(MIN_STATUS_KEY, UserStatus.NORMAL)
   @ApiOperation({ summary: '创建领养订单' })
   @ApiResponse({ status: 201, description: '订单创建成功' })
   @ApiResponse({ status: 400, description: '参数错误或库存不足' })

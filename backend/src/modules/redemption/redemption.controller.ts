@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Query, UseGuards, SetMetadata } from '@nestjs/common';
 import { RedemptionService } from './redemption.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { UserStatusGuard, UserStatus, MIN_STATUS_KEY } from '@/common/guards/user-status.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { IsIn, IsOptional, IsNumber, IsBoolean, IsNumberString } from 'class-validator';
 
@@ -56,7 +57,8 @@ export class RedemptionController {
    * 申请买断
    */
   @Post('apply/:adoptionId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, UserStatusGuard)
+  @SetMetadata(MIN_STATUS_KEY, UserStatus.NORMAL)
   async applyRedemption(
     @Param('adoptionId') adoptionId: string,
     @CurrentUser('id') userId: string,
@@ -80,7 +82,8 @@ export class RedemptionController {
    * 支付买断
    */
   @Post(':id/pay')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, UserStatusGuard)
+  @SetMetadata(MIN_STATUS_KEY, UserStatus.NORMAL)
   async payRedemption(
     @Param('id') id: string,
     @CurrentUser('id') userId: string,

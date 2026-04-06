@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, Req, UseGuards, SetMetadata } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth, ApiProperty } from '@nestjs/swagger';
 import { PaymentService } from './payment.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { UserStatusGuard, UserStatus, MIN_STATUS_KEY } from '@/common/guards/user-status.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { Public } from '@/common/decorators/public.decorator';
 import { IsIn, IsNumber, IsOptional, IsString, IsNotEmpty } from 'class-validator';
@@ -35,7 +36,8 @@ export class PaymentController {
    * 创建支付
    */
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, UserStatusGuard)
+  @SetMetadata(MIN_STATUS_KEY, UserStatus.NORMAL)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建支付' })
   @ApiResponse({ status: 201, description: '支付创建成功' })

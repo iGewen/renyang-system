@@ -111,8 +111,12 @@ export class AuthService {
       throw new UnauthorizedException('用户不存在');
     }
 
-    if (user.status !== 1) {
-      throw new UnauthorizedException('账号已被禁用');
+    if (user.status === 3) {
+      throw new UnauthorizedException('您的账号已被封禁，如有疑问请联系客服');
+    }
+
+    if (user.status === 2) {
+      throw new UnauthorizedException('您的账号受限，暂时无法登录，如有疑问请联系客服');
     }
 
     const isPasswordValid = await PasswordUtil.compare(password, user.password);
@@ -147,8 +151,12 @@ export class AuthService {
       throw new UnauthorizedException('用户不存在');
     }
 
-    if (user.status !== 1) {
-      throw new UnauthorizedException('账号已被禁用');
+    if (user.status === 3) {
+      throw new UnauthorizedException('您的账号已被封禁，如有疑问请联系客服');
+    }
+
+    if (user.status === 2) {
+      throw new UnauthorizedException('您的账号受限，暂时无法登录，如有疑问请联系客服');
     }
 
     // 更新最后登录时间
@@ -270,8 +278,12 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('用户不存在');
     }
-    if (user.status !== 1) {
-      throw new UnauthorizedException('账号已被禁用');
+    if (user.status === 3) {
+      throw new UnauthorizedException('您的账号已被封禁，如有疑问请联系客服');
+    }
+
+    if (user.status === 2) {
+      throw new UnauthorizedException('您的账号受限，暂时无法登录，如有疑问请联系客服');
     }
     return user;
   }

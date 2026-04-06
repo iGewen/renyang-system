@@ -1,6 +1,7 @@
-import { Controller, Get, Param, Query, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, Post, Body, UseGuards, SetMetadata } from '@nestjs/common';
 import { AdoptionService } from './adoption.service';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { UserStatusGuard, UserStatus, MIN_STATUS_KEY } from '@/common/guards/user-status.guard';
 import { IsString, IsEnum, IsOptional, IsIn } from 'class-validator';
 
 class PayFeedBillDto {
@@ -60,6 +61,8 @@ export class AdoptionController {
    * 支付饲料费
    */
   @Post('feed-bills/:billId/pay')
+  @UseGuards(UserStatusGuard)
+  @SetMetadata(MIN_STATUS_KEY, UserStatus.NORMAL)
   async payFeedBill(
     @Param('billId') billId: string,
     @CurrentUser('id') userId: string,
@@ -72,6 +75,8 @@ export class AdoptionController {
    * 申请买断
    */
   @Post(':id/redemption')
+  @UseGuards(UserStatusGuard)
+  @SetMetadata(MIN_STATUS_KEY, UserStatus.NORMAL)
   async applyRedemption(
     @Param('id') id: string,
     @CurrentUser('id') userId: string,

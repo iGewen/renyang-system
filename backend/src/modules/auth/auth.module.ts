@@ -11,6 +11,7 @@ import { SmsCode } from '@/entities/sms-code.entity';
 import { SystemConfig } from '@/entities/system-config.entity';
 import { RedisService } from '@/common/utils/redis.service';
 import { SmsService } from '@/services/sms.service';
+import { UserStatusGuard } from '@/common/guards/user-status.guard';
 
 @Global()
 @Module({
@@ -28,7 +29,7 @@ import { SmsService } from '@/services/sms.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RedisService, SmsService],
-  exports: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, RedisService, SmsService, UserStatusGuard],
+  exports: [AuthService, JwtStrategy, UserStatusGuard],
 })
 export class AuthModule {}
