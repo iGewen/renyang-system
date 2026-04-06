@@ -500,7 +500,7 @@ const DetailsPage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <div className="space-y-8">
               <div className="premium-card overflow-hidden h-[400px] lg:h-[600px]">
-                <img src={livestock.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" alt={livestock.name} />
+                <img src={livestock.mainImage || livestock.images?.[0]} className="w-full h-full object-cover" referrerPolicy="no-referrer" alt={livestock.name} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="premium-card p-6 flex flex-col items-center text-center">
