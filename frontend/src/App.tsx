@@ -566,22 +566,45 @@ const DetailsPage: React.FC = () => {
         </div>
 
         {/* 底部固定支付栏 */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 shadow-lg z-50">
-          <div className="max-w-screen-xl mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] z-50">
+          <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+            {/* 移动端布局 */}
+            <div className="sm:hidden">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setAgreed(!agreed)} className={cn("w-5 h-5 rounded flex items-center justify-center border transition-colors", agreed ? "bg-brand-primary border-brand-primary text-white" : "border-slate-300 text-transparent")}>
+                    <Icons.Check className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="text-xs text-slate-500">同意<span onClick={handleShowAgreement} className="text-brand-primary cursor-pointer font-bold">《领养协议》</span></span>
+                </div>
+                <div className="flex items-baseline gap-0.5">
+                  <span className="text-sm font-bold text-brand-primary">¥</span>
+                  <span className="text-2xl font-display font-bold text-brand-primary">{livestock.price}</span>
+                </div>
+              </div>
+              <button onClick={handleConfirm} disabled={!agreed || creatingOrder} className={cn("w-full h-12 rounded-xl flex items-center justify-center gap-2 text-base font-bold transition-all", agreed && !creatingOrder ? "bg-brand-primary text-white" : "bg-slate-200 text-slate-400 cursor-not-allowed")}>
+                {creatingOrder ? '处理中...' : '确认领养'}
+              </button>
+            </div>
+
+            {/* 桌面端布局 */}
+            <div className="hidden sm:flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <button onClick={() => setAgreed(!agreed)} className={cn("w-5 h-5 rounded flex items-center justify-center border transition-colors", agreed ? "bg-brand-primary border-brand-primary text-white" : "border-slate-300 text-transparent")}>
                   <Icons.Check className="w-3.5 h-3.5" />
                 </button>
                 <span className="text-sm text-slate-500">我已阅读并同意 <span onClick={handleShowAgreement} className="text-brand-primary cursor-pointer font-bold hover:underline">《云端牧场领养协议》</span></span>
               </div>
-              <div className="flex items-center gap-6">
-                <div>
-                  <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">应付总额</p>
-                  <div className="flex items-baseline gap-1"><span className="text-sm font-bold text-brand-primary">¥</span><span className="text-3xl font-display font-bold text-brand-primary">{livestock.price}</span></div>
+              <div className="flex items-center gap-8">
+                <div className="text-right">
+                  <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-0.5">应付总额</p>
+                  <div className="flex items-baseline gap-0.5">
+                    <span className="text-sm font-bold text-brand-primary">¥</span>
+                    <span className="text-3xl font-display font-bold text-brand-primary">{livestock.price}</span>
+                  </div>
                 </div>
-                <button onClick={handleConfirm} disabled={!agreed || creatingOrder} className={cn("btn-elegant h-12 px-8 flex items-center gap-2 text-base transition-all", (!agreed || creatingOrder) && "opacity-50 cursor-not-allowed")}>
-                  {creatingOrder ? '处理中...' : '确认领养'} <Icons.ChevronRight className="w-5 h-5" />
+                <button onClick={handleConfirm} disabled={!agreed || creatingOrder} className={cn("h-12 px-10 rounded-xl flex items-center justify-center gap-2 text-base font-bold transition-all", agreed && !creatingOrder ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/30 hover:shadow-xl hover:shadow-brand-primary/40" : "bg-slate-200 text-slate-400 cursor-not-allowed")}>
+                  {creatingOrder ? '处理中...' : '确认领养'}
                 </button>
               </div>
             </div>
