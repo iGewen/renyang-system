@@ -324,11 +324,11 @@ const HomePage: React.FC = () => {
               {livestockList.map((item, index) => (
                 <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} onClick={() => navigate(`/details/${item.id}`)} className="premium-card overflow-hidden group cursor-pointer">
                   <div className="relative h-64 overflow-hidden">
-                    <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" referrerPolicy="no-referrer" />
+                    <img src={item.mainImage || item.images?.[0] || '/placeholder.jpg'} alt={item.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" referrerPolicy="no-referrer" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                     <div className="absolute bottom-6 left-6 right-6 flex justify-between items-end">
                       <div>
-                        <span className="text-white/70 text-[10px] font-bold uppercase tracking-widest mb-1 block">{item.type === 'sheep' ? '草原之王' : item.type === 'chicken' ? '林间精灵' : '沙漠明珠'}</span>
+                        {item.type?.name && <span className="text-white/70 text-[10px] font-bold uppercase tracking-widest mb-1 block">{item.type.name}</span>}
                         <h3 className="text-2xl font-display font-bold text-white">{item.name}</h3>
                       </div>
                       <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl px-4 py-2 text-white">
