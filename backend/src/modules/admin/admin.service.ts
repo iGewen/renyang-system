@@ -300,24 +300,27 @@ export class AdminService {
       throw new NotFoundException('用户不存在');
     }
 
-    const beforeBalance = parseFloat(user.balance.toString()) || 0;
-    const afterBalance = beforeBalance + amount;
+    // 确保余额转换为数字
+    const beforeBalance = Number(user.balance) || 0;
+    const changeAmount = Number(amount);
+    const afterBalance = beforeBalance + changeAmount;
 
     if (afterBalance < 0) {
       throw new BadRequestException('余额不足');
     }
 
-    // 更新余额
-    await this.userRepository.update(userId, { balance: afterBalance });
+    // 更新余额 - 保留两位小数
+    const finalBalance = Math.round(afterBalance * 100) / 100;
+    await this.userRepository.update(userId, { balance: finalBalance });
 
     // 记录余额变动日志
     const balanceLog = this.dataSource.getRepository('BalanceLog').create({
       id: IdUtil.generate('BL'),
       userId,
       type: 4, // 调整
-      amount,
+      amount: Math.abs(changeAmount),
       balanceBefore: beforeBalance,
-      balanceAfter: afterBalance,
+      balanceAfter: finalBalance,
       relatedType: 'admin_adjust',
       remark: `管理员调整: ${reason}`,
     });
@@ -331,12 +334,12 @@ export class AdminService {
       targetType: 'user',
       targetId: userId,
       beforeData: { balance: beforeBalance },
-      afterData: { balance: afterBalance, amount, reason },
-      remark: `调整用户余额: ${amount >= 0 ? '+' : ''}${amount}元, 原因: ${reason}`,
+      afterData: { balance: finalBalance, amount, reason },
+      remark: `调整用户余额: ${changeAmount >= 0 ? '+' : ''}${changeAmount}元, 原因: ${reason}`,
       ip,
     });
 
-    return { success: true, balance: afterBalance };
+    return { success: true, balance: finalBalance };
   }
 
   // =============== 活体类型管理 ===============

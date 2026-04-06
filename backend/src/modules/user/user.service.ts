@@ -28,32 +28,35 @@ export class UserService {
       throw new Error('用户不存在');
     }
 
-    const balanceBefore = Number(user.balance);
-    const balanceAfter = balanceBefore + amount;
+    // 确保余额转换为数字
+    const balanceBefore = Number(user.balance) || 0;
+    const changeAmount = Number(amount);
+    const balanceAfter = balanceBefore + changeAmount;
 
     if (balanceAfter < 0) {
       throw new Error('余额不足');
     }
 
-    // 更新余额
-    await this.userRepository.update(userId, { balance: balanceAfter });
+    // 更新余额 - 保留两位小数
+    const finalBalance = Math.round(balanceAfter * 100) / 100;
+    await this.userRepository.update(userId, { balance: finalBalance });
 
     // 记录流水
     const log = this.balanceLogRepository.create({
       id: `BL${Date.now()}`,
       userId,
       type: amount > 0 ? 1 : 2, // 1充值 2消费
-      amount: Math.abs(amount),
+      amount: Math.abs(changeAmount),
       balanceBefore,
-      balanceAfter,
+      balanceAfter: finalBalance,
       remark,
     });
     await this.balanceLogRepository.save(log);
 
     // 更新缓存
-    await this.redisService.set(`user:balance:${userId}`, balanceAfter.toString());
+    await this.redisService.set(`user:balance:${userId}`, finalBalance.toString());
 
-    return { balanceBefore, balanceAfter };
+    return { balanceBefore, balanceAfter: finalBalance };
   }
 
   async getBalanceLogs(userId: string, page: number = 1, pageSize: number = 20) {

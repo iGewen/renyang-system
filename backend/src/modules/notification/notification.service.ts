@@ -120,22 +120,23 @@ export class NotificationService {
    * 获取未读数量
    */
   async getUnreadCount(userId: string) {
-    // 获取用户已读的通知ID
-    const readCount = await this.notificationRepository.count({
-      where: { userId, isRead: 1 },
+    // 获取用户专属的未读通知数量
+    const userUnreadCount = await this.notificationRepository.count({
+      where: { userId, isRead: 0 },
     });
 
-    // 获取用户相关的所有通知数量
-    const totalCount = await this.notificationRepository.count({
-      where: [
-        { userId },
-        { userId: null as any }, // 系统公告
-      ],
+    // 获取系统公告数量（userId为null）
+    const systemAnnouncementCount = await this.notificationRepository.count({
+      where: { userId: null as any },
     });
+
+    // 获取用户已读的系统公告记录（通过readAt判断，简化处理）
+    // 这里暂时将系统公告视为已读，实际可以建立用户已读记录表
+    // 为简化实现，系统公告暂不计入未读数，仅统计用户专属通知
 
     return {
-      unreadCount: totalCount - readCount,
-      totalCount,
+      unreadCount: userUnreadCount,
+      totalCount: userUnreadCount,
     };
   }
 
@@ -166,14 +167,12 @@ export class NotificationService {
    * 标记所有通知为已读
    */
   async markAllAsRead(userId: string) {
-    // 标记用户专属通知
+    // 标记用户专属通知为已读
     await this.notificationRepository.update(
       { userId, isRead: 0 },
       { isRead: 1, readAt: new Date() },
     );
 
-    // 为系统公告创建已读记录（通过更新用户的已读系统公告时间）
-    // 这里简化处理，实际可以创建一个用户已读记录表
     return { success: true };
   }
 

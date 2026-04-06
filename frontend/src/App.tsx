@@ -296,7 +296,7 @@ const HomePage: React.FC = () => {
   const rightContent = (
     <button
       onClick={() => navigate('/notifications')}
-      className="relative w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white"
+      className="relative w-10 h-10 rounded-full bg-white/90 backdrop-blur-md border border-white/30 flex items-center justify-center text-brand-primary shadow-sm"
     >
       <Icons.Bell className="w-5 h-5" />
       {unreadCount > 0 && (
@@ -396,11 +396,23 @@ const Navbar: React.FC<{ title: string; showBack?: boolean; transparent?: boolea
 
 const NotificationBadge: React.FC = () => {
   const [count, setCount] = useState(0);
+  const { token, isAuthenticated } = useAuth();
+
   useEffect(() => {
-    notificationApi.getUnreadCount().then(res => setCount(res.count)).catch(() => {});
-  }, []);
+    // 只有登录后才获取未读数
+    if (!token || !isAuthenticated) {
+      setCount(0);
+      return;
+    }
+    notificationApi.getUnreadCount().then(res => {
+      setCount(res.count || 0);
+    }).catch(() => {
+      setCount(0);
+    });
+  }, [token, isAuthenticated]);
+
   if (count === 0) return null;
-  return <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">{count > 9 ? '9+' : count}</span>;
+  return <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold animate-pulse">{count > 9 ? '9+' : count}</span>;
 };
 
 // ==================== 底部导航 ====================
@@ -494,7 +506,7 @@ const DetailsPage: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="pb-28">
+      <div className="min-h-screen pb-32">
         <Navbar title="领养确认" showBack />
         <div className="max-w-screen-xl mx-auto px-6 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -549,22 +561,28 @@ const DetailsPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="px-2">
-                <div className="mb-6 flex items-center gap-3">
-                  <button onClick={() => setAgreed(!agreed)} className={cn("w-5 h-5 rounded flex items-center justify-center border transition-colors", agreed ? "bg-brand-primary border-brand-primary text-white" : "border-slate-300 text-transparent")}>
-                    <Icons.Check className="w-3.5 h-3.5" />
-                  </button>
-                  <span className="text-sm text-slate-500">我已阅读并同意 <span onClick={handleShowAgreement} className="text-brand-primary cursor-pointer font-bold hover:underline">《云端牧场领养协议》</span></span>
+            </div>
+          </div>
+        </div>
+
+        {/* 底部固定支付栏 */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 shadow-lg z-50">
+          <div className="max-w-screen-xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setAgreed(!agreed)} className={cn("w-5 h-5 rounded flex items-center justify-center border transition-colors", agreed ? "bg-brand-primary border-brand-primary text-white" : "border-slate-300 text-transparent")}>
+                  <Icons.Check className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-sm text-slate-500">我已阅读并同意 <span onClick={handleShowAgreement} className="text-brand-primary cursor-pointer font-bold hover:underline">《云端牧场领养协议》</span></span>
+              </div>
+              <div className="flex items-center gap-6">
+                <div>
+                  <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">应付总额</p>
+                  <div className="flex items-baseline gap-1"><span className="text-sm font-bold text-brand-primary">¥</span><span className="text-3xl font-display font-bold text-brand-primary">{livestock.price}</span></div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">应付总额</p>
-                    <div className="flex items-baseline gap-1"><span className="text-sm font-bold text-brand-primary">¥</span><span className="text-4xl font-display font-bold text-brand-primary">{livestock.price}</span></div>
-                  </div>
-                  <button onClick={handleConfirm} disabled={!agreed || creatingOrder} className={cn("btn-elegant h-16 px-12 flex items-center gap-3 text-lg transition-all", (!agreed || creatingOrder) && "opacity-50 cursor-not-allowed")}>
-                    {creatingOrder ? '处理中...' : '确认领养'} <Icons.ChevronRight className="w-6 h-6" />
-                  </button>
-                </div>
+                <button onClick={handleConfirm} disabled={!agreed || creatingOrder} className={cn("btn-elegant h-12 px-8 flex items-center gap-2 text-base transition-all", (!agreed || creatingOrder) && "opacity-50 cursor-not-allowed")}>
+                  {creatingOrder ? '处理中...' : '确认领养'} <Icons.ChevronRight className="w-5 h-5" />
+                </button>
               </div>
             </div>
           </div>
@@ -881,78 +899,78 @@ const ProfilePage: React.FC = () => {
   return (
     <PageTransition>
       <div className="min-h-screen bg-brand-bg pb-28">
-        <div className="relative h-80 bg-brand-primary">
+        <div className="relative h-56 bg-brand-primary">
           <div className="absolute inset-0 overflow-hidden opacity-10 pointer-events-none">
             <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
             <div className="absolute bottom-0 right-0 w-96 h-96 bg-brand-accent rounded-full translate-x-1/3 translate-y-1/3 blur-3xl" />
           </div>
-          <div className="relative z-10 px-8 pt-20 flex items-center gap-6">
+          <div className="relative z-10 px-6 pt-12 flex items-center gap-4">
             <div className="relative">
-              <div className="w-24 h-24 rounded-[32px] border-4 border-white/20 overflow-hidden bg-white/10 backdrop-blur-md">
+              <div className="w-16 h-16 rounded-2xl border-2 border-white/20 overflow-hidden bg-white/10 backdrop-blur-md">
                 <img src={profile?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               </div>
-              <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-brand-accent rounded-full border-2 border-brand-primary flex items-center justify-center">
-                <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse" />
+              <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-brand-accent rounded-full border-2 border-brand-primary flex items-center justify-center">
+                <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
               </div>
             </div>
-            <div>
-              <h2 className="text-3xl font-display font-bold text-white mb-1 tracking-tight">{profile?.nickname || '智慧牧场主'}</h2>
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-[10px] text-white/80 font-bold border border-white/10 uppercase tracking-widest">黄金会员</span>
-                <span className="text-xs text-white/60 font-mono tracking-tighter">{profile?.phone || '未绑定手机'}</span>
+            <div className="flex-1">
+              <h2 className="text-2xl font-display font-bold text-white tracking-tight">{profile?.nickname || '智慧牧场主'}</h2>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="px-2 py-0.5 bg-white/10 backdrop-blur-md rounded-full text-[10px] text-white/80 font-bold border border-white/10 uppercase tracking-widest">黄金会员</span>
+                <span className="text-xs text-white/60 font-mono">{profile?.phone || '未绑定手机'}</span>
               </div>
             </div>
           </div>
-          <div className="absolute bottom-0 left-0 right-0 px-8 translate-y-1/2 lg:hidden">
-            <Card className="p-6 grid grid-cols-3 gap-4 text-center">
+          <div className="absolute bottom-0 left-0 right-0 px-6 translate-y-1/2">
+            <Card className="p-4 grid grid-cols-3 gap-2 text-center">
               <Link to="/balance">
-                <p className="text-2xl font-display font-bold text-brand-primary">¥{parseFloat(profile?.balance || '0').toFixed(0)}</p>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">账户余额</p>
+                <p className="text-xl font-display font-bold text-brand-primary">¥{parseFloat(profile?.balance || '0').toFixed(0)}</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">账户余额</p>
               </Link>
               <div className="border-x border-slate-100">
-                <p className="text-2xl font-display font-bold text-brand-primary">{profile?.stats?.adoptions || 0}</p>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">领养活体</p>
+                <p className="text-xl font-display font-bold text-brand-primary">{profile?.stats?.adoptions || 0}</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">领养活体</p>
               </div>
               <div>
-                <p className="text-2xl font-display font-bold text-brand-primary">{profile?.stats?.days || 0}</p>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">领养天数</p>
+                <p className="text-xl font-display font-bold text-brand-primary">{profile?.stats?.days || 0}</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">领养天数</p>
               </div>
             </Card>
           </div>
         </div>
-        <div className="max-w-screen-xl mx-auto px-8 mt-24 lg:mt-16 space-y-12">
-          <div className="hidden lg:grid grid-cols-3 gap-8">
+        <div className="max-w-screen-xl mx-auto px-6 mt-20 lg:mt-12 space-y-8">
+          <div className="hidden lg:grid grid-cols-3 gap-6">
             <Link to="/balance">
-              <Card className="p-10 flex flex-col items-center hover:shadow-md transition-shadow">
-                <p className="text-4xl font-display font-bold text-brand-primary mb-2">¥{parseFloat(profile?.balance || '0').toFixed(0)}</p>
+              <Card className="p-6 flex flex-col items-center hover:shadow-md transition-shadow">
+                <p className="text-3xl font-display font-bold text-brand-primary mb-1">¥{parseFloat(profile?.balance || '0').toFixed(0)}</p>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">账户余额</p>
               </Card>
             </Link>
-            <Card className="p-10 flex flex-col items-center">
-              <p className="text-4xl font-display font-bold text-brand-primary">{profile?.stats?.adoptions || 0}</p>
+            <Card className="p-6 flex flex-col items-center">
+              <p className="text-3xl font-display font-bold text-brand-primary">{profile?.stats?.adoptions || 0}</p>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">领养活体</p>
             </Card>
-            <Card className="p-10 flex flex-col items-center">
-              <p className="text-4xl font-display font-bold text-brand-primary">{profile?.stats?.days || 0}</p>
+            <Card className="p-6 flex flex-col items-center">
+              <p className="text-3xl font-display font-bold text-brand-primary">{profile?.stats?.days || 0}</p>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">领养天数</p>
             </Card>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <div className="space-y-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-8">
               <section>
-                <div className="flex justify-between items-end mb-6">
-                  <h3 className="text-2xl font-display font-bold text-slate-900">我的订单</h3>
+                <div className="flex justify-between items-end mb-4">
+                  <h3 className="text-xl font-display font-bold text-slate-900">我的订单</h3>
                   <Link to="/orders" className="text-xs text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1 hover:text-brand-primary transition-colors">全部订单 <Icons.ChevronRight className="w-3 h-3" /></Link>
                 </div>
-                <Card className="p-10 grid grid-cols-3 gap-8">
+                <Card className="p-6 grid grid-cols-3 gap-6">
                   {[
                     { icon: Icons.Wallet, label: '待付款', to: '/orders?status=pending' },
                     { icon: Icons.Package, label: '领养中', to: '/orders?status=paid' },
                     { icon: Icons.History, label: '已完成', to: '/orders?status=completed' }
                   ].map((item, i) => (
-                    <Link key={i} to={item.to} className="flex flex-col items-center gap-4 group cursor-pointer">
-                      <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-brand-primary group-hover:text-white transition-all shadow-sm">
-                        <item.icon className="w-7 h-7" />
+                    <Link key={i} to={item.to} className="flex flex-col items-center gap-3 group cursor-pointer">
+                      <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-brand-primary group-hover:text-white transition-all shadow-sm">
+                        <item.icon className="w-6 h-6" />
                       </div>
                       <span className="text-xs font-bold text-slate-600 tracking-tight">{item.label}</span>
                     </Link>
@@ -960,56 +978,56 @@ const ProfilePage: React.FC = () => {
                 </Card>
               </section>
               <section>
-                <h3 className="text-2xl font-display font-bold text-slate-900 mb-6">智慧牧场服务</h3>
+                <h3 className="text-xl font-display font-bold text-slate-900 mb-4">智慧牧场服务</h3>
                 <Card className="overflow-hidden">
                   <div className="divide-y divide-slate-50">
                     {[
                       { icon: Icons.BookOpen, title: '成长档案', desc: '记录爱宠成长点滴', to: '/growth-records' },
                       { icon: Icons.Headset, title: '专属管家', desc: '1对1贴心养殖指导', to: '/support' }
                     ].map((item, i) => (
-                      <Link key={i} to={item.to} className="p-8 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer">
-                        <div className="flex items-center gap-6">
-                          <div className="w-14 h-14 rounded-full bg-brand-bg flex items-center justify-center text-brand-primary shadow-sm"><item.icon className="w-7 h-7" /></div>
-                          <div><p className="text-lg font-bold text-slate-900">{item.title}</p><p className="text-xs text-slate-400">{item.desc}</p></div>
+                      <Link key={i} to={item.to} className="p-5 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-brand-bg flex items-center justify-center text-brand-primary shadow-sm"><item.icon className="w-6 h-6" /></div>
+                          <div><p className="text-base font-bold text-slate-900">{item.title}</p><p className="text-xs text-slate-400">{item.desc}</p></div>
                         </div>
-                        <Icons.ChevronRight className="w-6 h-6 text-slate-300" />
+                        <Icons.ChevronRight className="w-5 h-5 text-slate-300" />
                       </Link>
                     ))}
                   </div>
                 </Card>
               </section>
             </div>
-            <div className="space-y-12">
+            <div className="space-y-8">
               <section>
-                <h3 className="text-2xl font-display font-bold text-slate-900 mb-6">通用设置</h3>
+                <h3 className="text-xl font-display font-bold text-slate-900 mb-4">通用设置</h3>
                 <Card className="overflow-hidden">
                   <div className="divide-y divide-slate-50">
-                    <Link to="/notifications" className="p-8 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer">
-                      <div className="flex items-center gap-6">
-                        <div className="w-14 h-14 rounded-full bg-brand-bg flex items-center justify-center text-brand-primary shadow-sm"><Icons.Bell className="w-7 h-7" /></div>
-                        <span className="text-lg font-bold text-slate-700">消息中心</span>
+                    <Link to="/notifications" className="p-5 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-brand-bg flex items-center justify-center text-brand-primary shadow-sm"><Icons.Bell className="w-6 h-6" /></div>
+                        <span className="text-base font-bold text-slate-700">消息中心</span>
                       </div>
-                      <Icons.ChevronRight className="w-6 h-6 text-slate-300" />
+                      <Icons.ChevronRight className="w-5 h-5 text-slate-300" />
                     </Link>
-                    <Link to="/balance" className="p-8 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer">
-                      <div className="flex items-center gap-6">
-                        <div className="w-14 h-14 rounded-full bg-brand-bg flex items-center justify-center text-brand-primary shadow-sm"><Icons.Wallet className="w-7 h-7" /></div>
-                        <span className="text-lg font-bold text-slate-700">我的余额</span>
+                    <Link to="/balance" className="p-5 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-brand-bg flex items-center justify-center text-brand-primary shadow-sm"><Icons.Wallet className="w-6 h-6" /></div>
+                        <span className="text-base font-bold text-slate-700">我的余额</span>
                       </div>
-                      <Icons.ChevronRight className="w-6 h-6 text-slate-300" />
+                      <Icons.ChevronRight className="w-5 h-5 text-slate-300" />
                     </Link>
-                    <Link to="/admin" className="p-8 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer">
-                      <div className="flex items-center gap-6">
-                        <div className="w-14 h-14 rounded-full bg-brand-accent/10 flex items-center justify-center text-brand-accent"><Icons.LayoutDashboard className="w-7 h-7" /></div>
-                        <span className="text-lg font-bold text-slate-700">进入后台管理</span>
+                    <Link to="/admin" className="p-5 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-brand-accent/10 flex items-center justify-center text-brand-accent"><Icons.LayoutDashboard className="w-6 h-6" /></div>
+                        <span className="text-base font-bold text-slate-700">进入后台管理</span>
                       </div>
-                      <Icons.ChevronRight className="w-6 h-6 text-slate-300" />
+                      <Icons.ChevronRight className="w-5 h-5 text-slate-300" />
                     </Link>
                   </div>
                 </Card>
               </section>
-              <button onClick={() => { logout(); navigate('/'); }} className="w-full py-8 flex items-center justify-center gap-4 text-red-500 font-bold text-lg bg-red-50/50 rounded-[32px] hover:bg-red-50 transition-all shadow-sm">
-                <Icons.LogOut className="w-6 h-6" /> 退出当前账号
+              <button onClick={() => { logout(); navigate('/'); }} className="w-full py-5 flex items-center justify-center gap-3 text-red-500 font-bold text-base bg-red-50/50 rounded-2xl hover:bg-red-50 transition-all shadow-sm">
+                <Icons.LogOut className="w-5 h-5" /> 退出当前账号
               </button>
             </div>
           </div>

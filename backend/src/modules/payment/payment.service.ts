@@ -67,16 +67,28 @@ export class PaymentService {
     const lockKey = `payment:balance:${payment.userId}`;
 
     return this.redisService.withLock(lockKey, 30000, async () => {
-      // 检查余额
+      // 检查余额 - 重新从数据库获取最新余额
       const user = await this.userService.findOne(payment.userId);
-      if (!user || Number(user.balance) < payment.amount) {
-        throw new BadRequestException('余额不足');
+      if (!user) {
+        throw new BadRequestException('用户不存在');
+      }
+
+      // 确保余额转换为数字进行比较
+      const userBalance = Number(user.balance);
+      const paymentAmount = Number(payment.amount);
+
+      if (isNaN(userBalance) || isNaN(paymentAmount)) {
+        throw new BadRequestException('余额数据异常');
+      }
+
+      if (userBalance < paymentAmount) {
+        throw new BadRequestException(`余额不足，当前余额: ${userBalance.toFixed(2)}元，需要支付: ${paymentAmount.toFixed(2)}元`);
       }
 
       // 扣减余额
       await this.userService.updateBalance(
         payment.userId,
-        -payment.amount,
+        -paymentAmount,
         `支付订单: ${payment.outTradeNo}`,
       );
 

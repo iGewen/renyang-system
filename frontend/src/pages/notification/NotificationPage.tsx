@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { PageTransition, Icons, Card, Badge, EmptyState } from '../components/ui';
+import { PageTransition, Icons, Card, Badge, EmptyState, Modal } from '../components/ui';
 import { notificationApi } from '../services/api';
 import type { Notification } from '../types';
 
@@ -11,6 +11,9 @@ export const NotificationPage: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -50,6 +53,19 @@ export const NotificationPage: React.FC = () => {
       setUnreadCount(0);
     } catch (error) {
       console.error('Failed to mark all as read:', error);
+    }
+  };
+
+  const handleNotificationClick = async (notification: Notification) => {
+    // 展开或收起消息
+    if (expandedId === notification.id) {
+      setExpandedId(null);
+    } else {
+      setExpandedId(notification.id);
+    }
+    // 如果未读，标记为已读
+    if (!notification.isRead) {
+      await handleRead(notification.id);
     }
   };
 
@@ -144,8 +160,8 @@ export const NotificationPage: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                 >
                   <Card
-                    className={`p-4 ${!notification.isRead ? 'bg-blue-50/50 border-blue-100' : ''}`}
-                    onClick={() => !notification.isRead && handleRead(notification.id)}
+                    className={`p-4 cursor-pointer transition-all ${!notification.isRead ? 'bg-blue-50/50 border-blue-100' : ''} ${expandedId === notification.id ? 'ring-2 ring-brand-primary/20' : ''}`}
+                    onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex gap-4">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${getTypeColor(notification.type)}`}>
@@ -158,7 +174,7 @@ export const NotificationPage: React.FC = () => {
                             <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0 ml-2" />
                           )}
                         </div>
-                        <p className="text-sm text-slate-500 line-clamp-2 mb-2">{notification.content}</p>
+                        <p className={`text-sm text-slate-500 mb-2 ${expandedId === notification.id ? '' : 'line-clamp-2'}`}>{notification.content}</p>
                         <p className="text-xs text-slate-400">
                           {new Date(notification.createdAt).toLocaleString()}
                         </p>
