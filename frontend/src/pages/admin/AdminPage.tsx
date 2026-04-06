@@ -646,7 +646,7 @@ export const AdminUsers: React.FC = () => {
                   <td className="py-3 px-4 font-mono text-sm">{user.id?.substring(0, 8)}</td>
                   <td className="py-3 px-4">{user.phone}</td>
                   <td className="py-3 px-4">{user.nickname || '-'}</td>
-                  <td className="py-3 px-4">¥{user.balance?.toFixed(2) || '0.00'}</td>
+                  <td className="py-3 px-4">¥{typeof user.balance === 'number' ? user.balance.toFixed(2) : parseFloat(user.balance || '0').toFixed(2)}</td>
                   <td className="py-3 px-4">
                     <Badge variant={statusMap[user.status]?.variant || 'default'}>{statusMap[user.status]?.label || user.status}</Badge>
                   </td>
