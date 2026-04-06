@@ -239,6 +239,15 @@ class CreateAdminDto {
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
+  // 获取真实 IP 地址
+  private getClientIp(req: any): string {
+    return req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+           req.headers['x-real-ip'] ||
+           req.ip ||
+           req.connection?.remoteAddress ||
+           '';
+  }
+
   // =============== 认证相关 ===============
 
   /**
@@ -250,7 +259,7 @@ export class AdminController {
   @ApiResponse({ status: 200, description: '登录成功' })
   @ApiResponse({ status: 401, description: '用户名或密码错误' })
   async login(@Body() dto: LoginDto, @Req() req: any) {
-    const ip = req.ip || req.connection.remoteAddress;
+    const ip = this.getClientIp(req);
     return this.adminService.login(dto.username, dto.password, ip);
   }
 
@@ -342,7 +351,8 @@ export class AdminController {
   ) {
     const adminId = req.user?.sub;
     const adminName = req.user?.username;
-    return this.adminService.updateUserStatus(id, status, adminId, adminName);
+    const ip = this.getClientIp(req);
+    return this.adminService.updateUserStatus(id, status, adminId, adminName, ip);
   }
 
   // =============== 活体类型管理 ===============
@@ -366,7 +376,8 @@ export class AdminController {
   async createLivestockType(@Body() dto: CreateLivestockTypeDto, @Req() req: any) {
     const adminId = req.user?.sub;
     const adminName = req.user?.username;
-    return this.adminService.createLivestockType(dto, adminId, adminName);
+    const ip = this.getClientIp(req);
+    return this.adminService.createLivestockType(dto, adminId, adminName, ip);
   }
 
   /**
@@ -383,7 +394,8 @@ export class AdminController {
   ) {
     const adminId = req.user?.sub;
     const adminName = req.user?.username;
-    return this.adminService.updateLivestockType(id, dto, adminId, adminName);
+    const ip = this.getClientIp(req);
+    return this.adminService.updateLivestockType(id, dto, adminId, adminName, ip);
   }
 
   /**
@@ -396,7 +408,8 @@ export class AdminController {
   async deleteLivestockType(@Param('id') id: string, @Req() req: any) {
     const adminId = req.user?.sub;
     const adminName = req.user?.username;
-    return this.adminService.deleteLivestockType(id, adminId, adminName);
+    const ip = this.getClientIp(req);
+    return this.adminService.deleteLivestockType(id, adminId, adminName, ip);
   }
 
   // =============== 活体管理 ===============
@@ -437,7 +450,8 @@ export class AdminController {
   async createLivestock(@Body() dto: CreateLivestockDto, @Req() req: any) {
     const adminId = req.user?.sub;
     const adminName = req.user?.username;
-    return this.adminService.createLivestock(dto, adminId, adminName);
+    const ip = this.getClientIp(req);
+    return this.adminService.createLivestock(dto, adminId, adminName, ip);
   }
 
   /**
@@ -454,7 +468,8 @@ export class AdminController {
   ) {
     const adminId = req.user?.sub;
     const adminName = req.user?.username;
-    return this.adminService.updateLivestock(id, dto, adminId, adminName);
+    const ip = this.getClientIp(req);
+    return this.adminService.updateLivestock(id, dto, adminId, adminName, ip);
   }
 
   /**
@@ -471,11 +486,12 @@ export class AdminController {
   ) {
     const adminId = req.user?.sub;
     const adminName = req.user?.username;
+    const ip = this.getClientIp(req);
     // 支持 'on_sale'/'off_sale' 字符串和数字
     const statusCode = typeof status === 'string'
       ? (status === 'on_sale' ? 1 : 2)
       : status;
-    return this.adminService.updateLivestockStatus(id, statusCode, adminId, adminName);
+    return this.adminService.updateLivestockStatus(id, statusCode, adminId, adminName, ip);
   }
 
   /**
@@ -488,7 +504,8 @@ export class AdminController {
   async deleteLivestock(@Param('id') id: string, @Req() req: any) {
     const adminId = req.user?.sub;
     const adminName = req.user?.username;
-    return this.adminService.deleteLivestock(id, adminId, adminName);
+    const ip = this.getClientIp(req);
+    return this.adminService.deleteLivestock(id, adminId, adminName, ip);
   }
 
   // =============== 订单管理 ===============
@@ -622,7 +639,8 @@ export class AdminController {
   async updateSystemConfig(@Body() dto: UpdateSystemConfigDto, @Req() req: any) {
     const adminId = req.user?.sub;
     const adminName = req.user?.username;
-    return this.adminService.updateSystemConfig(dto.configKey, dto.configValue, adminId, adminName);
+    const ip = this.getClientIp(req);
+    return this.adminService.updateSystemConfig(dto.configKey, dto.configValue, adminId, adminName, ip);
   }
 
   // =============== 公告管理 ===============
@@ -636,7 +654,8 @@ export class AdminController {
   async sendAnnouncement(@Body() dto: SendAnnouncementDto, @Req() req: any) {
     const adminId = req.user?.sub;
     const adminName = req.user?.username;
-    return this.adminService.sendSystemAnnouncement(dto.title, dto.content, adminId, adminName);
+    const ip = this.getClientIp(req);
+    return this.adminService.sendSystemAnnouncement(dto.title, dto.content, adminId, adminName, ip);
   }
 
   // =============== 通知管理 ===============
@@ -706,7 +725,8 @@ export class AdminController {
   async createAdmin(@Body() dto: CreateAdminDto, @Req() req: any) {
     const adminId = req.user?.sub;
     const adminName = req.user?.username;
-    return this.adminService.createAdmin(dto, adminId, adminName);
+    const ip = this.getClientIp(req);
+    return this.adminService.createAdmin(dto, adminId, adminName, ip);
   }
 
   /**
@@ -723,7 +743,8 @@ export class AdminController {
   ) {
     const adminId = req.user?.sub;
     const adminName = req.user?.username;
-    return this.adminService.updateAdminStatus(id, status, adminId, adminName);
+    const ip = this.getClientIp(req);
+    return this.adminService.updateAdminStatus(id, status, adminId, adminName, ip);
   }
 
   // =============== 审计日志 ===============
@@ -892,7 +913,8 @@ export class AdminController {
   async saveAgreement(@Body() dto: SaveAgreementDto, @Req() req: any) {
     const adminId = req.user?.sub;
     const adminName = req.user?.username;
-    return this.adminService.saveAgreement(dto, adminId, adminName);
+    const ip = this.getClientIp(req);
+    return this.adminService.saveAgreement(dto, adminId, adminName, ip);
   }
 
   /**
@@ -905,6 +927,7 @@ export class AdminController {
   async deleteAgreement(@Param('key') key: string, @Req() req: any) {
     const adminId = req.user?.sub;
     const adminName = req.user?.username;
-    return this.adminService.deleteAgreement(key, adminId, adminName);
+    const ip = this.getClientIp(req);
+    return this.adminService.deleteAgreement(key, adminId, adminName, ip);
   }
 }

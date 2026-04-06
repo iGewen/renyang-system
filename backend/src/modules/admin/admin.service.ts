@@ -231,7 +231,7 @@ export class AdminService {
   /**
    * 更新用户状态
    */
-  async updateUserStatus(userId: string, status: number, adminId: string, adminName: string) {
+  async updateUserStatus(userId: string, status: number, adminId: string, adminName: string, ip?: string) {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('用户不存在');
@@ -249,6 +249,7 @@ export class AdminService {
       beforeData: { status: user.status },
       afterData: { status },
       remark: `更新用户状态为: ${status === 1 ? '启用' : '禁用'}`,
+      ip,
     });
 
     return { success: true };
@@ -268,7 +269,7 @@ export class AdminService {
   /**
    * 创建活体类型
    */
-  async createLivestockType(data: Partial<LivestockType>, adminId: string, adminName: string) {
+  async createLivestockType(data: Partial<LivestockType>, adminId: string, adminName: string, ip?: string) {
     // 生成编码：取名称首字母拼音或使用ID前缀
     const code = data.code || IdUtil.generate('LT');
 
@@ -289,6 +290,7 @@ export class AdminService {
       targetId: type.id,
       afterData: type,
       remark: '创建活体类型',
+      ip,
     });
 
     return type;
@@ -297,7 +299,7 @@ export class AdminService {
   /**
    * 更新活体类型
    */
-  async updateLivestockType(id: string, data: Partial<LivestockType>, adminId: string, adminName: string) {
+  async updateLivestockType(id: string, data: Partial<LivestockType>, adminId: string, adminName: string, ip?: string) {
     const type = await this.livestockTypeRepository.findOne({ where: { id } });
     if (!type) {
       throw new NotFoundException('活体类型不存在');
@@ -325,7 +327,7 @@ export class AdminService {
   /**
    * 删除活体类型
    */
-  async deleteLivestockType(id: string, adminId: string, adminName: string) {
+  async deleteLivestockType(id: string, adminId: string, adminName: string, ip?: string) {
     const type = await this.livestockTypeRepository.findOne({ where: { id } });
     if (!type) {
       throw new NotFoundException('活体类型不存在');
@@ -402,7 +404,7 @@ export class AdminService {
   /**
    * 创建活体
    */
-  async createLivestock(data: Partial<Livestock>, adminId: string, adminName: string) {
+  async createLivestock(data: Partial<Livestock>, adminId: string, adminName: string, ip?: string) {
     const livestock = this.livestockRepository.create({
       id: IdUtil.generate('L'),
       ...data,
@@ -427,7 +429,7 @@ export class AdminService {
   /**
    * 更新活体
    */
-  async updateLivestock(id: string, data: Partial<Livestock>, adminId: string, adminName: string) {
+  async updateLivestock(id: string, data: Partial<Livestock>, adminId: string, adminName: string, ip?: string) {
     const livestock = await this.livestockRepository.findOne({ where: { id } });
     if (!livestock) {
       throw new NotFoundException('活体不存在');
@@ -455,7 +457,7 @@ export class AdminService {
   /**
    * 更新活体状态
    */
-  async updateLivestockStatus(id: string, status: number, adminId: string, adminName: string) {
+  async updateLivestockStatus(id: string, status: number, adminId: string, adminName: string, ip?: string) {
     const livestock = await this.livestockRepository.findOne({ where: { id } });
     if (!livestock) {
       throw new NotFoundException('活体不存在');
@@ -482,7 +484,7 @@ export class AdminService {
   /**
    * 删除活体
    */
-  async deleteLivestock(id: string, adminId: string, adminName: string) {
+  async deleteLivestock(id: string, adminId: string, adminName: string, ip?: string) {
     const livestock = await this.livestockRepository.findOne({ where: { id } });
     if (!livestock) {
       throw new NotFoundException('活体不存在');
@@ -707,7 +709,7 @@ export class AdminService {
   /**
    * 更新系统配置
    */
-  async updateSystemConfig(configKey: string, configValue: any, adminId: string, adminName: string) {
+  async updateSystemConfig(configKey: string, configValue: any, adminId: string, adminName: string, ip?: string) {
     let config = await this.systemConfigRepository.findOne({
       where: { configKey },
     });
@@ -873,7 +875,7 @@ export class AdminService {
   /**
    * 创建管理员
    */
-  async createAdmin(data: { username: string; password: string; name?: string; phone?: string; role: number }, adminId: string, adminName: string) {
+  async createAdmin(data: { username: string; password: string; name?: string; phone?: string; role: number }, adminId: string, adminName: string, ip?: string) {
     // 检查用户名是否已存在
     const existing = await this.adminRepository.findOne({
       where: { username: data.username },
@@ -915,7 +917,7 @@ export class AdminService {
   /**
    * 更新管理员状态
    */
-  async updateAdminStatus(targetAdminId: string, status: number, adminId: string, adminName: string) {
+  async updateAdminStatus(targetAdminId: string, status: number, adminId: string, adminName: string, ip?: string) {
     const admin = await this.adminRepository.findOne({ where: { id: targetAdminId } });
     if (!admin) {
       throw new NotFoundException('管理员不存在');
@@ -1029,7 +1031,7 @@ export class AdminService {
   /**
    * 发送系统公告
    */
-  async sendSystemAnnouncement(title: string, content: string, adminId: string, adminName: string) {
+  async sendSystemAnnouncement(title: string, content: string, adminId: string, adminName: string, ip?: string) {
     const notification = this.notificationRepository.create({
       id: `N${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
       title,
@@ -1377,7 +1379,7 @@ export class AdminService {
   /**
    * 保存协议
    */
-  async saveAgreement(data: { agreementKey: string; title: string; content: string }, adminId: string, adminName: string) {
+  async saveAgreement(data: { agreementKey: string; title: string; content: string }, adminId: string, adminName: string, ip?: string) {
     let config = await this.systemConfigRepository.findOne({
       where: { configKey: data.agreementKey },
     });
@@ -1431,7 +1433,7 @@ export class AdminService {
   /**
    * 删除协议
    */
-  async deleteAgreement(key: string, adminId: string, adminName: string) {
+  async deleteAgreement(key: string, adminId: string, adminName: string, ip?: string) {
     const config = await this.systemConfigRepository.findOne({
       where: { configKey: key, configType: 'agreement' },
     });
