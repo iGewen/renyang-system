@@ -608,20 +608,6 @@ export const adminApi = {
     });
   },
 
-  adjustUserBalance: async (id: string, data: { amount: number; reason: string; confirmPassword: string }): Promise<User> => {
-    return request(`/admin/users/${id}/balance`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  },
-
-  updateUserStatus: async (id: string, data: { status: 'normal' | 'restricted' | 'banned'; reason: string }): Promise<User> => {
-    return request(`/admin/users/${id}/status`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  },
-
   // ==================== 消息管理 ====================
   getNotifications: async (params?: { type?: string; page?: number; pageSize?: number }): Promise<PaginatedResponse<Notification>> => {
     const query = new URLSearchParams();
