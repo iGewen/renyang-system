@@ -49,7 +49,7 @@ export const NotificationPage: React.FC = () => {
   const markAsRead = async (id: string) => {
     try {
       await notificationApi.markRead(id);
-      // 更新本地状态
+      // 更新本地状态 - 使用数字1而不是布尔值true，与后端保持一致
       setNotifications(prev =>
         prev.map(n => n.id === id ? { ...n, isRead: 1 } : n)
       );

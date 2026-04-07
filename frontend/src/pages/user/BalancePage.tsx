@@ -26,8 +26,8 @@ export const BalancePage: React.FC = () => {
         balanceApi.get(),
         balanceApi.getLogs()
       ]);
-      setBalance(balanceRes.balance);
-      setLogs(logsRes.list);
+      setBalance(balanceRes?.balance || 0);
+      setLogs(logsRes?.list || []);
     } catch (error) {
       console.error('Failed to fetch balance:', error);
     } finally {
@@ -60,7 +60,8 @@ export const BalancePage: React.FC = () => {
     }
   };
 
-  const getTypeText = (type: number) => {
+  const getTypeText = (log: BalanceLog) => {
+    const type = Number(log.type);
     const map: Record<number, string> = {
       1: '充值',
       2: '消费',
@@ -70,7 +71,8 @@ export const BalancePage: React.FC = () => {
     return map[type] || '未知';
   };
 
-  const getTypeBadge = (type: number) => {
+  const getTypeBadge = (log: BalanceLog) => {
+    const type = Number(log.type);
     const map: Record<number, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
       1: 'success',  // 充值
       2: 'warning',  // 消费
@@ -80,14 +82,16 @@ export const BalancePage: React.FC = () => {
     return map[type] || 'default';
   };
 
-  const getTypeIcon = (type: number) => {
+  const getTypeIcon = (log: BalanceLog) => {
+    const type = Number(log.type);
     if (type === 1) return <Icons.Plus className="w-5 h-5" />;
     if (type === 2) return <Icons.Minus className="w-5 h-5" />;
     if (type === 3) return <Icons.RotateCw className="w-5 h-5" />;
     return <Icons.Edit className="w-5 h-5" />;
   };
 
-  const getTypeColor = (type: number) => {
+  const getTypeColor = (log: BalanceLog) => {
+    const type = Number(log.type);
     if (type === 1) return 'bg-green-100 text-green-600';  // 充值
     if (type === 2) return 'bg-orange-100 text-orange-600'; // 消费
     if (type === 3) return 'bg-blue-100 text-blue-600';    // 退款
@@ -96,7 +100,13 @@ export const BalancePage: React.FC = () => {
 
   // type=1是充值（正数），type=2是消费（存为正数，显示为负）
   const getAmount = (log: BalanceLog) => {
-    return log.type === 2 ? -Math.abs(log.amount) : Math.abs(log.amount);
+    const amount = Number(log.amount) || 0;
+    const type = Number(log.type);
+    return type === 2 ? -Math.abs(amount) : Math.abs(amount);
+  };
+
+  const getBalanceAfter = (log: BalanceLog) => {
+    return Number(log.balanceAfter) || 0;
   };
 
   if (loading) {
@@ -153,11 +163,11 @@ export const BalancePage: React.FC = () => {
                     <Card key={log.id} className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${getTypeColor(log.type)}`}>
-                            {getTypeIcon(log.type)}
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${getTypeColor(log)}`}>
+                            {getTypeIcon(log)}
                           </div>
                           <div>
-                            <p className="font-medium text-slate-900">{log.remark || getTypeText(log.type)}</p>
+                            <p className="font-medium text-slate-900">{log.remark || getTypeText(log)}</p>
                             <p className="text-xs text-slate-400">{new Date(log.createdAt).toLocaleString()}</p>
                           </div>
                         </div>
@@ -165,7 +175,7 @@ export const BalancePage: React.FC = () => {
                           <p className={`font-bold ${amount > 0 ? 'text-green-600' : 'text-slate-900'}`}>
                             {amount > 0 ? '+' : ''}{amount.toFixed(2)}
                           </p>
-                          <p className="text-xs text-slate-400">余额: {log.balanceAfter.toFixed(2)}</p>
+                          <p className="text-xs text-slate-400">余额: {getBalanceAfter(log).toFixed(2)}</p>
                         </div>
                       </div>
                     </Card>

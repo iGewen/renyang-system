@@ -3,16 +3,18 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, EmptyState } from '../../components/ui';
 import { cn } from '../../lib/utils';
-import { adoptionApi } from '../../services/api';
-import { FeedBillStatus } from '../../types/enums';
-import type { Adoption, FeedBill } from '../../types';
+import { adoptionApi, redemptionApi, balanceApi, paymentApi } from '../../services/api';
+import { FeedBillStatus, RedemptionStatus } from '../../types/enums';
+import type { Adoption, FeedBill, RedemptionOrder } from '../../types';
 
 const AdoptionDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [adoption, setAdoption] = useState<Adoption | null>(null);
   const [feedBills, setFeedBills] = useState<FeedBill[]>([]);
+  const [redemption, setRedemption] = useState<RedemptionOrder | null>(null);
   const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
   const [activeTab, setActiveTab] = useState<'info' | 'bills'>('info');
 
   useEffect(() => {
@@ -25,6 +27,21 @@ const AdoptionDetailPage: React.FC = () => {
         ]);
         setAdoption(adoptionData);
         setFeedBills(billsData);
+
+        // 如果领养状态是买断审核中，获取买断订单信息
+        if (adoptionData.status === 5) {
+          try {
+            const redemptions = await redemptionApi.getMyRedemptions();
+            const activeRedemption = redemptions.find(r =>
+              r.adoptionId === id && (r.status === RedemptionStatus.PENDING_AUDIT || r.status === RedemptionStatus.AUDIT_PASSED)
+            );
+            if (activeRedemption) {
+              setRedemption(activeRedemption);
+            }
+          } catch (e) {
+            console.error('Failed to fetch redemption:', e);
+          }
+        }
       } catch (error) {
         console.error('Failed to fetch adoption details:', error);
       } finally {
@@ -59,6 +76,38 @@ const AdoptionDetailPage: React.FC = () => {
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('zh-CN');
+  };
+
+  const getRedemptionStatusConfig = (status: number) => {
+    const map: Record<number, { label: string; color: string }> = {
+      [RedemptionStatus.PENDING_AUDIT]: { label: '待审核', color: 'text-orange-600 bg-orange-50' },
+      [RedemptionStatus.AUDIT_PASSED]: { label: '审核通过，待支付', color: 'text-green-600 bg-green-50' },
+      [RedemptionStatus.AUDIT_REJECTED]: { label: '审核拒绝', color: 'text-red-600 bg-red-50' },
+      [RedemptionStatus.PAID]: { label: '已支付', color: 'text-slate-600 bg-slate-100' },
+      [RedemptionStatus.CANCELLED]: { label: '已取消', color: 'text-slate-600 bg-slate-100' }
+    };
+    return map[status] || { label: '未知', color: 'text-slate-600 bg-slate-100' };
+  };
+
+  const handlePayRedemption = async () => {
+    if (!redemption) return;
+    setPaying(true);
+    try {
+      const result = await redemptionApi.pay(redemption.id, 'balance');
+      // 如果返回 success: true，说明满期买断无需支付
+      if (result.success) {
+        // 刷新页面
+        window.location.reload();
+      }
+      // 否则跳转到支付页面
+      if (result.payUrl) {
+        window.location.href = result.payUrl;
+      }
+    } catch (error: any) {
+      alert(error.message || '支付失败');
+    } finally {
+      setPaying(false);
+    }
   };
 
   if (loading) return <LoadingSpinner />;
@@ -176,6 +225,62 @@ const AdoptionDetailPage: React.FC = () => {
                 >
                   申请买断
                 </Button>
+              )}
+
+              {/* 买断审核中状态显示 */}
+              {adoption.status === 5 && redemption && (
+                <Card className="p-6">
+                  <h3 className="text-lg font-bold text-slate-900 mb-4">买断进度</h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center py-3 border-b border-slate-50">
+                      <span className="text-slate-500">买断编号</span>
+                      <span className="font-mono text-slate-900">{redemption.redemptionNo}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-slate-50">
+                      <span className="text-slate-500">买断类型</span>
+                      <span className="text-slate-900">
+                        {redemption.type === 'full' ? '满期买断' : '提前买断'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-slate-50">
+                      <span className="text-slate-500">买断金额</span>
+                      <span className="font-bold text-brand-primary">¥{redemption.finalAmount?.toFixed(2) || '0.00'}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3">
+                      <span className="text-slate-500">状态</span>
+                      <span className={cn('px-3 py-1 rounded-full text-xs font-medium', getRedemptionStatusConfig(redemption.status).color)}>
+                        {getRedemptionStatusConfig(redemption.status).label}
+                      </span>
+                    </div>
+                    {redemption.auditRemark && (
+                      <div className="py-3 border-t border-slate-50">
+                        <span className="text-slate-500 text-sm">审核备注</span>
+                        <p className="text-slate-700 mt-1">{redemption.auditRemark}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 审核通过后显示支付按钮 */}
+                  {redemption.status === RedemptionStatus.AUDIT_PASSED && redemption.finalAmount > 0 && (
+                    <Button
+                      className="w-full mt-4"
+                      size="lg"
+                      onClick={handlePayRedemption}
+                      loading={paying}
+                      icon={<Icons.CreditCard className="w-5 h-5" />}
+                    >
+                      立即支付 ¥{redemption.finalAmount?.toFixed(2)}
+                    </Button>
+                  )}
+
+                  {/* 满期买断无需支付 */}
+                  {redemption.status === RedemptionStatus.AUDIT_PASSED && redemption.finalAmount === 0 && (
+                    <div className="mt-4 p-4 bg-green-50 rounded-xl text-center">
+                      <p className="text-green-600 font-medium">买断申请已通过，无需支付额外费用</p>
+                      <p className="text-green-500 text-sm mt-1">请等待工作人员联系您安排发货</p>
+                    </div>
+                  )}
+                </Card>
               )}
 
               {adoption.isException && (

@@ -1161,7 +1161,7 @@ const NotificationPage: React.FC = () => {
   const handleReadAll = async () => {
     try {
       await notificationApi.markAllRead();
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: 1 })));
       setUnreadCount(0);
     } catch (error) {}
   };
@@ -1193,7 +1193,7 @@ const NotificationPage: React.FC = () => {
           ) : (
             <div className="space-y-3">
               {notifications.map(n => (
-                <Card key={n.id} className={cn('p-4', !n.isRead && 'bg-blue-50/50 border-blue-100')}>
+                <Card key={n.id} className={cn('p-4', n.isRead === 0 && 'bg-blue-50/50 border-blue-100')}>
                   <div className="flex gap-4">
                     <div className={cn('w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0', n.type === 'order' ? 'bg-blue-100 text-blue-600' : n.type === 'feed' ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-600')}>
                       <Icons.Bell className="w-5 h-5" />
@@ -1201,7 +1201,7 @@ const NotificationPage: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <h3 className="font-medium text-slate-900 truncate">{n.title}</h3>
-                        {!n.isRead && <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0 ml-2" />}
+                        {n.isRead === 0 && <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0 ml-2" />}
                       </div>
                       <p className="text-sm text-slate-500 line-clamp-2 mb-2">{n.content}</p>
                       <p className="text-xs text-slate-400">{new Date(n.createdAt).toLocaleString()}</p>

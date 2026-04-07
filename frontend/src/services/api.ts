@@ -219,6 +219,12 @@ export const adoptionApi = {
 // ==================== 买断相关 ====================
 
 export const redemptionApi = {
+  // 获取我的买断列表
+  getMyRedemptions: async (status?: number): Promise<RedemptionOrder[]> => {
+    const query = status !== undefined ? `?status=${status}` : '';
+    return request(`/redemptions${query}`);
+  },
+
   // 获取买断详情
   getById: async (redemptionId: string): Promise<RedemptionOrder> => {
     return request(`/redemptions/${redemptionId}`);
