@@ -60,24 +60,43 @@ export const BalancePage: React.FC = () => {
     }
   };
 
-  const getTypeText = (type: string) => {
-    const map: Record<string, string> = {
-      recharge: '充值',
-      consume: '消费',
-      refund: '退款',
-      adjust: '调整'
+  const getTypeText = (type: number) => {
+    const map: Record<number, string> = {
+      1: '充值',
+      2: '消费',
+      3: '退款',
+      4: '调整'
     };
-    return map[type] || type;
+    return map[type] || '未知';
   };
 
-  const getTypeBadge = (type: string) => {
-    const map: Record<string, 'success' | 'warning' | 'danger' | 'info'> = {
-      recharge: 'success',
-      consume: 'warning',
-      refund: 'info',
-      adjust: 'default'
+  const getTypeBadge = (type: number) => {
+    const map: Record<number, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
+      1: 'success',  // 充值
+      2: 'warning',  // 消费
+      3: 'info',     // 退款
+      4: 'default'   // 调整
     };
     return map[type] || 'default';
+  };
+
+  const getTypeIcon = (type: number) => {
+    if (type === 1) return <Icons.Plus className="w-5 h-5" />;
+    if (type === 2) return <Icons.Minus className="w-5 h-5" />;
+    if (type === 3) return <Icons.RotateCw className="w-5 h-5" />;
+    return <Icons.Edit className="w-5 h-5" />;
+  };
+
+  const getTypeColor = (type: number) => {
+    if (type === 1) return 'bg-green-100 text-green-600';  // 充值
+    if (type === 2) return 'bg-orange-100 text-orange-600'; // 消费
+    if (type === 3) return 'bg-blue-100 text-blue-600';    // 退款
+    return 'bg-slate-100 text-slate-600';                  // 调整
+  };
+
+  // type=1是充值（正数），type=2是消费（存为正数，显示为负）
+  const getAmount = (log: BalanceLog) => {
+    return log.type === 2 ? -Math.abs(log.amount) : Math.abs(log.amount);
   };
 
   if (loading) {
@@ -128,35 +147,30 @@ export const BalancePage: React.FC = () => {
               />
             ) : (
               <div className="space-y-3">
-                {logs.map(log => (
-                  <Card key={log.id} className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          log.type === 'recharge' ? 'bg-green-100 text-green-600' :
-                          log.type === 'consume' ? 'bg-orange-100 text-orange-600' :
-                          log.type === 'refund' ? 'bg-blue-100 text-blue-600' :
-                          'bg-slate-100 text-slate-600'
-                        }`}>
-                          {log.type === 'recharge' && <Icons.Plus className="w-5 h-5" />}
-                          {log.type === 'consume' && <Icons.Minus className="w-5 h-5" />}
-                          {log.type === 'refund' && <Icons.RotateCw className="w-5 h-5" />}
-                          {log.type === 'adjust' && <Icons.Edit className="w-5 h-5" />}
+                {logs.map(log => {
+                  const amount = getAmount(log);
+                  return (
+                    <Card key={log.id} className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${getTypeColor(log.type)}`}>
+                            {getTypeIcon(log.type)}
+                          </div>
+                          <div>
+                            <p className="font-medium text-slate-900">{log.remark || getTypeText(log.type)}</p>
+                            <p className="text-xs text-slate-400">{new Date(log.createdAt).toLocaleString()}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-slate-900">{log.remark || getTypeText(log.type)}</p>
-                          <p className="text-xs text-slate-400">{new Date(log.createdAt).toLocaleString()}</p>
+                        <div className="text-right">
+                          <p className={`font-bold ${amount > 0 ? 'text-green-600' : 'text-slate-900'}`}>
+                            {amount > 0 ? '+' : ''}{amount.toFixed(2)}
+                          </p>
+                          <p className="text-xs text-slate-400">余额: {log.balanceAfter.toFixed(2)}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className={`font-bold ${log.amount > 0 ? 'text-green-600' : 'text-slate-900'}`}>
-                          {log.amount > 0 ? '+' : ''}{log.amount.toFixed(2)}
-                        </p>
-                        <p className="text-xs text-slate-400">余额: {log.balanceAfter.toFixed(2)}</p>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </div>

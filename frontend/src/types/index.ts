@@ -47,6 +47,7 @@ export interface BalanceLog {
   relatedType?: string;
   relatedId?: string;
   remark?: string;
+  operatorId?: string;
   createdAt: string;
 }
 

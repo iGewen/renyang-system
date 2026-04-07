@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { PageTransition, Icons, Card, EmptyState } from '../components/ui';
+import { PageTransition, Icons, EmptyState } from '../components/ui';
 import { notificationApi } from '../services/api';
 
 interface NotificationItem {
   id: string;
-  userId?: string;
+  userId?: string | null;
   title: string;
   content: string;
   type: string;
-  relatedType?: string;
-  relatedId?: string;
+  relatedType?: string | null;
+  relatedId?: string | null;
   isRead: number;
-  readAt?: string;
+  readAt?: string | null;
   createdAt: string;
 }
 
@@ -24,7 +24,7 @@ export const NotificationPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [readingAll, setReadingAll] = useState(false);
+  const [markingAllRead, setMarkingAllRead] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -46,9 +46,10 @@ export const NotificationPage: React.FC = () => {
     }
   };
 
-  const handleReadOne = async (id: string) => {
+  const markAsRead = async (id: string) => {
     try {
       await notificationApi.markRead(id);
+      // 更新本地状态
       setNotifications(prev =>
         prev.map(n => n.id === id ? { ...n, isRead: 1 } : n)
       );
@@ -58,26 +59,32 @@ export const NotificationPage: React.FC = () => {
     }
   };
 
-  const handleReadAll = async () => {
-    if (readingAll || unreadCount === 0) return;
+  const markAllAsRead = async () => {
+    if (markingAllRead || unreadCount === 0) return;
+
     try {
-      setReadingAll(true);
+      setMarkingAllRead(true);
       await notificationApi.markAllRead();
+      // 更新本地状态
       setNotifications(prev => prev.map(n => ({ ...n, isRead: 1 })));
       setUnreadCount(0);
     } catch (error) {
       console.error('Failed to mark all as read:', error);
     } finally {
-      setReadingAll(false);
+      setMarkingAllRead(false);
     }
+  };
+
+  const toggleExpand = (id: string) => {
+    setExpandedId(prev => prev === id ? null : id);
   };
 
   const handleCardClick = (notification: NotificationItem) => {
     // 切换展开状态
-    setExpandedId(prev => prev === notification.id ? null : notification.id);
+    toggleExpand(notification.id);
     // 如果未读，标记为已读
     if (notification.isRead === 0) {
-      handleReadOne(notification.id);
+      markAsRead(notification.id);
     }
   };
 
@@ -103,6 +110,16 @@ export const NotificationPage: React.FC = () => {
     return colors[type] || 'bg-slate-100 text-slate-600';
   };
 
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleString('zh-CN', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -117,16 +134,23 @@ export const NotificationPage: React.FC = () => {
         {/* 头部 */}
         <div className="sticky top-0 z-10 bg-white border-b border-slate-100">
           <div className="flex items-center justify-between px-6 py-4">
-            <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+            <button
+              onClick={() => navigate(-1)}
+              className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors"
+            >
               <Icons.ArrowLeft className="w-5 h-5" />
             </button>
             <h1 className="text-lg font-bold text-slate-900">消息中心</h1>
             <button
-              onClick={handleReadAll}
-              className={`text-sm font-medium ${unreadCount === 0 || readingAll ? 'text-slate-300' : 'text-brand-primary'}`}
-              disabled={unreadCount === 0 || readingAll}
+              onClick={markAllAsRead}
+              className={`text-sm font-medium transition-colors ${
+                unreadCount === 0 || markingAllRead
+                  ? 'text-slate-300 cursor-not-allowed'
+                  : 'text-brand-primary hover:text-brand-600'
+              }`}
+              disabled={unreadCount === 0 || markingAllRead}
             >
-              {readingAll ? '处理中...' : '全部已读'}
+              {markingAllRead ? '处理中...' : '全部已读'}
             </button>
           </div>
 
@@ -135,7 +159,7 @@ export const NotificationPage: React.FC = () => {
             <button
               onClick={() => setActiveTab('all')}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                activeTab === 'all' ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600'
+                activeTab === 'all' ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
               全部消息
@@ -143,12 +167,12 @@ export const NotificationPage: React.FC = () => {
             <button
               onClick={() => setActiveTab('unread')}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors relative ${
-                activeTab === 'unread' ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600'
+                activeTab === 'unread' ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
               未读消息
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
@@ -160,8 +184,9 @@ export const NotificationPage: React.FC = () => {
         <div className="px-6 mt-4">
           {notifications.length === 0 ? (
             <EmptyState
-              icon={<Icons.MessageSquare className="w-16 h-16" />}
+              icon={<Icons.MessageSquare className="w-16 h-16 text-slate-300" />}
               title={activeTab === 'unread' ? '暂无未读消息' : '暂无消息'}
+              description={activeTab === 'unread' ? '所有消息都已读' : '您还没有收到任何消息'}
             />
           ) : (
             <div className="space-y-3">
@@ -174,11 +199,12 @@ export const NotificationPage: React.FC = () => {
                     key={notification.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
                   >
                     <div
                       className={`bg-white rounded-2xl shadow-sm border p-4 cursor-pointer transition-all ${
                         isUnread ? 'border-blue-200 bg-blue-50/30' : 'border-slate-100'
-                      } ${isExpanded ? 'ring-2 ring-brand-primary/30' : ''}`}
+                      } ${isExpanded ? 'ring-2 ring-brand-primary/20' : ''}`}
                       onClick={() => handleCardClick(notification)}
                     >
                       <div className="flex gap-4">
@@ -187,20 +213,30 @@ export const NotificationPage: React.FC = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
-                            <h3 className="font-medium text-slate-900 truncate">{notification.title}</h3>
-                            {isUnread && (
-                              <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0 ml-2" />
-                            )}
+                            <h3 className="font-medium text-slate-900 truncate pr-2">{notification.title}</h3>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {isUnread && (
+                                <span className="w-2 h-2 bg-red-500 rounded-full" />
+                              )}
+                              <span className="text-xs text-slate-400">{formatTime(notification.createdAt)}</span>
+                            </div>
                           </div>
                           <p
-                            className="text-sm text-slate-500 mb-2"
-                            style={isExpanded ? { whiteSpace: 'pre-wrap' } : { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                            className="text-sm text-slate-600 leading-relaxed"
+                            style={isExpanded ? {} : {
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden'
+                            }}
                           >
                             {notification.content}
                           </p>
-                          <p className="text-xs text-slate-400">
-                            {new Date(notification.createdAt).toLocaleString()}
-                          </p>
+                          {notification.content.length > 50 && (
+                            <span className="text-xs text-brand-primary mt-1 inline-block">
+                              {isExpanded ? '收起' : '展开'}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
