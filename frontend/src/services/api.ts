@@ -301,7 +301,7 @@ export const agreementApi = {
 export const refundApi = {
   // 申请退款
   apply: async (data: { orderType: 'adoption' | 'feed' | 'redemption'; orderId: string; reason: string }): Promise<{ refundId: string; refundNo: string }> => {
-    return request('/refunds', {
+    return request('/refunds/apply', {
       method: 'POST',
       body: JSON.stringify(data),
     });

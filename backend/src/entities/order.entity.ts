@@ -7,6 +7,7 @@ import {
   Index,
   ManyToOne,
   OneToOne,
+  JoinColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 import { Livestock } from './livestock.entity';
@@ -92,5 +93,6 @@ export class Order {
   livestock: Livestock;
 
   @OneToOne(() => Adoption, (adoption) => adoption.order)
+  @JoinColumn({ name: 'id' })
   adoption: Adoption;
 }

@@ -33,6 +33,9 @@ export class AdoptionService {
 
     const adoptions = await queryBuilder.getMany();
 
+    console.log('[getMyAdoptions] userId:', userId, 'count:', adoptions.length);
+    console.log('[getMyAdoptions] first adoption:', JSON.stringify(adoptions[0], null, 2));
+
     // 计算已领养天数
     return adoptions.map(adoption => ({
       ...adoption,
