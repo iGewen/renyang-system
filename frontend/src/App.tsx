@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLoca
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState, useToast } from './components/ui';
 import { cn } from './lib/utils';
-import type { Livestock, Adoption, FeedBill, User, Order } from './types';
+import type { Livestock, Adoption, FeedBill, User, Order, BalanceLog } from './types';
 import { AdoptionStatus, OrderStatus, getAdoptionStatusText, getOrderStatusText } from './types/enums';
 import { livestockApi, adoptionApi, orderApi, paymentApi, balanceApi, notificationApi, authApi, adminApi, agreementApi } from './services/api';
 
@@ -1084,13 +1084,60 @@ const BalancePage: React.FC = () => {
   const navigate = useNavigate();
   const { error, success } = useToast();
   const [balance, setBalance] = useState<number>(0);
+  const [logs, setLogs] = useState<BalanceLog[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showRecharge, setShowRecharge] = useState(false);
   const [rechargeAmount, setRechargeAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'alipay' | 'wechat'>('alipay');
+  const [recharging, setRecharging] = useState(false);
 
   useEffect(() => {
-    balanceApi.get().then(res => setBalance(parseFloat(res.balance) || 0)).catch(() => {});
+    const fetchData = async () => {
+      try {
+        const [balanceRes, logsRes] = await Promise.all([
+          balanceApi.get(),
+          balanceApi.getLogs()
+        ]);
+        setBalance(balanceRes?.balance || 0);
+        setLogs(logsRes?.list || []);
+      } catch (err) {
+        console.error('Failed to fetch balance:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, []);
+
+  const getTypeText = (log: BalanceLog) => {
+    const type = Number(log.type);
+    const map: Record<number, string> = { 1: '充值', 2: '消费', 3: '退款', 4: '调整' };
+    return map[type] || '未知';
+  };
+
+  const getTypeIcon = (log: BalanceLog) => {
+    const type = Number(log.type);
+    if (type === 1) return <Icons.Plus className="w-5 h-5" />;
+    if (type === 2) return <Icons.Minus className="w-5 h-5" />;
+    if (type === 3) return <Icons.RotateCw className="w-5 h-5" />;
+    return <Icons.Edit className="w-5 h-5" />;
+  };
+
+  const getTypeColor = (log: BalanceLog) => {
+    const type = Number(log.type);
+    if (type === 1) return 'bg-green-100 text-green-600';
+    if (type === 2) return 'bg-orange-100 text-orange-600';
+    if (type === 3) return 'bg-blue-100 text-blue-600';
+    return 'bg-slate-100 text-slate-600';
+  };
+
+  const getAmount = (log: BalanceLog) => {
+    const amount = Number(log.amount) || 0;
+    const type = Number(log.type);
+    return type === 2 ? -Math.abs(amount) : Math.abs(amount);
+  };
+
+  const getBalanceAfter = (log: BalanceLog) => Number(log.balanceAfter) || 0;
 
   const handleRecharge = async () => {
     const amount = parseFloat(rechargeAmount);
@@ -1122,7 +1169,38 @@ const BalancePage: React.FC = () => {
           <Button className="w-full" size="lg" onClick={() => setShowRecharge(true)} icon={<Icons.Plus className="w-5 h-5" />}>充值余额</Button>
           <div className="mt-8">
             <h2 className="text-lg font-bold text-slate-900 mb-4">交易记录</h2>
-            <EmptyState icon={<Icons.History className="w-16 h-16" />} title="暂无交易记录" />
+            {loading ? (
+              <div className="flex justify-center py-8"><Icons.Loader2 className="w-8 h-8 text-brand-primary animate-spin" /></div>
+            ) : logs.length === 0 ? (
+              <EmptyState icon={<Icons.History className="w-16 h-16" />} title="暂无交易记录" />
+            ) : (
+              <div className="space-y-3">
+                {logs.map(log => {
+                  const amount = getAmount(log);
+                  return (
+                    <Card key={log.id} className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${getTypeColor(log)}`}>
+                            {getTypeIcon(log)}
+                          </div>
+                          <div>
+                            <p className="font-medium text-slate-900">{log.remark || getTypeText(log)}</p>
+                            <p className="text-xs text-slate-400">{new Date(log.createdAt).toLocaleString()}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className={`font-bold ${amount > 0 ? 'text-green-600' : 'text-slate-900'}`}>
+                            {amount > 0 ? '+' : ''}{amount.toFixed(2)}
+                          </p>
+                          <p className="text-xs text-slate-400">余额: {getBalanceAfter(log).toFixed(2)}</p>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
         {showRecharge && (

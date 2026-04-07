@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState, ToastProvider, useToast } from '../../components/ui';
 import { cn } from '../../lib/utils';
-import { adminApi } from '../../services/api';
+import { adminApi, refundApi } from '../../services/api';
 import type { Livestock, LivestockType, AdoptionOrder, FeedBill, User, DashboardStats, SystemConfig, AuditLog, Notification } from '../../types';
 import { OrderStatus, UserStatus, FeedBillStatus, RedemptionStatus, getOrderStatusText, getUserStatusText, getFeedBillStatusText, getRedemptionStatusText } from '../../types/enums';
 
@@ -369,16 +369,65 @@ export const AdminLivestock: React.FC = () => {
 // ==================== 订单管理 ====================
 
 export const AdminOrders: React.FC = () => {
+  const toast = useToast();
   const [orders, setOrders] = useState<AdoptionOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
+  const [selectedOrder, setSelectedOrder] = useState<AdoptionOrder | null>(null);
+  const [showDetail, setShowDetail] = useState(false);
+  const [showRefund, setShowRefund] = useState(false);
+  const [refundReason, setRefundReason] = useState('');
+  const [processing, setProcessing] = useState(false);
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const res = await adminApi.getOrders({ status: statusFilter || undefined });
+      setOrders(res.list || []);
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    adminApi.getOrders({ status: statusFilter || undefined })
-      .then(res => setOrders(res.list || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    fetchOrders();
   }, [statusFilter]);
+
+  const handleViewDetail = async (orderId: string) => {
+    try {
+      const order = await adminApi.getOrderById(orderId);
+      setSelectedOrder(order);
+      setShowDetail(true);
+    } catch (error: any) {
+      toast.error(error.message || '获取订单详情失败');
+    }
+  };
+
+  const handleRefund = async () => {
+    if (!selectedOrder) return;
+    if (!refundReason.trim()) {
+      toast.error('请输入退款原因');
+      return;
+    }
+    setProcessing(true);
+    try {
+      await refundApi.apply({
+        orderType: 'adoption',
+        orderId: selectedOrder.id,
+        reason: refundReason
+      });
+      toast.success('退款申请已提交');
+      setShowRefund(false);
+      setRefundReason('');
+      fetchOrders();
+    } catch (error: any) {
+      toast.error(error.message || '退款申请失败');
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   // 订单状态映射 - 使用数字枚举
   const orderStatusMap: Record<number, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
@@ -395,7 +444,7 @@ export const AdminOrders: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-slate-900">订单管理</h2>
         <div className="flex gap-2">
-          {[0, OrderStatus.PENDING_PAYMENT, OrderStatus.PAID, OrderStatus.CANCELLED].map(status => (
+          {[0, OrderStatus.PENDING_PAYMENT, OrderStatus.PAID, OrderStatus.CANCELLED, OrderStatus.REFUNDED].map(status => (
             <button key={status} onClick={() => setStatusFilter(status === 0 ? '' : String(status))} className={cn('px-4 py-2 rounded-lg text-sm font-medium transition-colors', statusFilter === (status === 0 ? '' : String(status)) ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}>
               {status === 0 ? '全部' : orderStatusMap[status]?.label || '未知'}
             </button>
@@ -414,6 +463,7 @@ export const AdminOrders: React.FC = () => {
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">金额</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">状态</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">创建时间</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -427,6 +477,14 @@ export const AdminOrders: React.FC = () => {
                     <Badge variant={orderStatusMap[order.status as number]?.variant || 'default'}>{orderStatusMap[order.status as number]?.label || order.status}</Badge>
                   </td>
                   <td className="py-3 px-4 text-sm text-slate-500">{new Date(order.createdAt).toLocaleString()}</td>
+                  <td className="py-3 px-4">
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleViewDetail(order.id)}>详情</Button>
+                      {order.status === OrderStatus.PAID && (
+                        <Button size="sm" variant="danger" onClick={() => { setSelectedOrder(order); setShowRefund(true); }}>退款</Button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -434,6 +492,87 @@ export const AdminOrders: React.FC = () => {
           {orders.length === 0 && <EmptyState icon={<Icons.ShoppingCart className="w-12 h-12" />} title="暂无订单数据" />}
         </div>
       </Card>
+
+      {/* 订单详情弹窗 */}
+      {showDetail && selectedOrder && (
+        <Modal isOpen={showDetail} onClose={() => setShowDetail(false)} title="订单详情">
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-slate-500">订单号</p>
+                <p className="font-mono">{selectedOrder.orderNo}</p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">状态</p>
+                <Badge variant={orderStatusMap[selectedOrder.status as number]?.variant || 'default'}>
+                  {orderStatusMap[selectedOrder.status as number]?.label || selectedOrder.status}
+                </Badge>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">用户手机</p>
+                <p>{selectedOrder.user?.phone || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">用户昵称</p>
+                <p>{selectedOrder.user?.nickname || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">活体名称</p>
+                <p>{selectedOrder.livestock?.name || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">订单金额</p>
+                <p className="text-lg font-bold text-brand-primary">¥{selectedOrder.totalAmount}</p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">支付方式</p>
+                <p>{selectedOrder.paymentMethod === 'alipay' ? '支付宝' : selectedOrder.paymentMethod === 'wechat' ? '微信支付' : selectedOrder.paymentMethod || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">支付时间</p>
+                <p>{selectedOrder.paidAt ? new Date(selectedOrder.paidAt).toLocaleString() : '-'}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-sm text-slate-500">创建时间</p>
+                <p>{new Date(selectedOrder.createdAt).toLocaleString()}</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button variant="outline" onClick={() => setShowDetail(false)}>关闭</Button>
+              {selectedOrder.status === OrderStatus.PAID && (
+                <Button onClick={() => { setShowDetail(false); setShowRefund(true); }}>申请退款</Button>
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* 退款弹窗 */}
+      {showRefund && selectedOrder && (
+        <Modal isOpen={showRefund} onClose={() => { setShowRefund(false); setRefundReason(''); }} title="申请退款">
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-slate-500 mb-2">订单信息</p>
+              <p className="font-mono">{selectedOrder.orderNo}</p>
+              <p className="text-lg font-bold text-brand-primary mt-1">¥{selectedOrder.totalAmount}</p>
+            </div>
+            <div>
+              <label className="block text-sm text-slate-500 mb-2">退款原因</label>
+              <textarea
+                className="w-full border border-slate-200 rounded-lg p-3 text-sm"
+                rows={3}
+                placeholder="请输入退款原因"
+                value={refundReason}
+                onChange={e => setRefundReason(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button variant="outline" onClick={() => { setShowRefund(false); setRefundReason(''); }}>取消</Button>
+              <Button onClick={handleRefund} loading={processing}>确认退款</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };
