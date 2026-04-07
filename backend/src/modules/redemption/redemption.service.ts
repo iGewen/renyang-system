@@ -282,7 +282,7 @@ export class RedemptionService {
     return {
       success: false,
       amount: redemption.finalAmount,
-      payUrl: payment.payUrl,
+      payUrl: (payment as any).payUrl,
       paymentNo: payment.paymentNo,
       redemptionNo: redemption.redemptionNo,
     };
