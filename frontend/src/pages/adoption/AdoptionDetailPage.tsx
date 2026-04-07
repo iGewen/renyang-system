@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, EmptyState } from '../../components/ui';
 import { cn } from '../../lib/utils';
@@ -9,13 +9,16 @@ import type { Adoption, FeedBill, RedemptionOrder } from '../../types';
 
 const AdoptionDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [adoption, setAdoption] = useState<Adoption | null>(null);
   const [feedBills, setFeedBills] = useState<FeedBill[]>([]);
   const [redemption, setRedemption] = useState<RedemptionOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
-  const [activeTab, setActiveTab] = useState<'info' | 'bills'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'bills'>(() => {
+    return searchParams.get('tab') === 'bills' ? 'bills' : 'info';
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -94,12 +97,13 @@ const AdoptionDetailPage: React.FC = () => {
     setPaying(true);
     try {
       const result = await redemptionApi.pay(redemption.id, 'balance');
-      // 如果返回 success: true，说明满期买断无需支付
+      // 如果返回 success: true，说明支付成功（余额支付或满期买断）
       if (result.success) {
-        // 刷新页面
+        alert('支付成功！');
         window.location.reload();
+        return;
       }
-      // 否则跳转到支付页面
+      // 否则跳转到支付页面（第三方支付）
       if (result.payUrl) {
         window.location.href = result.payUrl;
       }

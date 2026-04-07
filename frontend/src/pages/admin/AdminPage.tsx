@@ -509,16 +509,20 @@ export const AdminOrders: React.FC = () => {
                 </Badge>
               </div>
               <div>
+                <p className="text-sm text-slate-500">活体名称</p>
+                <p>{selectedOrder.livestock?.name || selectedOrder.livestockSnapshot?.name || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">活体编号</p>
+                <p className="font-mono">{selectedOrder.livestockId || '-'}</p>
+              </div>
+              <div>
                 <p className="text-sm text-slate-500">用户手机</p>
                 <p>{selectedOrder.user?.phone || '-'}</p>
               </div>
               <div>
                 <p className="text-sm text-slate-500">用户昵称</p>
                 <p>{selectedOrder.user?.nickname || '-'}</p>
-              </div>
-              <div>
-                <p className="text-sm text-slate-500">活体名称</p>
-                <p>{selectedOrder.livestock?.name || '-'}</p>
               </div>
               <div>
                 <p className="text-sm text-slate-500">订单金额</p>

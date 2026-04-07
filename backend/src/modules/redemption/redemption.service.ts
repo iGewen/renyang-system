@@ -274,9 +274,15 @@ export class RedemptionService {
       paymentMethod,
     );
 
+    // 如果是余额支付，支付已完成
+    if (paymentMethod === 'balance') {
+      return { success: true, amount: redemption.finalAmount };
+    }
+
     return {
       success: false,
       amount: redemption.finalAmount,
+      payUrl: payment.payUrl,
       paymentNo: payment.paymentNo,
       redemptionNo: redemption.redemptionNo,
     };

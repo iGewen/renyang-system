@@ -867,7 +867,7 @@ const MyAdoptionsPage: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex gap-3">
-                      <Button variant="outline" size="sm" className="flex-1" onClick={(e) => { e.stopPropagation(); navigate(`/adoption/${item.id}/feed-bills`); }}>饲料费</Button>
+                      <Button variant="outline" size="sm" className="flex-1" onClick={(e) => { e.stopPropagation(); navigate(`/adoption/${item.id}?tab=bills`); }}>饲料费</Button>
                       {canPayRedemption ? (
                         <Button size="sm" className="flex-1" onClick={(e) => { e.stopPropagation(); navigate(`/adoption/${item.id}`); }}>去支付</Button>
                       ) : (item.status === AdoptionStatus.REDEEMABLE || item.status === AdoptionStatus.ACTIVE) && (
