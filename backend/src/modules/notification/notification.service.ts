@@ -168,16 +168,22 @@ export class NotificationService {
    */
   async markAllAsRead(userId: string) {
     // 标记用户专属通知为已读
-    await this.notificationRepository.update(
+    const userResult = await this.notificationRepository.update(
       { userId, isRead: 0 },
       { isRead: 1, readAt: new Date() },
     );
 
     // 标记系统公告为已读（userId为null的通知）
-    await this.notificationRepository.update(
-      { userId: null as any, isRead: 0 },
-      { isRead: 1, readAt: new Date() },
-    );
+    // 使用 queryBuilder 来正确处理 IS NULL 条件
+    const systemResult = await this.notificationRepository
+      .createQueryBuilder()
+      .update(Notification)
+      .set({ isRead: 1, readAt: new Date() })
+      .where('userId IS NULL')
+      .andWhere('isRead = :isRead', { isRead: 0 })
+      .execute();
+
+    console.log('[markAllAsRead] userResult:', userResult, 'systemResult:', systemResult);
 
     return { success: true };
   }

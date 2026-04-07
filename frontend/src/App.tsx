@@ -787,23 +787,36 @@ const SuccessPage: React.FC = () => {
 const MyAdoptionsPage: React.FC = () => {
   const navigate = useNavigate();
   const [adoptions, setAdoptions] = useState<Adoption[]>([]);
+  const [redemptions, setRedemptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchAdoptions = async () => {
+    const fetchData = async () => {
       try {
-        const data = await adoptionApi.getMyAdoptions();
-        setAdoptions(data);
+        const [adoptionsData, redemptionsData] = await Promise.all([
+          adoptionApi.getMyAdoptions(),
+          redemptionApi.getMyRedemptions().catch(() => [])
+        ]);
+        setAdoptions(adoptionsData);
+        setRedemptions(redemptionsData);
       } catch (error) {
         console.error('Failed to fetch adoptions:', error);
       } finally {
         setLoading(false);
       }
     };
-    fetchAdoptions();
+    fetchData();
   }, []);
 
-  const getStatusBadge = (status: number) => {
+  const getRedemptionForAdoption = (adoptionId: string) => {
+    return redemptions.find(r => r.adoptionId === adoptionId && (r.status === 1 || r.status === 2));
+  };
+
+  const getStatusBadge = (status: number, redemption?: any) => {
+    // 如果有买断订单且状态是审核通过，显示特殊状态
+    if (redemption && redemption.status === 2) {
+      return <Badge variant="info">审核通过待支付</Badge>;
+    }
     const map: Record<number, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
       [AdoptionStatus.ACTIVE]: { label: '领养中', variant: 'success' },
       [AdoptionStatus.FEED_OVERDUE]: { label: '饲料费逾期', variant: 'danger' },
@@ -832,32 +845,38 @@ const MyAdoptionsPage: React.FC = () => {
             <EmptyState icon={<Icons.Package className="w-16 h-16" />} title="暂无领养记录" description="去探索您喜欢的活体吧" action={<Link to="/" className="text-brand-primary font-bold text-sm flex items-center gap-2">去探索 <Icons.ChevronRight className="w-4 h-4" /></Link>} />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {adoptions.map((item) => (
-                <Card key={item.id} className="p-8" onClick={() => navigate(`/adoption/${item.id}`)}>
-                  <div className="flex gap-5 mb-6">
-                    <div className="w-20 h-20 rounded-[24px] overflow-hidden shadow-sm flex-shrink-0">
-                      <img src={item.livestockSnapshot?.mainImage || item.livestock?.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" alt="" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 className="text-xl font-display font-bold text-brand-primary truncate">{item.livestockSnapshot?.name || item.livestock?.name}</h3>
-                        {getStatusBadge(item.status)}
+              {adoptions.map((item) => {
+                const redemption = getRedemptionForAdoption(item.id);
+                const canPayRedemption = redemption && redemption.status === 2;
+                return (
+                  <Card key={item.id} className="p-8" onClick={() => navigate(`/adoption/${item.id}`)}>
+                    <div className="flex gap-5 mb-6">
+                      <div className="w-20 h-20 rounded-[24px] overflow-hidden shadow-sm flex-shrink-0">
+                        <img src={item.livestockSnapshot?.mainImage || item.livestock?.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" alt="" />
                       </div>
-                      <p className="text-[10px] text-slate-400 font-mono mb-2">ID: {item.adoptionNo}</p>
-                      <div className="flex gap-4 text-xs text-slate-500">
-                        <span>已领养 <b className="text-brand-primary">{item.days || 0}</b> 天</span>
-                        <span>已缴 <b className="text-brand-primary">{item.feedMonthsPaid}</b> 月</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <h3 className="text-xl font-display font-bold text-brand-primary truncate">{item.livestockSnapshot?.name || item.livestock?.name}</h3>
+                          {getStatusBadge(item.status, redemption)}
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-mono mb-2">ID: {item.adoptionNo}</p>
+                        <div className="flex gap-4 text-xs text-slate-500">
+                          <span>已领养 <b className="text-brand-primary">{item.days || 0}</b> 天</span>
+                          <span>已缴 <b className="text-brand-primary">{item.feedMonthsPaid}</b> 月</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <Button variant="outline" size="sm" className="flex-1" onClick={(e) => { e.stopPropagation(); navigate(`/adoption/${item.id}/feed-bills`); }}>饲料费</Button>
-                    {(item.status === AdoptionStatus.REDEEMABLE || item.status === AdoptionStatus.ACTIVE) && (
-                      <Button size="sm" className="flex-1" onClick={(e) => { e.stopPropagation(); navigate(`/adoption/${item.id}/redemption`); }}>申请买断</Button>
-                    )}
-                  </div>
-                </Card>
-              ))}
+                    <div className="flex gap-3">
+                      <Button variant="outline" size="sm" className="flex-1" onClick={(e) => { e.stopPropagation(); navigate(`/adoption/${item.id}/feed-bills`); }}>饲料费</Button>
+                      {canPayRedemption ? (
+                        <Button size="sm" className="flex-1" onClick={(e) => { e.stopPropagation(); navigate(`/adoption/${item.id}`); }}>去支付</Button>
+                      ) : (item.status === AdoptionStatus.REDEEMABLE || item.status === AdoptionStatus.ACTIVE) && (
+                        <Button size="sm" className="flex-1" onClick={(e) => { e.stopPropagation(); navigate(`/adoption/${item.id}/redemption`); }}>申请买断</Button>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
@@ -1151,19 +1170,68 @@ const NotificationPage: React.FC = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const fetchData = async () => {
+    try {
+      const [listRes, countRes] = await Promise.all([
+        notificationApi.getList({ isRead: activeTab === 'unread' ? 0 : undefined }),
+        notificationApi.getUnreadCount()
+      ]);
+      setNotifications(listRes.list || []);
+      setUnreadCount(countRes.count || 0);
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    }
+  };
 
   useEffect(() => {
-    Promise.all([notificationApi.getList({ isRead: activeTab === 'unread' ? 0 : undefined }), notificationApi.getUnreadCount()])
-      .then(([listRes, countRes]) => { setNotifications(listRes.list); setUnreadCount(countRes.count); })
-      .catch(() => {});
+    fetchData();
   }, [activeTab]);
+
+  const markAsRead = async (id: string) => {
+    try {
+      await notificationApi.markRead(id);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: 1 } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Failed to mark as read:', error);
+    }
+  };
 
   const handleReadAll = async () => {
     try {
       await notificationApi.markAllRead();
       setNotifications(prev => prev.map(n => ({ ...n, isRead: 1 })));
       setUnreadCount(0);
-    } catch (error) {}
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
+    }
+  };
+
+  const handleCardClick = (n: any) => {
+    // 切换展开状态
+    setExpandedId(prev => prev === n.id ? null : n.id);
+    // 如果未读，标记为已读
+    if (n.isRead === 0) {
+      markAsRead(n.id);
+    }
+  };
+
+  const getTypeIcon = (type: string) => {
+    if (type === 'order') return <Icons.Package className="w-5 h-5" />;
+    if (type === 'feed') return <Icons.Coins className="w-5 h-5" />;
+    if (type === 'redemption') return <Icons.CheckCircle2 className="w-5 h-5" />;
+    if (type === 'balance') return <Icons.Wallet className="w-5 h-5" />;
+    return <Icons.Bell className="w-5 h-5" />;
+  };
+
+  const getTypeColor = (type: string) => {
+    if (type === 'order') return 'bg-blue-100 text-blue-600';
+    if (type === 'feed') return 'bg-orange-100 text-orange-600';
+    if (type === 'redemption') return 'bg-green-100 text-green-600';
+    if (type === 'balance') return 'bg-cyan-100 text-cyan-600';
+    return 'bg-slate-100 text-slate-600';
   };
 
   return (
@@ -1192,23 +1260,38 @@ const NotificationPage: React.FC = () => {
             <EmptyState icon={<Icons.MessageSquare className="w-16 h-16" />} title={activeTab === 'unread' ? '暂无未读消息' : '暂无消息'} />
           ) : (
             <div className="space-y-3">
-              {notifications.map(n => (
-                <Card key={n.id} className={cn('p-4', n.isRead === 0 && 'bg-blue-50/50 border-blue-100')}>
-                  <div className="flex gap-4">
-                    <div className={cn('w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0', n.type === 'order' ? 'bg-blue-100 text-blue-600' : n.type === 'feed' ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-600')}>
-                      <Icons.Bell className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-medium text-slate-900 truncate">{n.title}</h3>
-                        {n.isRead === 0 && <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0 ml-2" />}
+              {notifications.map(n => {
+                const isExpanded = expandedId === n.id;
+                const isUnread = n.isRead === 0;
+                return (
+                  <Card
+                    key={n.id}
+                    className={cn('p-4 cursor-pointer transition-all', isUnread ? 'bg-blue-50/50 border-blue-100' : '', isExpanded ? 'ring-2 ring-brand-primary/20' : '')}
+                    onClick={() => handleCardClick(n)}
+                  >
+                    <div className="flex gap-4">
+                      <div className={cn('w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0', getTypeColor(n.type))}>
+                        {getTypeIcon(n.type)}
                       </div>
-                      <p className="text-sm text-slate-500 line-clamp-2 mb-2">{n.content}</p>
-                      <p className="text-xs text-slate-400">{new Date(n.createdAt).toLocaleString()}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <h3 className="font-medium text-slate-900 truncate pr-2">{n.title}</h3>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {isUnread && <span className="w-2 h-2 bg-red-500 rounded-full" />}
+                            <span className="text-xs text-slate-400">{new Date(n.createdAt).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                        </div>
+                        <p className="text-sm text-slate-600 leading-relaxed" style={isExpanded ? {} : { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {n.content}
+                        </p>
+                        {n.content && n.content.length > 50 && (
+                          <span className="text-xs text-brand-primary mt-1 inline-block">{isExpanded ? '收起' : '展开'}</span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
