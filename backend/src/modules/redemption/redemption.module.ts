@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RedemptionController } from './redemption.controller';
 import { RedemptionService } from './redemption.service';
@@ -11,7 +11,7 @@ import { PaymentModule } from '../payment/payment.module';
   imports: [
     TypeOrmModule.forFeature([RedemptionOrder, Adoption, Livestock]),
     AdoptionModule,
-    PaymentModule,
+    forwardRef(() => PaymentModule),
   ],
   controllers: [RedemptionController],
   providers: [RedemptionService, RedisService],

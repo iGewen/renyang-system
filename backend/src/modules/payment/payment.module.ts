@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
@@ -7,6 +7,7 @@ import { RedisService } from '@/common/utils/redis.service';
 import { UserModule } from '../user/user.module';
 import { OrderModule } from '../order/order.module';
 import { ServicesModule } from '@/services/services.module';
+import { RedemptionModule } from '../redemption/redemption.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ServicesModule } from '@/services/services.module';
     UserModule,
     OrderModule,
     ServicesModule,
+    forwardRef(() => RedemptionModule),
   ],
   controllers: [PaymentController],
   providers: [PaymentService, RedisService],

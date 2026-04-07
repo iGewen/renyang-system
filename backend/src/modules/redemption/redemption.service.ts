@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { RedemptionOrder, RedemptionType, RedemptionStatus, Adoption, AdoptionStatus, PaymentRecord, PaymentStatus } from '@/entities';
@@ -17,6 +17,7 @@ export class RedemptionService {
     private dataSource: DataSource,
     private redisService: RedisService,
     private adoptionService: AdoptionService,
+    @Inject(forwardRef(() => PaymentService))
     private paymentService: PaymentService,
   ) {}
 

@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -9,6 +9,7 @@ import { OrderService } from '../order/order.service';
 import { UserService } from '../user/user.service';
 import { AlipayService } from '@/services/alipay.service';
 import { WechatPayService } from '@/services/wechat-pay.service';
+import { RedemptionService } from '../redemption/redemption.service';
 
 @Injectable()
 export class PaymentService {
@@ -21,6 +22,8 @@ export class PaymentService {
     private userService: UserService,
     private alipayService: AlipayService,
     private wechatPayService: WechatPayService,
+    @Inject(forwardRef(() => RedemptionService))
+    private redemptionService: RedemptionService,
   ) {}
 
   /**
@@ -231,8 +234,18 @@ export class PaymentService {
           console.log(`Feed bill payment success: ${latestPayment.orderId}`);
           break;
         case 'redemption':
-          // TODO: 处理买断支付
-          console.log(`Redemption payment success: ${latestPayment.orderId}`);
+          // 处理买断支付
+          try {
+            await this.redemptionService.handlePaymentSuccess(
+              latestPayment.orderId,
+              latestPayment.paymentNo,
+              latestPayment.paymentMethod,
+            );
+            console.log(`Redemption payment success: ${latestPayment.orderId}`);
+          } catch (error) {
+            console.error(`Failed to handle redemption payment success: ${latestPayment.orderId}`, error);
+            throw error;
+          }
           break;
         case 'recharge':
           // 余额充值

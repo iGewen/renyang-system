@@ -243,7 +243,7 @@ const AdoptionDetailPage: React.FC = () => {
                     <div className="flex justify-between items-center py-3 border-b border-slate-50">
                       <span className="text-slate-500">买断类型</span>
                       <span className="text-slate-900">
-                        {redemption.type === 'full' ? '满期买断' : '提前买断'}
+                        {redemption.type === 1 || redemption.type === 'full' ? '满期买断' : '提前买断'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-3 border-b border-slate-50">

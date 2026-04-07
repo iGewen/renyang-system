@@ -38,8 +38,8 @@ const RedemptionPage: React.FC = () => {
       const result = await adoptionApi.applyRedemption(id);
       setSubmitResult({
         success: true,
-        redemptionNo: result.redemptionNo,
-        amount: result.amount,
+        redemptionNo: result.redemption?.redemptionNo,
+        amount: result.redemption?.finalAmount || result.amount,
       });
       setShowConfirmModal(false);
     } catch (error: any) {
