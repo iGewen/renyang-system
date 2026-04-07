@@ -495,7 +495,7 @@ export const AdminOrders: React.FC = () => {
 
       {/* 订单详情弹窗 */}
       {showDetail && selectedOrder && (
-        <Modal isOpen={showDetail} onClose={() => setShowDetail(false)} title="订单详情">
+        <Modal open={showDetail} onClose={() => setShowDetail(false)} title="订单详情">
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -549,7 +549,7 @@ export const AdminOrders: React.FC = () => {
 
       {/* 退款弹窗 */}
       {showRefund && selectedOrder && (
-        <Modal isOpen={showRefund} onClose={() => { setShowRefund(false); setRefundReason(''); }} title="申请退款">
+        <Modal open={showRefund} onClose={() => { setShowRefund(false); setRefundReason(''); }} title="申请退款">
           <div className="space-y-4">
             <div>
               <p className="text-sm text-slate-500 mb-2">订单信息</p>

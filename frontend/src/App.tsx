@@ -5,7 +5,7 @@ import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, M
 import { cn } from './lib/utils';
 import type { Livestock, Adoption, FeedBill, User, Order, BalanceLog } from './types';
 import { AdoptionStatus, OrderStatus, getAdoptionStatusText, getOrderStatusText } from './types/enums';
-import { livestockApi, adoptionApi, orderApi, paymentApi, balanceApi, notificationApi, authApi, adminApi, agreementApi } from './services/api';
+import { livestockApi, adoptionApi, orderApi, paymentApi, balanceApi, notificationApi, authApi, adminApi, agreementApi, redemptionApi } from './services/api';
 
 // Lazy load pages for better performance
 const OrdersPage = lazy(() => import('./pages/order/OrdersPage'));
