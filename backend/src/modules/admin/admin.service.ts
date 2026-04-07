@@ -23,6 +23,7 @@ import {
 import { RedisService } from '@/common/utils/redis.service';
 import { JwtService } from '@nestjs/jwt';
 import { IdUtil } from '@/common/utils/id.util';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class AdminService {
@@ -55,6 +56,7 @@ export class AdminService {
     private dataSource: DataSource,
     private configService: ConfigService,
     private jwtService: JwtService,
+    private notificationService: NotificationService,
   ) {}
 
   // =============== 管理员认证相关 ===============
@@ -1204,7 +1206,10 @@ export class AdminService {
     adminId: string,
     adminName: string,
   ) {
-    const redemption = await this.redemptionOrderRepository.findOne({ where: { id } });
+    const redemption = await this.redemptionOrderRepository.findOne({
+      where: { id },
+      relations: ['adoption'],
+    });
     if (!redemption) {
       throw new NotFoundException('买断订单不存在');
     }
@@ -1229,6 +1234,28 @@ export class AdminService {
     redemption.auditAt = new Date();
 
     await this.redemptionOrderRepository.save(redemption);
+
+    // 如果审核拒绝，恢复领养状态
+    if (!approved && redemption.adoption) {
+      redemption.adoption.status = 1; // 恢复为领养中
+      await this.adoptionRepository.save(redemption.adoption);
+    }
+
+    // 发送站内信通知用户
+    try {
+      await this.notificationService.createNotification({
+        userId: redemption.userId,
+        title: approved ? '买断申请已通过' : '买断申请已拒绝',
+        content: approved
+          ? `您的买断申请（编号：${redemption.redemptionNo}）已通过审核，请尽快完成支付。${adjustedAmount !== undefined ? `调整后金额：¥${adjustedAmount}` : `金额：¥${redemption.finalAmount}`}`
+          : `您的买断申请（编号：${redemption.redemptionNo}）未通过审核。${remark ? `原因：${remark}` : ''}`,
+        type: 'redemption',
+        relatedType: 'redemption',
+        relatedId: redemption.id,
+      });
+    } catch (error) {
+      console.error('Failed to send notification:', error);
+    }
 
     await this.createAuditLog({
       adminId,

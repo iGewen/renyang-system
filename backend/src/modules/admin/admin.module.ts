@@ -19,6 +19,7 @@ import {
 import { RedisService } from '@/common/utils/redis.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       }),
       inject: [ConfigService],
     }),
+    NotificationModule,
   ],
   controllers: [AdminController],
   providers: [AdminService, RedisService],
