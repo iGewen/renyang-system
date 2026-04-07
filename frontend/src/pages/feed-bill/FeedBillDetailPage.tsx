@@ -74,7 +74,7 @@ const FeedBillDetailPage: React.FC = () => {
     );
   }
 
-  const totalAmount = (bill.adjustedAmount ?? bill.originalAmount) + bill.lateFeeAmount;
+  const totalAmount = (Number(bill.adjustedAmount) || Number(bill.originalAmount) || 0) + (Number(bill.lateFeeAmount) || 0);
   const statusConfig = getStatusConfig(bill.status);
 
   return (
@@ -121,18 +121,18 @@ const FeedBillDetailPage: React.FC = () => {
               </div>
               <div className="flex justify-between items-center py-3 border-b border-slate-50">
                 <span className="text-slate-500">原金额</span>
-                <span className="text-slate-900">¥{bill.originalAmount.toFixed(2)}</span>
+                <span className="text-slate-900">¥{Number(bill.originalAmount || 0).toFixed(2)}</span>
               </div>
               {bill.adjustedAmount !== null && bill.adjustedAmount !== undefined && (
                 <div className="flex justify-between items-center py-3 border-b border-slate-50">
                   <span className="text-slate-500">调整金额</span>
-                  <span className="text-brand-primary">¥{bill.adjustedAmount.toFixed(2)}</span>
+                  <span className="text-brand-primary">¥{Number(bill.adjustedAmount).toFixed(2)}</span>
                 </div>
               )}
               {bill.lateFeeAmount > 0 && (
                 <div className="flex justify-between items-center py-3 border-b border-slate-50">
                   <span className="text-slate-500">滞纳金</span>
-                  <span className="text-red-500">¥{bill.lateFeeAmount.toFixed(2)}</span>
+                  <span className="text-red-500">¥{Number(bill.lateFeeAmount).toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between items-center py-3 border-b border-slate-50">

@@ -85,7 +85,7 @@ const RedemptionPage: React.FC = () => {
                     </div>
                     <div className="flex justify-between items-center py-2">
                       <span className="text-slate-500 text-sm">买断金额</span>
-                      <span className="font-bold text-brand-primary">¥{submitResult.amount?.toFixed(2) || '0.00'}</span>
+                      <span className="font-bold text-brand-primary">¥{Number(submitResult.amount || 0).toFixed(2)}</span>
                     </div>
                   </div>
                 </>

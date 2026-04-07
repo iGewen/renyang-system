@@ -26,7 +26,7 @@ export const BalancePage: React.FC = () => {
         balanceApi.get(),
         balanceApi.getLogs()
       ]);
-      setBalance(balanceRes?.balance || 0);
+      setBalance(Number(balanceRes?.balance) || 0);
       setLogs(logsRes?.list || []);
     } catch (error) {
       console.error('Failed to fetch balance:', error);

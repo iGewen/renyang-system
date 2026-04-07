@@ -248,7 +248,7 @@ const AdoptionDetailPage: React.FC = () => {
                     </div>
                     <div className="flex justify-between items-center py-3 border-b border-slate-50">
                       <span className="text-slate-500">买断金额</span>
-                      <span className="font-bold text-brand-primary">¥{redemption.finalAmount?.toFixed(2) || '0.00'}</span>
+                      <span className="font-bold text-brand-primary">¥{Number(redemption.finalAmount || 0).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between items-center py-3">
                       <span className="text-slate-500">状态</span>
@@ -265,7 +265,7 @@ const AdoptionDetailPage: React.FC = () => {
                   </div>
 
                   {/* 审核通过后显示支付按钮 */}
-                  {redemption.status === RedemptionStatus.AUDIT_PASSED && redemption.finalAmount > 0 && (
+                  {redemption.status === RedemptionStatus.AUDIT_PASSED && Number(redemption.finalAmount || 0) > 0 && (
                     <Button
                       className="w-full mt-4"
                       size="lg"
@@ -273,12 +273,12 @@ const AdoptionDetailPage: React.FC = () => {
                       loading={paying}
                       icon={<Icons.CreditCard className="w-5 h-5" />}
                     >
-                      立即支付 ¥{redemption.finalAmount?.toFixed(2)}
+                      立即支付 ¥{Number(redemption.finalAmount || 0).toFixed(2)}
                     </Button>
                   )}
 
                   {/* 满期买断无需支付 */}
-                  {redemption.status === RedemptionStatus.AUDIT_PASSED && redemption.finalAmount === 0 && (
+                  {redemption.status === RedemptionStatus.AUDIT_PASSED && Number(redemption.finalAmount || 0) === 0 && (
                     <div className="mt-4 p-4 bg-green-50 rounded-xl text-center">
                       <p className="text-green-600 font-medium">买断申请已通过，无需支付额外费用</p>
                       <p className="text-green-500 text-sm mt-1">请等待工作人员联系您安排发货</p>
