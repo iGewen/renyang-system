@@ -852,7 +852,7 @@ const MyAdoptionsPage: React.FC = () => {
                   <Card key={item.id} className="p-8" onClick={() => navigate(`/adoption/${item.id}`)}>
                     <div className="flex gap-5 mb-6">
                       <div className="w-20 h-20 rounded-[24px] overflow-hidden shadow-sm flex-shrink-0">
-                        <img src={item.livestockSnapshot?.mainImage || item.livestock?.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" alt="" />
+                        <img src={item.livestockSnapshot?.mainImage || item.livestock?.mainImage} className="w-full h-full object-cover" referrerPolicy="no-referrer" alt="" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
