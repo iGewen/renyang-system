@@ -1098,6 +1098,8 @@ export const AdminConfig: React.FC = () => {
         adminApi.updateConfig('contact_email', basicConfig.contactEmail),
       ]);
       toast.success('保存成功');
+      // 保存成功后重新加载配置
+      await loadConfigs();
     } catch (error: any) {
       toast.error(error.message || '保存失败');
     } finally {
@@ -1123,6 +1125,8 @@ export const AdminConfig: React.FC = () => {
         adminApi.updateConfig('wechat_notify_url', paymentConfig.wechatNotifyUrl),
       ]);
       toast.success('保存成功');
+      // 保存成功后重新加载配置
+      await loadConfigs();
     } catch (error: any) {
       toast.error(error.message || '保存失败');
     } finally {
@@ -1145,6 +1149,8 @@ export const AdminConfig: React.FC = () => {
         adminApi.updateConfig('sms_template_feed_bill', smsConfig.smsTemplateFeedBill),
       ]);
       toast.success('保存成功');
+      // 保存成功后重新加载配置
+      await loadConfigs();
     } catch (error: any) {
       toast.error(error.message || '保存失败');
     } finally {
@@ -1801,10 +1807,6 @@ export const AdminAuditLogs: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-slate-900">审计日志</h2>
         <div className="flex items-center gap-4">
-          <Button variant="danger" onClick={() => setShowClearConfirm(true)}>
-            <Icons.Trash2 className="w-4 h-4 mr-2" />
-            清空日志
-          </Button>
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setModuleFilter('')}
@@ -1828,6 +1830,10 @@ export const AdminAuditLogs: React.FC = () => {
               </button>
             ))}
           </div>
+          <Button variant="danger" onClick={() => setShowClearConfirm(true)}>
+            <Icons.Trash2 className="w-4 h-4 mr-2" />
+            清空日志
+          </Button>
         </div>
       </div>
 
