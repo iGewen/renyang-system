@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, EmptyState } from '../../components/ui';
+import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, EmptyState, useToast } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { adoptionApi, redemptionApi, balanceApi, paymentApi } from '../../services/api';
 import { FeedBillStatus, RedemptionStatus } from '../../types/enums';
@@ -11,6 +11,7 @@ const AdoptionDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { success, error } = useToast();
   const [adoption, setAdoption] = useState<Adoption | null>(null);
   const [feedBills, setFeedBills] = useState<FeedBill[]>([]);
   const [redemption, setRedemption] = useState<RedemptionOrder | null>(null);
@@ -116,7 +117,7 @@ const AdoptionDetailPage: React.FC = () => {
       const result = await redemptionApi.pay(redemption.id, paymentMethod);
       // 如果返回 success: true，说明支付成功（余额支付或满期买断）
       if (result.success) {
-        alert('支付成功！');
+        success('支付成功！');
         setShowPaymentModal(false);
         window.location.reload();
         return;
@@ -125,8 +126,8 @@ const AdoptionDetailPage: React.FC = () => {
       if (result.payUrl) {
         window.location.href = result.payUrl;
       }
-    } catch (error: any) {
-      alert(error.message || '支付失败');
+    } catch (err: any) {
+      error(err.message || '支付失败');
     } finally {
       setPaying(false);
     }

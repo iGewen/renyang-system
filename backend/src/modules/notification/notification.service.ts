@@ -120,23 +120,15 @@ export class NotificationService {
    * 获取未读数量
    */
   async getUnreadCount(userId: string) {
-    // 获取用户专属的未读通知数量
+    // 只获取用户专属的未读通知数量
+    // 系统公告（userId为null）不计入未读数量，避免重复计数
     const userUnreadCount = await this.notificationRepository.count({
       where: { userId, isRead: 0 },
     });
 
-    // 获取系统公告（userId为null）- 暂时全部视为未读
-    // TODO: 可以建立用户已读记录表来跟踪系统公告的已读状态
-    const systemAnnouncementCount = await this.notificationRepository.count({
-      where: { userId: null as any, isRead: 0 },
-    });
-
-    // 总未读数 = 用户专属未读 + 系统公告未读
-    const totalCount = userUnreadCount + systemAnnouncementCount;
-
     return {
-      unreadCount: totalCount,
-      totalCount,
+      unreadCount: userUnreadCount,
+      totalCount: userUnreadCount,
     };
   }
 
@@ -167,23 +159,13 @@ export class NotificationService {
    * 标记所有通知为已读
    */
   async markAllAsRead(userId: string) {
-    // 标记用户专属通知为已读
-    const userResult = await this.notificationRepository.update(
+    // 只标记用户专属通知为已读，不标记系统公告（系统公告是共享的）
+    const result = await this.notificationRepository.update(
       { userId, isRead: 0 },
       { isRead: 1, readAt: new Date() },
     );
 
-    // 标记系统公告为已读（userId为null的通知）
-    // 使用 queryBuilder 来正确处理 IS NULL 条件
-    const systemResult = await this.notificationRepository
-      .createQueryBuilder()
-      .update(Notification)
-      .set({ isRead: 1, readAt: new Date() })
-      .where('userId IS NULL')
-      .andWhere('isRead = :isRead', { isRead: 0 })
-      .execute();
-
-    console.log('[markAllAsRead] userResult:', userResult, 'systemResult:', systemResult);
+    console.log('[markAllAsRead] result:', result);
 
     return { success: true };
   }

@@ -244,8 +244,11 @@ export class RedemptionService {
       throw new BadRequestException('买断订单未通过审核或已支付');
     }
 
+    // 确保 finalAmount 是数字类型
+    const finalAmount = Number(redemption.finalAmount) || 0;
+
     // 满期买断不需要支付
-    if (redemption.finalAmount <= 0) {
+    if (finalAmount <= 0) {
       redemption.status = RedemptionStatus.PAID;
       redemption.paidAmount = 0;
       redemption.paidAt = new Date();
@@ -262,18 +265,18 @@ export class RedemptionService {
       userId,
       'redemption',
       redemptionId,
-      redemption.finalAmount,
+      finalAmount,
       paymentMethod,
     );
 
     // 如果是余额支付，支付已完成
     if (paymentMethod === 'balance') {
-      return { success: true, amount: redemption.finalAmount };
+      return { success: true, amount: finalAmount };
     }
 
     return {
       success: false,
-      amount: redemption.finalAmount,
+      amount: finalAmount,
       payUrl: (payment as any).payUrl,
       paymentNo: payment.paymentNo,
       redemptionNo: redemption.redemptionNo,
