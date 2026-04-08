@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User, BalanceLog } from '@/entities';
+import { User, BalanceLog, Adoption } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
 
 @Injectable()
@@ -11,11 +11,35 @@ export class UserService {
     private userRepository: Repository<User>,
     @InjectRepository(BalanceLog)
     private balanceLogRepository: Repository<BalanceLog>,
+    @InjectRepository(Adoption)
+    private adoptionRepository: Repository<Adoption>,
     private redisService: RedisService,
   ) {}
 
   async findOne(id: string) {
-    return this.userRepository.findOne({ where: { id } });
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      return null;
+    }
+
+    // 获取领养统计数据
+    const adoptions = await this.adoptionRepository.find({ where: { userId: id } });
+    const adoptionsCount = adoptions.length;
+    // 计算总领养天数
+    const totalDays = adoptions.reduce((sum, adoption) => {
+      const startDate = new Date(adoption.startDate);
+      const now = new Date();
+      const days = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      return sum + Math.max(0, days);
+    }, 0);
+
+    return {
+      ...user,
+      stats: {
+        adoptions: adoptionsCount,
+        days: totalDays,
+      },
+    };
   }
 
   async findByPhone(phone: string) {

@@ -5,10 +5,11 @@ import { UserService } from './user.service';
 import { User } from '@/entities/user.entity';
 import { BalanceLog } from '@/entities/balance-log.entity';
 import { SystemConfig } from '@/entities/system-config.entity';
+import { Adoption } from '@/entities/adoption.entity';
 import { RedisService } from '@/common/utils/redis.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, BalanceLog, SystemConfig])],
+  imports: [TypeOrmModule.forFeature([User, BalanceLog, SystemConfig, Adoption])],
   controllers: [UserController],
   providers: [UserService, RedisService],
   exports: [UserService],
