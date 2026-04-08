@@ -129,7 +129,7 @@ const FeedBillDetailPage: React.FC = () => {
                   <span className="text-brand-primary">¥{Number(bill.adjustedAmount).toFixed(2)}</span>
                 </div>
               )}
-              {bill.lateFeeAmount > 0 && (
+              {Number(bill.lateFeeAmount || 0) > 0 && (
                 <div className="flex justify-between items-center py-3 border-b border-slate-50">
                   <span className="text-slate-500">滞纳金</span>
                   <span className="text-red-500">¥{Number(bill.lateFeeAmount).toFixed(2)}</span>

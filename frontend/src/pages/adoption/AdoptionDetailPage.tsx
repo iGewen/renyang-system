@@ -232,8 +232,8 @@ const AdoptionDetailPage: React.FC = () => {
                   </div>
                   <div className="flex justify-between items-center py-3">
                     <span className="text-slate-500">滞纳金</span>
-                    <span className={cn('font-bold', adoption.lateFeeAmount > 0 ? 'text-red-500' : 'text-slate-900')}>
-                      ¥{adoption.lateFeeAmount || 0}
+                    <span className={cn('font-bold', Number(adoption.lateFeeAmount || 0) > 0 ? 'text-red-500' : 'text-slate-900')}>
+                      ¥{Number(adoption.lateFeeAmount || 0).toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -343,10 +343,10 @@ const AdoptionDetailPage: React.FC = () => {
                             ¥{bill.adjustedAmount ?? bill.originalAmount}
                           </p>
                         </div>
-                        {bill.lateFeeAmount > 0 && (
+                        {Number(bill.lateFeeAmount || 0) > 0 && (
                           <div className="text-right">
                             <p className="text-slate-500 text-xs">滞纳金</p>
-                            <p className="text-sm font-bold text-red-500">¥{bill.lateFeeAmount}</p>
+                            <p className="text-sm font-bold text-red-500">¥{Number(bill.lateFeeAmount).toFixed(2)}</p>
                           </div>
                         )}
                       </div>
