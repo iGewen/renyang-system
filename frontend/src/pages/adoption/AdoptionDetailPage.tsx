@@ -243,7 +243,7 @@ const AdoptionDetailPage: React.FC = () => {
                 </div>
               </Card>
 
-              {(adoption.status === 4 || adoption.status === 1) && (
+              {(adoption.status === 4 || adoption.status === 1) ? (
                 <Button
                   className="w-full"
                   size="lg"
@@ -252,10 +252,10 @@ const AdoptionDetailPage: React.FC = () => {
                 >
                   申请买断
                 </Button>
-              )}
+              ) : null}
 
               {/* 买断审核中状态显示 */}
-              {adoption.status === 5 && redemption && (
+              {adoption.status === 5 && redemption ? (
                 <Card className="p-6">
                   <h3 className="text-lg font-bold text-slate-900 mb-4">买断进度</h3>
                   <div className="space-y-4">
@@ -308,9 +308,9 @@ const AdoptionDetailPage: React.FC = () => {
                     </div>
                   ) : null}
                 </Card>
-              )}
+              ) : null}
 
-              {adoption.isException && (
+              {adoption.isException ? (
                 <Card className="p-6 bg-red-50 border-red-100">
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
@@ -322,7 +322,7 @@ const AdoptionDetailPage: React.FC = () => {
                     </div>
                   </div>
                 </Card>
-              )}
+              ) : null}
             </div>
           ) : (
             <div className="space-y-4">
