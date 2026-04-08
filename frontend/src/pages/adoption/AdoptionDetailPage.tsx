@@ -279,16 +279,16 @@ const AdoptionDetailPage: React.FC = () => {
                         {getRedemptionStatusConfig(redemption.status).label}
                       </span>
                     </div>
-                    {redemption.auditRemark && (
+                    {redemption.auditRemark ? (
                       <div className="py-3 border-t border-slate-50">
                         <span className="text-slate-500 text-sm">审核备注</span>
                         <p className="text-slate-700 mt-1">{redemption.auditRemark}</p>
                       </div>
-                    )}
+                    ) : null}
                   </div>
 
                   {/* 审核通过后显示支付按钮 */}
-                  {redemption.status === RedemptionStatus.AUDIT_PASSED && Number(redemption.finalAmount || 0) > 0 && (
+                  {redemption.status === RedemptionStatus.AUDIT_PASSED && Number(redemption.finalAmount || 0) > 0 ? (
                     <Button
                       className="w-full mt-4"
                       size="lg"
@@ -298,15 +298,15 @@ const AdoptionDetailPage: React.FC = () => {
                     >
                       立即支付 ¥{Number(redemption.finalAmount || 0).toFixed(2)}
                     </Button>
-                  )}
+                  ) : null}
 
                   {/* 满期买断无需支付 */}
-                  {redemption.status === RedemptionStatus.AUDIT_PASSED && Number(redemption.finalAmount || 0) === 0 && (
+                  {redemption.status === RedemptionStatus.AUDIT_PASSED && Number(redemption.finalAmount || 0) === 0 ? (
                     <div className="mt-4 p-4 bg-green-50 rounded-xl text-center">
                       <p className="text-green-600 font-medium">买断申请已通过，无需支付额外费用</p>
                       <p className="text-green-500 text-sm mt-1">请等待工作人员联系您安排发货</p>
                     </div>
-                  )}
+                  ) : null}
                 </Card>
               )}
 

@@ -1328,7 +1328,7 @@ const NotificationPage: React.FC = () => {
             ].map(item => (
               <button key={item.key} onClick={() => setActiveTab(item.key as any)} className={cn('px-4 py-2 rounded-full text-sm font-medium transition-colors relative', activeTab === item.key ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600')}>
                 {item.label}
-                {item.count && item.count > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">{item.count > 9 ? '9+' : item.count}</span>}
+                {item.count !== undefined && item.count > 0 ? <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">{item.count > 9 ? '9+' : item.count}</span> : null}
               </button>
             ))}
           </div>
