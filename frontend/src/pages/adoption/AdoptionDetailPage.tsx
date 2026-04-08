@@ -58,7 +58,11 @@ const AdoptionDetailPage: React.FC = () => {
     fetchData();
   }, [id]);
 
-  const getStatusConfig = (status: number) => {
+  const getStatusConfig = (status: number, redemptionStatus?: number) => {
+    // 如果有买断订单且审核通过，显示"待支付"而不是"买断审核中"
+    if (status === 5 && redemptionStatus === RedemptionStatus.AUDIT_PASSED) {
+      return { label: '待支付', variant: 'info', color: 'text-blue-600 bg-blue-50' };
+    }
     const map: Record<number, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default'; color: string }> = {
       1: { label: '领养中', variant: 'success', color: 'text-green-600 bg-green-50' },
       2: { label: '饲料费逾期', variant: 'danger', color: 'text-red-600 bg-red-50' },
@@ -144,7 +148,7 @@ const AdoptionDetailPage: React.FC = () => {
     );
   }
 
-  const statusConfig = getStatusConfig(adoption.status);
+  const statusConfig = getStatusConfig(adoption.status, redemption?.status);
   const livestock = adoption.livestockSnapshot || adoption.livestock;
 
   return (
