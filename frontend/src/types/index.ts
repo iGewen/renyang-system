@@ -175,7 +175,7 @@ export interface RedemptionOrder {
   adoptionId: string;
   userId: string;
   livestockId: string;
-  type: 'full' | 'early';  // 全额买断/提前买断
+  type: number;  // 1=满期买断 2=提前买断（与后端RedemptionType枚举一致）
   originalAmount: number;
   adjustedAmount?: number;
   finalAmount: number;

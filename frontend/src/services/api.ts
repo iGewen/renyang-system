@@ -191,12 +191,12 @@ export const adoptionApi = {
 
   // 获取饲料费账单详情
   getFeedBillById: async (billId: string): Promise<FeedBill> => {
-    return request(`/feed-bills/${billId}`);
+    return request(`/adoptions/feed-bills/${billId}`);
   },
 
   // 支付饲料费
   payFeedBill: async (billId: string, paymentMethod: 'alipay' | 'wechat' | 'balance'): Promise<PaymentResult> => {
-    return request(`/feed-bills/${billId}/pay`, {
+    return request(`/adoptions/feed-bills/${billId}/pay`, {
       method: 'POST',
       body: JSON.stringify({ paymentMethod }),
     });
