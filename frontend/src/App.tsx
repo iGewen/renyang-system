@@ -950,7 +950,7 @@ const ProfilePage: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-brand-bg pb-28">
+      <div className="min-h-screen bg-brand-bg pb-24">
         <div className="relative h-40 bg-brand-primary">
           <div className="absolute inset-0 overflow-hidden opacity-10 pointer-events-none">
             <div className="absolute top-0 left-0 w-48 h-48 bg-white rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
@@ -1080,7 +1080,7 @@ const ProfilePage: React.FC = () => {
               </button>
             </div>
           </div>
-          <p className="text-center text-xs text-slate-300 pb-12">云端牧场智慧平台 v2.1.0 · 智慧农业领先品牌</p>
+          <p className="text-center text-xs text-slate-300 pb-4 mt-4">云端牧场智慧平台 v2.1.0 · 智慧农业领先品牌</p>
         </div>
       </div>
     </PageTransition>
