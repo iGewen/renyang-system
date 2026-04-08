@@ -219,6 +219,19 @@ export const adoptionApi = {
 // ==================== 买断相关 ====================
 
 export const redemptionApi = {
+  // 获取买断预览信息（不创建订单）
+  getPreview: async (adoptionId: string): Promise<{
+    adoption: Adoption;
+    amount: number;
+    type: string;
+    feedMonthsPaid: number;
+    requiredMonths: number;
+    remainingMonths: number;
+    monthlyFeedFee: number;
+  }> => {
+    return request(`/redemptions/preview/${adoptionId}`);
+  },
+
   // 获取我的买断列表
   getMyRedemptions: async (status?: number): Promise<RedemptionOrder[]> => {
     const query = status !== undefined ? `?status=${status}` : '';

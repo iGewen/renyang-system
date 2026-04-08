@@ -22,6 +22,51 @@ export class RedemptionService {
   ) {}
 
   /**
+   * 获取买断预览信息（不创建订单）
+   */
+  async getRedemptionPreview(adoptionId: string, userId: string) {
+    // 获取领养信息
+    const adoption = await this.adoptionRepository.findOne({
+      where: { id: adoptionId, userId },
+      relations: ['livestock'],
+    });
+
+    if (!adoption) {
+      throw new NotFoundException('领养记录不存在');
+    }
+
+    // 计算买断金额
+    const livestock = adoption.livestockSnapshot as any;
+    const requiredMonths = adoption.redemptionMonths - 1; // 首月免费
+    const remainingMonths = Math.max(0, requiredMonths - adoption.feedMonthsPaid);
+    const monthlyFeedFee = livestock?.monthlyFeedFee || 0;
+
+    // 判断买断类型和金额
+    let type: RedemptionType;
+    let amount: number;
+
+    if (remainingMonths === 0) {
+      // 满期买断，不需要额外支付
+      type = RedemptionType.FULL;
+      amount = 0;
+    } else {
+      // 提前买断，需要支付剩余饲料费
+      type = RedemptionType.EARLY;
+      amount = remainingMonths * monthlyFeedFee;
+    }
+
+    return {
+      adoption,
+      amount,
+      type: type === RedemptionType.FULL ? 'full' : 'early',
+      feedMonthsPaid: adoption.feedMonthsPaid,
+      requiredMonths,
+      remainingMonths,
+      monthlyFeedFee,
+    };
+  }
+
+  /**
    * 申请买断
    */
   async applyRedemption(adoptionId: string, userId: string) {

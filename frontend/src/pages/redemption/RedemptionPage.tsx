@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Icons, PageTransition, LoadingSpinner, Button, Card } from '../../components/ui';
 import { cn } from '../../lib/utils';
-import { adoptionApi } from '../../services/api';
+import { adoptionApi, redemptionApi } from '../../services/api';
 import type { Adoption } from '../../types';
 
 interface RedemptionPreview {
@@ -13,6 +13,7 @@ interface RedemptionPreview {
   feedMonthsPaid: number;
   requiredMonths: number;
   remainingMonths: number;
+  monthlyFeedFee: number;
 }
 
 const RedemptionPage: React.FC = () => {
@@ -30,11 +31,9 @@ const RedemptionPage: React.FC = () => {
     const fetchData = async () => {
       if (!id) return;
       try {
-        const [adoptionData, previewData] = await Promise.all([
-          adoptionApi.getById(id),
-          adoptionApi.applyRedemption(id).catch(() => null as any)
-        ]);
-        setAdoption(adoptionData);
+        // 使用预览接口获取买断信息（不创建订单）
+        const previewData = await redemptionApi.getPreview(id);
+        setAdoption(previewData.adoption);
         setRedemptionPreview(previewData);
       } catch (error) {
         console.error('Failed to fetch data:', error);
@@ -52,8 +51,8 @@ const RedemptionPage: React.FC = () => {
       const result = await adoptionApi.applyRedemption(id);
       setSubmitResult({
         success: true,
-        redemptionNo: result.redemption?.redemptionNo,
-        amount: result.redemption?.finalAmount || result.amount,
+        redemptionNo: result.redemptionNo,
+        amount: result.amount,
       });
       setShowConfirmModal(false);
     } catch (error: any) {
@@ -144,7 +143,7 @@ const RedemptionPage: React.FC = () => {
   const redemptionType = redemptionPreview?.type === 'full' ? '满期买断' : '提前买断';
   const redemptionAmount = redemptionPreview?.amount || 0;
   const remainingMonths = redemptionPreview?.remainingMonths || 0;
-  const monthlyFeedFee = redemptionPreview?.adoption?.livestockSnapshot?.monthlyFeedFee || redemptionPreview?.adoption?.livestock?.monthlyFeedFee || 0;
+  const monthlyFeedFee = redemptionPreview?.monthlyFeedFee || 0;
   const isFullTerm = redemptionPreview?.type === 'full';
 
   return (

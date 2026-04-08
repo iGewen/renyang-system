@@ -54,6 +54,18 @@ export class RedemptionController {
   }
 
   /**
+   * 获取买断预览信息（不创建订单）
+   */
+  @Get('preview/:adoptionId')
+  @UseGuards(JwtAuthGuard)
+  async getRedemptionPreview(
+    @Param('adoptionId') adoptionId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.redemptionService.getRedemptionPreview(adoptionId, userId);
+  }
+
+  /**
    * 申请买断
    */
   @Post('apply/:adoptionId')
