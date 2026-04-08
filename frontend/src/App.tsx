@@ -1095,28 +1095,78 @@ const BalancePage: React.FC = () => {
   const [balance, setBalance] = useState<number>(0);
   const [logs, setLogs] = useState<BalanceLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [total, setTotal] = useState(0);
   const [showRecharge, setShowRecharge] = useState(false);
   const [rechargeAmount, setRechargeAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'alipay' | 'wechat'>('alipay');
   const [recharging, setRecharging] = useState(false);
+  // 日期筛选
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+
+  const fetchData = async (pageNum: number = 1, append: boolean = false) => {
+    if (pageNum === 1) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+    try {
+      const [balanceRes, logsRes] = await Promise.all([
+        pageNum === 1 ? balanceApi.get() : Promise.resolve({ balance }),
+        balanceApi.getLogs({ page: pageNum, pageSize: 10 })
+      ]);
+      if (pageNum === 1) {
+        setBalance(Number(balanceRes?.balance) || 0);
+      }
+      const newLogs = logsRes?.list || [];
+      if (append) {
+        setLogs(prev => [...prev, ...newLogs]);
+      } else {
+        setLogs(newLogs);
+      }
+      setTotal(logsRes?.total || 0);
+      setHasMore(newLogs.length === 10 && logs.length + newLogs.length < (logsRes?.total || 0));
+    } catch (err) {
+      console.error('Failed to fetch balance:', err);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [balanceRes, logsRes] = await Promise.all([
-          balanceApi.get(),
-          balanceApi.getLogs()
-        ]);
-        setBalance(Number(balanceRes?.balance) || 0);
-        setLogs(logsRes?.list || []);
-      } catch (err) {
-        console.error('Failed to fetch balance:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    fetchData(1, false);
   }, []);
+
+  const loadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchData(page + 1, true);
+      setPage(prev => prev + 1);
+    }
+  };
+
+  // 根据日期筛选过滤记录
+  const filteredLogs = React.useMemo(() => {
+    if (dateFilter === 'all') return logs;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    return logs.filter(log => {
+      const logDate = new Date(log.createdAt);
+      if (dateFilter === 'today') {
+        return logDate >= today;
+      } else if (dateFilter === 'week') {
+        return logDate >= weekAgo;
+      } else if (dateFilter === 'month') {
+        return logDate >= monthAgo;
+      }
+      return true;
+    });
+  }, [logs, dateFilter]);
 
   const getTypeText = (log: BalanceLog) => {
     const type = Number(log.type);
@@ -1124,17 +1174,50 @@ const BalancePage: React.FC = () => {
     return map[type] || '未知';
   };
 
+  // 更美观的类型图标
   const getTypeIcon = (log: BalanceLog) => {
     const type = Number(log.type);
-    if (type === 1) return <Icons.Plus className="w-5 h-5" />;
-    if (type === 2) return <Icons.Minus className="w-5 h-5" />;
-    if (type === 3) return <Icons.RotateCw className="w-5 h-5" />;
-    return <Icons.Edit className="w-5 h-5" />;
+    if (type === 1) {
+      // 充值图标 - 向下箭头进入钱包
+      return (
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 2v20M17 7l-5-5-5 5" />
+          <rect x="3" y="14" width="18" height="8" rx="2" />
+          <path d="M12 18h.01" />
+        </svg>
+      );
+    }
+    if (type === 2) {
+      // 消费图标 - 向上箭头离开钱包
+      return (
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 22V2M17 17l-5 5-5-5" />
+          <rect x="3" y="2" width="18" height="8" rx="2" />
+          <path d="M12 6h.01" />
+        </svg>
+      );
+    }
+    if (type === 3) {
+      // 退款图标 - 循环箭头
+      return (
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+          <path d="M3 3v5h5" />
+        </svg>
+      );
+    }
+    // 调整图标 - 齿轮调节
+    return (
+      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+      </svg>
+    );
   };
 
   const getTypeColor = (log: BalanceLog) => {
     const type = Number(log.type);
-    if (type === 1) return 'bg-green-100 text-green-600';
+    if (type === 1) return 'bg-emerald-100 text-emerald-600';
     if (type === 2) return 'bg-orange-100 text-orange-600';
     if (type === 3) return 'bg-blue-100 text-blue-600';
     return 'bg-slate-100 text-slate-600';
@@ -1154,7 +1237,7 @@ const BalancePage: React.FC = () => {
     try {
       const result = await balanceApi.recharge(amount, paymentMethod);
       if (result.payUrl) window.location.href = result.payUrl;
-      else { success('充值成功'); setShowRecharge(false); setBalance(prev => prev + amount); }
+      else { success('充值成功'); setShowRecharge(false); fetchData(1, false); }
     } catch (err: any) {
       error(err.message || '充值失败');
     }
@@ -1176,15 +1259,43 @@ const BalancePage: React.FC = () => {
         </div>
         <div className="px-6 -mt-6">
           <Button className="w-full" size="lg" onClick={() => setShowRecharge(true)} icon={<Icons.Plus className="w-5 h-5" />}>充值余额</Button>
+
           <div className="mt-8">
-            <h2 className="text-lg font-bold text-slate-900 mb-4">交易记录</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-slate-900">交易记录</h2>
+              <span className="text-sm text-slate-400">共 {total} 条</span>
+            </div>
+
+            {/* 日期筛选 */}
+            <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+              {[
+                { key: 'all', label: '全部' },
+                { key: 'today', label: '今天' },
+                { key: 'week', label: '近7天' },
+                { key: 'month', label: '近30天' }
+              ].map(item => (
+                <button
+                  key={item.key}
+                  onClick={() => setDateFilter(item.key as any)}
+                  className={cn(
+                    'px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors',
+                    dateFilter === item.key
+                      ? 'bg-brand-primary text-white'
+                      : 'bg-white text-slate-600 border border-slate-200'
+                  )}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
             {loading ? (
               <div className="flex justify-center py-8"><Icons.Loader2 className="w-8 h-8 text-brand-primary animate-spin" /></div>
-            ) : logs.length === 0 ? (
+            ) : filteredLogs.length === 0 ? (
               <EmptyState icon={<Icons.History className="w-16 h-16" />} title="暂无交易记录" />
             ) : (
               <div className="space-y-3">
-                {logs.map(log => {
+                {filteredLogs.map(log => {
                   const amount = getAmount(log);
                   return (
                     <Card key={log.id} className="p-4">
@@ -1208,6 +1319,20 @@ const BalancePage: React.FC = () => {
                     </Card>
                   );
                 })}
+
+                {/* 加载更多 */}
+                {hasMore && (
+                  <div className="flex justify-center pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={loadMore}
+                      loading={loadingMore}
+                      disabled={loadingMore}
+                    >
+                      {loadingMore ? '加载中...' : '加载更多'}
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1498,7 +1623,7 @@ export default function App() {
               <Route path="/adoption/:id/redemption" element={<Suspense fallback={<LoadingSpinner />}><RedemptionPage /></Suspense>} />
               <Route path="/feed-bill/:id" element={<Suspense fallback={<LoadingSpinner />}><FeedBillDetailPage /></Suspense>} />
               <Route path="/admin-login" element={<AdminLoginPage />} />
-              <Route path="/admin" element={<Suspense fallback={<LoadingSpinner />}><AdminPage /></Suspense>} />
+              <Route path="/admin/*" element={<Suspense fallback={<LoadingSpinner />}><AdminPage /></Suspense>} />
             </Routes>
           </AnimatePresence>
           <GlobalTabBar />

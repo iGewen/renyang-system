@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState, ToastProvider, useToast } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { adminApi, refundApi } from '../../services/api';
@@ -1904,9 +1904,12 @@ interface AdminPageProps {
   activeMenu?: string;
 }
 
-const AdminPage: React.FC<AdminPageProps> = ({ activeMenu: initialMenu }) => {
+const AdminPage: React.FC<AdminPageProps> = () => {
   const navigate = useNavigate();
-  const [activeMenu, setActiveMenu] = useState(initialMenu || 'dashboard');
+  const location = useLocation();
+  // 从 URL 路径中提取当前菜单，路径格式为 /admin/:menu
+  const pathMenu = location.pathname.replace('/admin', '').replace('/', '') || 'dashboard';
+  const [activeMenu, setActiveMenu] = useState(pathMenu);
   const [adminInfo, setAdminInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -1927,6 +1930,14 @@ const AdminPage: React.FC<AdminPageProps> = ({ activeMenu: initialMenu }) => {
     setLoading(false);
   }, [navigate]);
 
+  // 同步 URL 和菜单状态
+  useEffect(() => {
+    const pathMenu = location.pathname.replace('/admin', '').replace('/', '') || 'dashboard';
+    if (pathMenu !== activeMenu) {
+      setActiveMenu(pathMenu);
+    }
+  }, [location.pathname, activeMenu]);
+
   const handleLogout = () => {
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_info');
@@ -1935,6 +1946,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ activeMenu: initialMenu }) => {
 
   const handleMenuChange = (menu: string) => {
     setActiveMenu(menu);
+    // 更新 URL
+    navigate(`/admin/${menu === 'dashboard' ? '' : menu}`, { replace: true });
   };
 
   if (loading) return <LoadingSpinner />;
