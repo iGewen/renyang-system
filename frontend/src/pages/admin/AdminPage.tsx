@@ -1044,38 +1044,40 @@ export const AdminConfig: React.FC = () => {
       setConfigs(res);
 
       // 解析配置到表单 - 不依赖configType，直接按key匹配
+      // 确保 configValue 不为 null 或 undefined
       res.forEach((config: SystemConfig) => {
+        const value = config.configValue || '';
         // 基础配置
-        if (config.configKey === 'site_name') setBasicConfig(prev => ({ ...prev, siteName: config.configValue }));
-        if (config.configKey === 'site_title') setBasicConfig(prev => ({ ...prev, siteTitle: config.configValue }));
-        if (config.configKey === 'site_description') setBasicConfig(prev => ({ ...prev, siteDescription: config.configValue }));
-        if (config.configKey === 'site_keywords') setBasicConfig(prev => ({ ...prev, siteKeywords: config.configValue }));
-        if (config.configKey === 'contact_phone') setBasicConfig(prev => ({ ...prev, contactPhone: config.configValue }));
-        if (config.configKey === 'contact_email') setBasicConfig(prev => ({ ...prev, contactEmail: config.configValue }));
+        if (config.configKey === 'site_name') setBasicConfig(prev => ({ ...prev, siteName: value }));
+        if (config.configKey === 'site_title') setBasicConfig(prev => ({ ...prev, siteTitle: value }));
+        if (config.configKey === 'site_description') setBasicConfig(prev => ({ ...prev, siteDescription: value }));
+        if (config.configKey === 'site_keywords') setBasicConfig(prev => ({ ...prev, siteKeywords: value }));
+        if (config.configKey === 'contact_phone') setBasicConfig(prev => ({ ...prev, contactPhone: value }));
+        if (config.configKey === 'contact_email') setBasicConfig(prev => ({ ...prev, contactEmail: value }));
 
         // 支付配置
-        if (config.configKey === 'alipay_app_id') setPaymentConfig(prev => ({ ...prev, alipayAppId: config.configValue }));
-        if (config.configKey === 'alipay_private_key') setPaymentConfig(prev => ({ ...prev, alipayPrivateKey: config.configValue }));
-        if (config.configKey === 'alipay_public_key') setPaymentConfig(prev => ({ ...prev, alipayPublicKey: config.configValue }));
-        if (config.configKey === 'alipay_notify_url') setPaymentConfig(prev => ({ ...prev, alipayNotifyUrl: config.configValue }));
-        if (config.configKey === 'alipay_return_url') setPaymentConfig(prev => ({ ...prev, alipayReturnUrl: config.configValue }));
-        if (config.configKey === 'wechat_app_id') setPaymentConfig(prev => ({ ...prev, wechatAppId: config.configValue }));
-        if (config.configKey === 'wechat_mch_id') setPaymentConfig(prev => ({ ...prev, wechatMchId: config.configValue }));
-        if (config.configKey === 'wechat_pay_key') setPaymentConfig(prev => ({ ...prev, wechatPayKey: config.configValue }));
-        if (config.configKey === 'wechat_api_v3_key') setPaymentConfig(prev => ({ ...prev, wechatApiV3Key: config.configValue }));
-        if (config.configKey === 'wechat_serial_no') setPaymentConfig(prev => ({ ...prev, wechatSerialNo: config.configValue }));
-        if (config.configKey === 'wechat_private_key') setPaymentConfig(prev => ({ ...prev, wechatPrivateKey: config.configValue }));
-        if (config.configKey === 'wechat_notify_url') setPaymentConfig(prev => ({ ...prev, wechatNotifyUrl: config.configValue }));
+        if (config.configKey === 'alipay_app_id') setPaymentConfig(prev => ({ ...prev, alipayAppId: value }));
+        if (config.configKey === 'alipay_private_key') setPaymentConfig(prev => ({ ...prev, alipayPrivateKey: value }));
+        if (config.configKey === 'alipay_public_key') setPaymentConfig(prev => ({ ...prev, alipayPublicKey: value }));
+        if (config.configKey === 'alipay_notify_url') setPaymentConfig(prev => ({ ...prev, alipayNotifyUrl: value }));
+        if (config.configKey === 'alipay_return_url') setPaymentConfig(prev => ({ ...prev, alipayReturnUrl: value }));
+        if (config.configKey === 'wechat_app_id') setPaymentConfig(prev => ({ ...prev, wechatAppId: value }));
+        if (config.configKey === 'wechat_mch_id') setPaymentConfig(prev => ({ ...prev, wechatMchId: value }));
+        if (config.configKey === 'wechat_pay_key') setPaymentConfig(prev => ({ ...prev, wechatPayKey: value }));
+        if (config.configKey === 'wechat_api_v3_key') setPaymentConfig(prev => ({ ...prev, wechatApiV3Key: value }));
+        if (config.configKey === 'wechat_serial_no') setPaymentConfig(prev => ({ ...prev, wechatSerialNo: value }));
+        if (config.configKey === 'wechat_private_key') setPaymentConfig(prev => ({ ...prev, wechatPrivateKey: value }));
+        if (config.configKey === 'wechat_notify_url') setPaymentConfig(prev => ({ ...prev, wechatNotifyUrl: value }));
 
         // 短信配置
-        if (config.configKey === 'aliyun_access_key_id') setSmsConfig(prev => ({ ...prev, aliyunAccessKeyId: config.configValue }));
-        if (config.configKey === 'aliyun_access_key_secret') setSmsConfig(prev => ({ ...prev, aliyunAccessKeySecret: config.configValue }));
-        if (config.configKey === 'aliyun_sign_name') setSmsConfig(prev => ({ ...prev, aliyunSignName: config.configValue }));
-        if (config.configKey === 'sms_template_login') setSmsConfig(prev => ({ ...prev, smsTemplateLogin: config.configValue }));
-        if (config.configKey === 'sms_template_register') setSmsConfig(prev => ({ ...prev, smsTemplateRegister: config.configValue }));
-        if (config.configKey === 'sms_template_reset_password') setSmsConfig(prev => ({ ...prev, smsTemplateResetPassword: config.configValue }));
-        if (config.configKey === 'sms_template_order') setSmsConfig(prev => ({ ...prev, smsTemplateOrder: config.configValue }));
-        if (config.configKey === 'sms_template_feed_bill') setSmsConfig(prev => ({ ...prev, smsTemplateFeedBill: config.configValue }));
+        if (config.configKey === 'aliyun_access_key_id') setSmsConfig(prev => ({ ...prev, aliyunAccessKeyId: value }));
+        if (config.configKey === 'aliyun_access_key_secret') setSmsConfig(prev => ({ ...prev, aliyunAccessKeySecret: value }));
+        if (config.configKey === 'aliyun_sign_name') setSmsConfig(prev => ({ ...prev, aliyunSignName: value }));
+        if (config.configKey === 'sms_template_login') setSmsConfig(prev => ({ ...prev, smsTemplateLogin: value }));
+        if (config.configKey === 'sms_template_register') setSmsConfig(prev => ({ ...prev, smsTemplateRegister: value }));
+        if (config.configKey === 'sms_template_reset_password') setSmsConfig(prev => ({ ...prev, smsTemplateResetPassword: value }));
+        if (config.configKey === 'sms_template_order') setSmsConfig(prev => ({ ...prev, smsTemplateOrder: value }));
+        if (config.configKey === 'sms_template_feed_bill') setSmsConfig(prev => ({ ...prev, smsTemplateFeedBill: value }));
       });
     } catch (error) {
       console.error('加载配置失败', error);
@@ -1754,17 +1756,43 @@ const formatJson = (data: any): string => {
 };
 
 export const AdminAuditLogs: React.FC = () => {
+  const toast = useToast();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [moduleFilter, setModuleFilter] = useState('');
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearing, setClearing] = useState(false);
+
+  const loadLogs = async () => {
+    setLoading(true);
+    try {
+      const res = await adminApi.getAuditLogs({ module: moduleFilter || undefined });
+      setLogs(res.list || []);
+    } catch (error) {
+      console.error('Failed to load audit logs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    adminApi.getAuditLogs({ module: moduleFilter || undefined })
-      .then(res => setLogs(res.list || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    loadLogs();
   }, [moduleFilter]);
+
+  const handleClearLogs = async () => {
+    setClearing(true);
+    try {
+      await adminApi.clearAuditLogs();
+      toast.success('审计日志已清空');
+      setShowClearConfirm(false);
+      loadLogs();
+    } catch (error: any) {
+      toast.error(error.message || '清空失败');
+    } finally {
+      setClearing(false);
+    }
+  };
 
   if (loading) return <LoadingSpinner />;
 
@@ -1772,28 +1800,34 @@ export const AdminAuditLogs: React.FC = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-slate-900">审计日志</h2>
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setModuleFilter('')}
-            className={cn(
-              'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
-              moduleFilter === '' ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            )}
-          >
-            全部
-          </button>
-          {Object.entries(moduleMapFull).map(([key, value]) => (
+        <div className="flex items-center gap-4">
+          <Button variant="danger" onClick={() => setShowClearConfirm(true)}>
+            <Icons.Trash2 className="w-4 h-4 mr-2" />
+            清空日志
+          </Button>
+          <div className="flex flex-wrap gap-2">
             <button
-              key={key}
-              onClick={() => setModuleFilter(key)}
+              onClick={() => setModuleFilter('')}
               className={cn(
                 'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
-                moduleFilter === key ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                moduleFilter === '' ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               )}
             >
-              {value.label}
+              全部
             </button>
-          ))}
+            {Object.entries(moduleMapFull).map(([key, value]) => (
+              <button
+                key={key}
+                onClick={() => setModuleFilter(key)}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+                  moduleFilter === key ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                )}
+              >
+                {value.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -1839,6 +1873,17 @@ export const AdminAuditLogs: React.FC = () => {
           {logs.length === 0 && <EmptyState icon={<Icons.FileText className="w-12 h-12" />} title="暂无审计日志" />}
         </div>
       </Card>
+
+      {/* 清空确认弹窗 */}
+      <ConfirmDialog
+        open={showClearConfirm}
+        onClose={() => setShowClearConfirm(false)}
+        onConfirm={handleClearLogs}
+        title="确认清空审计日志"
+        message="此操作将清空所有审计日志，且无法恢复。确定要继续吗？"
+        confirmText="确认清空"
+        loading={clearing}
+      />
 
       {/* 详情弹窗 */}
       <Modal open={!!selectedLog} onClose={() => setSelectedLog(null)} title="日志详情">

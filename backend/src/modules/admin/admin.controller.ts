@@ -729,7 +729,8 @@ export class AdminController {
   ) {
     const adminId = req.user?.sub;
     const adminName = req.user?.username;
-    return this.adminService.sendNotification(body, adminId, adminName);
+    const ip = this.getClientIp(req);
+    return this.adminService.sendNotification(body, adminId, adminName, ip);
   }
 
   // =============== 管理员管理 ===============
@@ -813,6 +814,19 @@ export class AdminController {
       startDate,
       endDate,
     });
+  }
+
+  /**
+   * 清空审计日志
+   */
+  @Delete('audit-logs')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '清空审计日志' })
+  async clearAuditLogs(@Req() req: any) {
+    const adminId = req.user?.sub;
+    const adminName = req.user?.username;
+    const ip = this.getClientIp(req);
+    return this.adminService.clearAuditLogs(adminId, adminName, ip);
   }
 
   // =============== 买断管理 ===============
@@ -914,7 +928,8 @@ export class AdminController {
   ) {
     const adminId = req.user?.sub;
     const adminName = req.user?.username;
-    return this.adminService.auditRefund(id, body.approved, body.remark, adminId, adminName);
+    const ip = this.getClientIp(req);
+    return this.adminService.auditRefund(id, body.approved, body.remark, adminId, adminName, ip);
   }
 
   // =============== 协议管理 ===============

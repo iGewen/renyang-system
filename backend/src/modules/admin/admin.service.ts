@@ -408,6 +408,7 @@ export class AdminService {
       beforeData,
       afterData: type,
       remark: '更新活体类型',
+      ip,
     });
 
     return type;
@@ -442,6 +443,7 @@ export class AdminService {
       targetId: id,
       beforeData: type,
       remark: '删除活体类型',
+      ip,
     });
 
     return { success: true };
@@ -510,6 +512,7 @@ export class AdminService {
       targetId: livestock.id,
       afterData: livestock,
       remark: '创建活体',
+      ip,
     });
 
     return livestock;
@@ -538,6 +541,7 @@ export class AdminService {
       beforeData,
       afterData: livestock,
       remark: '更新活体',
+      ip,
     });
 
     return livestock;
@@ -565,6 +569,7 @@ export class AdminService {
       beforeData,
       afterData: { status },
       remark: `更新活体状态为: ${status}`,
+      ip,
     });
 
     return { success: true };
@@ -591,6 +596,7 @@ export class AdminService {
       targetId: id,
       beforeData: livestock,
       remark: '删除活体',
+      ip,
     });
 
     return { success: true };
@@ -993,6 +999,7 @@ export class AdminService {
       afterData: { username: admin.username, name: admin.name, role: admin.role },
       remark: '创建管理员',
       isSensitive: 1,
+      ip,
     });
 
     return {
@@ -1029,6 +1036,7 @@ export class AdminService {
       beforeData: { status: admin.status },
       afterData: { status },
       remark: `更新管理员状态为: ${status === 1 ? '启用' : '禁用'}`,
+      ip,
     });
 
     return { success: true };
@@ -1139,6 +1147,7 @@ export class AdminService {
       targetId: notification.id,
       afterData: { title, content },
       remark: '发送系统公告',
+      ip,
     });
 
     return notification;
@@ -1267,6 +1276,7 @@ export class AdminService {
       beforeData,
       afterData: { status: redemption.status, adjustedAmount, remark },
       remark: approved ? '审核通过买断申请' : '审核拒绝买断申请',
+      ip,
     });
 
     return redemption;
@@ -1330,6 +1340,7 @@ export class AdminService {
     remark: string | undefined,
     adminId: string,
     adminName: string,
+    ip?: string,
   ) {
     const refund = await this.refundOrderRepository.findOne({ where: { id } });
     if (!refund) {
@@ -1362,6 +1373,7 @@ export class AdminService {
       beforeData,
       afterData: { status: refund.status, remark },
       remark: approved ? '审核通过退款申请' : '审核拒绝退款申请',
+      ip,
     });
 
     return refund;
@@ -1406,6 +1418,7 @@ export class AdminService {
     data: { userIds?: string[]; title: string; content: string; type: string },
     adminId: string,
     adminName: string,
+    ip?: string,
   ) {
     let sendCount = 0;
 
@@ -1442,6 +1455,7 @@ export class AdminService {
       targetType: 'notification',
       afterData: { title: data.title, content: data.content, type: data.type, sendCount },
       remark: `发送通知: ${data.title}`,
+      ip,
     });
 
     return { success: true, sendCount };
@@ -1515,6 +1529,7 @@ export class AdminService {
         beforeData,
         afterData: { title: data.title, content: data.content },
         remark: `更新协议: ${data.title}`,
+        ip,
       });
 
       return { success: true, id: config.id };
@@ -1538,6 +1553,7 @@ export class AdminService {
         targetId: config.id,
         afterData: { key: data.agreementKey, title: data.title },
         remark: `创建协议: ${data.title}`,
+        ip,
       });
 
       return { success: true, id: config.id };
@@ -1567,7 +1583,30 @@ export class AdminService {
       targetId: config.id,
       beforeData: { key, title: config.description },
       remark: `删除协议: ${config.description}`,
+      ip,
     });
+
+    return { success: true };
+  }
+
+  /**
+   * 清空审计日志
+   */
+  async clearAuditLogs(adminId: string, adminName: string, ip?: string) {
+    // 记录清空操作日志
+    await this.createAuditLog({
+      adminId,
+      adminName,
+      module: 'audit_log',
+      action: 'clear',
+      targetType: 'audit_log',
+      remark: '清空审计日志',
+      isSensitive: 1,
+      ip,
+    });
+
+    // 清空所有日志
+    await this.auditLogRepository.clear();
 
     return { success: true };
   }

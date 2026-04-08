@@ -728,6 +728,10 @@ export const adminApi = {
     return request(`/admin/audit-logs/${id}`);
   },
 
+  clearAuditLogs: async (): Promise<{ success: boolean }> => {
+    return request('/admin/audit-logs', { method: 'DELETE' });
+  },
+
   // ==================== 协议管理 ====================
   getAgreements: async (): Promise<{ id: string; agreementKey: string; title: string; content: string; createdAt: string; updatedAt: string }[]> => {
     return request('/admin/agreements');
