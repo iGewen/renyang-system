@@ -6,10 +6,20 @@ import { cn } from '../../lib/utils';
 import { adoptionApi } from '../../services/api';
 import type { Adoption } from '../../types';
 
+interface RedemptionPreview {
+  adoption: Adoption;
+  amount: number;
+  type: string;
+  feedMonthsPaid: number;
+  requiredMonths: number;
+  remainingMonths: number;
+}
+
 const RedemptionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [adoption, setAdoption] = useState<Adoption | null>(null);
+  const [redemptionPreview, setRedemptionPreview] = useState<RedemptionPreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -17,18 +27,22 @@ const RedemptionPage: React.FC = () => {
   const [submitResult, setSubmitResult] = useState<{ success: boolean; redemptionNo?: string; amount?: number; error?: string } | null>(null);
 
   useEffect(() => {
-    const fetchAdoption = async () => {
+    const fetchData = async () => {
       if (!id) return;
       try {
-        const data = await adoptionApi.getById(id);
-        setAdoption(data);
+        const [adoptionData, previewData] = await Promise.all([
+          adoptionApi.getById(id),
+          adoptionApi.applyRedemption(id).catch(() => null as any)
+        ]);
+        setAdoption(adoptionData);
+        setRedemptionPreview(previewData);
       } catch (error) {
-        console.error('Failed to fetch adoption:', error);
+        console.error('Failed to fetch data:', error);
       } finally {
         setLoading(false);
       }
     };
-    fetchAdoption();
+    fetchData();
   }, [id]);
 
   const handleApply = async () => {
@@ -127,9 +141,10 @@ const RedemptionPage: React.FC = () => {
   }
 
   const livestock = adoption.livestockSnapshot || adoption.livestock;
-  const isFullTerm = (adoption.days || 0) >= adoption.redemptionMonths * 30;
-  const redemptionType = isFullTerm ? '满期买断' : '提前买断';
-  const redemptionAmount = livestock?.price || 0;
+  const redemptionType = redemptionPreview?.type === 'full' ? '满期买断' : '提前买断';
+  const redemptionAmount = redemptionPreview?.amount || 0;
+  const remainingMonths = redemptionPreview?.remainingMonths || 0;
+  const monthlyFeedFee = redemptionPreview?.adoption?.livestockSnapshot?.monthlyFeedFee || redemptionPreview?.adoption?.livestock?.monthlyFeedFee || 0;
 
   return (
     <PageTransition>
@@ -178,12 +193,20 @@ const RedemptionPage: React.FC = () => {
                 <span className="font-bold text-brand-primary">{adoption.days || 0} 天</span>
               </div>
               <div className="flex justify-between items-center py-3 border-b border-slate-50">
-                <span className="text-slate-500">领养价格</span>
-                <span className="text-slate-900">¥{livestock?.price || 0}</span>
+                <span className="text-slate-500">已缴月数</span>
+                <span className="text-slate-900">{adoption.feedMonthsPaid} 月</span>
+              </div>
+              <div className="flex justify-between items-center py-3 border-b border-slate-50">
+                <span className="text-slate-500">剩余未缴月数</span>
+                <span className="text-slate-900">{remainingMonths} 月</span>
+              </div>
+              <div className="flex justify-between items-center py-3 border-b border-slate-50">
+                <span className="text-slate-500">月饲料费</span>
+                <span className="text-slate-900">¥{Number(monthlyFeedFee).toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center py-3">
                 <span className="text-slate-500">买断金额</span>
-                <span className="text-xl font-bold text-brand-primary">¥{redemptionAmount}</span>
+                <span className="text-xl font-bold text-brand-primary">¥{Number(redemptionAmount).toFixed(2)}</span>
               </div>
             </div>
           </Card>
