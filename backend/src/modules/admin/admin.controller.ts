@@ -877,7 +877,8 @@ export class AdminController {
   ) {
     const adminId = req.user?.sub;
     const adminName = req.user?.username;
-    return this.adminService.auditRedemption(id, body.approved, body.adjustedAmount, body.remark, adminId, adminName);
+    const ip = this.getClientIp(req);
+    return this.adminService.auditRedemption(id, body.approved, body.adjustedAmount, body.remark, adminId, adminName, ip);
   }
 
   // =============== 退款管理 ===============

@@ -1214,6 +1214,7 @@ export class AdminService {
     remark: string | undefined,
     adminId: string,
     adminName: string,
+    ip?: string,
   ) {
     const redemption = await this.redemptionOrderRepository.findOne({
       where: { id },
