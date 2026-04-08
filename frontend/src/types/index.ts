@@ -235,8 +235,11 @@ export interface PaymentRecord {
 }
 
 export interface PaymentResult {
+  success?: boolean;
+  amount?: number;
   payUrl?: string;
-  paymentNo: string;
+  paymentNo?: string;
+  redemptionNo?: string;
 }
 
 // ==================== 消息相关 ====================

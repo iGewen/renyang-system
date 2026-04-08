@@ -16,6 +16,9 @@ const AdoptionDetailPage: React.FC = () => {
   const [redemption, setRedemption] = useState<RedemptionOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'alipay' | 'wechat' | 'balance'>('alipay');
+  const [balance, setBalance] = useState(0);
   const [activeTab, setActiveTab] = useState<'info' | 'bills'>(() => {
     return searchParams.get('tab') === 'bills' ? 'bills' : 'info';
   });
@@ -94,12 +97,27 @@ const AdoptionDetailPage: React.FC = () => {
 
   const handlePayRedemption = async () => {
     if (!redemption) return;
+    // 获取余额并显示支付方式选择弹窗
+    try {
+      const balanceRes = await balanceApi.get();
+      setBalance(Number(balanceRes?.balance) || 0);
+      setShowPaymentModal(true);
+    } catch (error) {
+      console.error('Failed to fetch balance:', error);
+      // 如果获取余额失败，仍然显示支付弹窗
+      setShowPaymentModal(true);
+    }
+  };
+
+  const confirmPayRedemption = async () => {
+    if (!redemption) return;
     setPaying(true);
     try {
-      const result = await redemptionApi.pay(redemption.id, 'balance');
+      const result = await redemptionApi.pay(redemption.id, paymentMethod);
       // 如果返回 success: true，说明支付成功（余额支付或满期买断）
       if (result.success) {
         alert('支付成功！');
+        setShowPaymentModal(false);
         window.location.reload();
         return;
       }
@@ -350,6 +368,59 @@ const AdoptionDetailPage: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* 支付方式选择弹窗 */}
+        {showPaymentModal && redemption && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center">
+            <div className="absolute inset-0 bg-black/50" onClick={() => setShowPaymentModal(false)} />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              className="relative w-full max-w-lg bg-white rounded-t-3xl p-6"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold">选择支付方式</h3>
+                <button onClick={() => setShowPaymentModal(false)} className="text-slate-400">
+                  <Icons.X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="text-center mb-6">
+                <p className="text-slate-500 text-sm">支付金额</p>
+                <p className="text-3xl font-display font-bold text-brand-primary">¥{Number(redemption.finalAmount || 0).toFixed(2)}</p>
+              </div>
+              <div className="space-y-2">
+                {[
+                  { key: 'alipay', icon: Icons.Alipay, label: '支付宝', color: 'text-blue-500' },
+                  { key: 'wechat', icon: Icons.Wechat, label: '微信支付', color: 'text-green-500' },
+                  { key: 'balance', icon: Icons.Wallet, label: `余额支付 (¥${balance.toFixed(2)})`, color: 'text-brand-primary', disabled: balance < Number(redemption.finalAmount || 0) },
+                ].map((method) => (
+                  <button
+                    key={method.key}
+                    onClick={() => setPaymentMethod(method.key as 'alipay' | 'wechat' | 'balance')}
+                    disabled={method.disabled}
+                    className={cn(
+                      'w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-colors',
+                      paymentMethod === method.key ? 'border-brand-primary bg-brand-primary/5' : 'border-slate-100',
+                      method.disabled && 'opacity-50 cursor-not-allowed'
+                    )}
+                  >
+                    <method.icon className={cn('w-6 h-6', method.color)} />
+                    <span className="flex-1 text-left font-medium">{method.label}</span>
+                    {paymentMethod === method.key && <Icons.Check className="w-5 h-5 text-brand-primary" />}
+                  </button>
+                ))}
+              </div>
+              <Button
+                className="w-full mt-6"
+                size="lg"
+                onClick={confirmPayRedemption}
+                loading={paying}
+              >
+                确认支付
+              </Button>
+            </motion.div>
+          </div>
+        )}
       </div>
     </PageTransition>
   );
