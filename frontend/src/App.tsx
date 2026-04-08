@@ -356,7 +356,6 @@ const HomePage: React.FC = () => {
             </div>
           )}
         </div>
-        <TabBar />
       </div>
     </PageTransition>
   );
@@ -440,6 +439,18 @@ const TabBar: React.FC = () => {
       </div>
     </div>
   );
+};
+
+// 全局底部导航栏 - 只在特定页面显示
+const GlobalTabBar: React.FC = () => {
+  const location = useLocation();
+  // 只在首页、我的牧场、个人中心页面显示底部导航
+  const showTabBarPages = ['/', '/my-adoptions', '/profile'];
+  const shouldShow = showTabBarPages.includes(location.pathname);
+
+  if (!shouldShow) return null;
+
+  return <TabBar />;
 };
 
 // ==================== 详情页 ====================
@@ -880,7 +891,6 @@ const MyAdoptionsPage: React.FC = () => {
             </div>
           )}
         </div>
-        <TabBar />
       </div>
     </PageTransition>
   );
@@ -1072,7 +1082,6 @@ const ProfilePage: React.FC = () => {
           </div>
           <p className="text-center text-xs text-slate-300 pb-12">云端牧场智慧平台 v2.1.0 · 智慧农业领先品牌</p>
         </div>
-        <TabBar />
       </div>
     </PageTransition>
   );
@@ -1492,6 +1501,7 @@ export default function App() {
               <Route path="/admin" element={<Suspense fallback={<LoadingSpinner />}><AdminPage /></Suspense>} />
             </Routes>
           </AnimatePresence>
+          <GlobalTabBar />
         </div>
       </Router>
     </AuthContext.Provider>
