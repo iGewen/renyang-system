@@ -85,7 +85,6 @@ export class RedemptionService {
       originalAmount: amount,
       finalAmount: amount,
       status: RedemptionStatus.PENDING_AUDIT,
-      expireAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24小时过期
     });
 
     await this.redemptionRepository.save(redemption);
@@ -209,9 +208,6 @@ export class RedemptionService {
           redemption.adjustReason = remark || '';
         }
 
-        // 更新过期时间
-        redemption.expireAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
         await this.redemptionRepository.save(redemption);
       } else {
         // 审核拒绝
@@ -246,11 +242,6 @@ export class RedemptionService {
 
     if (redemption.status !== RedemptionStatus.AUDIT_PASSED) {
       throw new BadRequestException('买断订单未通过审核或已支付');
-    }
-
-    // 检查是否过期
-    if (redemption.expireAt && new Date() > redemption.expireAt) {
-      throw new BadRequestException('买断订单已过期');
     }
 
     // 满期买断不需要支付
