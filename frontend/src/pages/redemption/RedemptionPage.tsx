@@ -145,6 +145,7 @@ const RedemptionPage: React.FC = () => {
   const redemptionAmount = redemptionPreview?.amount || 0;
   const remainingMonths = redemptionPreview?.remainingMonths || 0;
   const monthlyFeedFee = redemptionPreview?.adoption?.livestockSnapshot?.monthlyFeedFee || redemptionPreview?.adoption?.livestock?.monthlyFeedFee || 0;
+  const isFullTerm = redemptionPreview?.type === 'full';
 
   return (
     <PageTransition>
@@ -249,7 +250,7 @@ const RedemptionPage: React.FC = () => {
           <div className="flex items-center justify-between max-w-screen-xl mx-auto">
             <div>
               <p className="text-xs text-slate-400">应付金额</p>
-              <p className="text-2xl font-display font-bold text-brand-primary">¥{redemptionAmount}</p>
+              <p className="text-2xl font-display font-bold text-brand-primary">¥{Number(redemptionAmount).toFixed(2)}</p>
             </div>
             <Button
               size="lg"
