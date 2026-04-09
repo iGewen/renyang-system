@@ -4,7 +4,6 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  DeleteDateColumn,
   Index,
   OneToMany,
 } from 'typeorm';
@@ -40,9 +39,6 @@ export class LivestockType {
 
   @UpdateDateColumn({ name: 'updated_at', comment: '更新时间' })
   updatedAt: Date;
-
-  @DeleteDateColumn({ name: 'deleted_at', comment: '软删除时间' })
-  deletedAt: Date;
 
   // 关联
   @OneToMany(() => Livestock, (livestock) => livestock.type)
