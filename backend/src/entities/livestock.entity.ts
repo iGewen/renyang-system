@@ -19,20 +19,19 @@ export class Livestock {
   id: string;
 
   @Index()
+  @Column({ name: 'type_id', length: 32, comment: '类型ID' })
+  typeId: string;
+
   @Column({ length: 100, comment: '活体名称' })
   name: string;
-
-  @Index()
-  @Column({ length: 32, comment: '类型ID' })
-  typeId: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, comment: '领养价格' })
   price: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, comment: '月饲料费' })
+  @Column({ name: 'monthly_feed_fee', type: 'decimal', precision: 10, scale: 2, comment: '月饲料费' })
   monthlyFeedFee: number;
 
-  @Column({ type: 'int', default: 12, comment: '买断所需月数' })
+  @Column({ name: 'redemption_months', type: 'int', default: 12, comment: '买断所需月数' })
   redemptionMonths: number;
 
   @Column({ type: 'text', nullable: true, comment: '描述' })
@@ -41,13 +40,13 @@ export class Livestock {
   @Column({ type: 'json', nullable: true, comment: '图片列表' })
   images: string[];
 
-  @Column({ length: 500, nullable: true, comment: '主图' })
+  @Column({ name: 'main_image', length: 500, nullable: true, comment: '主图' })
   mainImage: string;
 
   @Column({ type: 'int', default: 0, comment: '库存数量' })
   stock: number;
 
-  @Column({ type: 'int', default: 0, comment: '已售数量' })
+  @Column({ name: 'sold_count', type: 'int', default: 0, comment: '已售数量' })
   soldCount: number;
 
   @Column({
@@ -57,16 +56,16 @@ export class Livestock {
   })
   status: number;
 
-  @Column({ type: 'int', default: 0, comment: '排序' })
+  @Column({ name: 'sort_order', type: 'int', default: 0, comment: '排序' })
   sortOrder: number;
 
-  @CreateDateColumn({ comment: '创建时间' })
+  @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;
 
-  @UpdateDateColumn({ comment: '更新时间' })
+  @UpdateDateColumn({ name: 'updated_at', comment: '更新时间' })
   updatedAt: Date;
 
-  @DeleteDateColumn({ comment: '软删除时间' })
+  @DeleteDateColumn({ name: 'deleted_at', comment: '软删除时间' })
   deletedAt: Date;
 
   // 关联

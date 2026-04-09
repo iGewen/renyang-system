@@ -31,37 +31,37 @@ export class Adoption {
   id: string;
 
   @Index()
-  @Column({ length: 32, unique: true, comment: '领养编号' })
+  @Column({ name: 'adoption_no', length: 32, unique: true, comment: '领养编号' })
   adoptionNo: string;
 
   @Index()
-  @Column({ length: 32, comment: '订单ID' })
+  @Column({ name: 'order_id', length: 32, comment: '订单ID' })
   orderId: string;
 
   @Index()
-  @Column({ length: 32, comment: '用户ID' })
+  @Column({ name: 'user_id', length: 32, comment: '用户ID' })
   userId: string;
 
   @Index()
-  @Column({ length: 32, comment: '活体ID' })
+  @Column({ name: 'livestock_id', length: 32, comment: '活体ID' })
   livestockId: string;
 
-  @Column({ type: 'json', comment: '活体快照' })
+  @Column({ name: 'livestock_snapshot', type: 'json', comment: '活体快照' })
   livestockSnapshot: any;
 
-  @Column({ type: 'date', comment: '领养开始日期' })
+  @Column({ name: 'start_date', type: 'date', comment: '领养开始日期' })
   startDate: Date;
 
-  @Column({ type: 'int', comment: '买断所需月数' })
+  @Column({ name: 'redemption_months', type: 'int', comment: '买断所需月数' })
   redemptionMonths: number;
 
-  @Column({ type: 'int', default: 0, comment: '已缴纳饲料费月数' })
+  @Column({ name: 'feed_months_paid', type: 'int', default: 0, comment: '已缴纳饲料费月数' })
   feedMonthsPaid: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0, comment: '累计已缴饲料费' })
+  @Column({ name: 'total_feed_amount', type: 'decimal', precision: 10, scale: 2, default: 0, comment: '累计已缴饲料费' })
   totalFeedAmount: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0, comment: '累计滞纳金' })
+  @Column({ name: 'late_fee_amount', type: 'decimal', precision: 10, scale: 2, default: 0, comment: '累计滞纳金' })
   lateFeeAmount: number;
 
   @Index()
@@ -72,26 +72,27 @@ export class Adoption {
   })
   status: number;
 
-  @Column({ length: 64, nullable: true, comment: '当前饲料费账单ID' })
+  @Column({ name: 'current_feed_bill_id', length: 64, nullable: true, comment: '当前饲料费账单ID' })
   currentFeedBillId: string;
 
   @Column({
+    name: 'is_exception',
     type: 'tinyint',
     default: 0,
     comment: '是否异常：0否 1是',
   })
   isException: number;
 
-  @Column({ length: 255, nullable: true, comment: '异常原因' })
+  @Column({ name: 'exception_reason', length: 255, nullable: true, comment: '异常原因' })
   exceptionReason: string;
 
-  @Column({ type: 'datetime', nullable: true, comment: '异常标记时间' })
+  @Column({ name: 'exception_at', type: 'datetime', nullable: true, comment: '异常标记时间' })
   exceptionAt: Date;
 
-  @CreateDateColumn({ comment: '创建时间' })
+  @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;
 
-  @UpdateDateColumn({ comment: '更新时间' })
+  @UpdateDateColumn({ name: 'updated_at', comment: '更新时间' })
   updatedAt: Date;
 
   // 关联

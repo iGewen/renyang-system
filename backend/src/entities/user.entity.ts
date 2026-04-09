@@ -32,10 +32,10 @@ export class User {
   avatar: string;
 
   @Index()
-  @Column({ length: 64, nullable: true, unique: true, comment: '微信OpenID' })
+  @Column({ name: 'wechat_openid', length: 64, nullable: true, unique: true, comment: '微信OpenID' })
   wechatOpenId: string;
 
-  @Column({ length: 64, nullable: true, comment: '微信UnionID' })
+  @Column({ name: 'wechat_unionid', length: 64, nullable: true, comment: '微信UnionID' })
   wechatUnionId: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0, comment: '账户余额（元）' })
@@ -48,19 +48,19 @@ export class User {
   })
   status: number;
 
-  @Column({ type: 'datetime', nullable: true, comment: '最后登录时间' })
+  @Column({ name: 'last_login_at', type: 'datetime', nullable: true, comment: '最后登录时间' })
   lastLoginAt: Date;
 
-  @Column({ length: 45, nullable: true, comment: '最后登录IP' })
+  @Column({ name: 'last_login_ip', length: 45, nullable: true, comment: '最后登录IP' })
   lastLoginIp: string;
 
-  @CreateDateColumn({ comment: '创建时间' })
+  @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;
 
-  @UpdateDateColumn({ comment: '更新时间' })
+  @UpdateDateColumn({ name: 'updated_at', comment: '更新时间' })
   updatedAt: Date;
 
-  @DeleteDateColumn({ comment: '软删除时间' })
+  @DeleteDateColumn({ name: 'deleted_at', comment: '软删除时间' })
   deletedAt: Date;
 
   // 关联

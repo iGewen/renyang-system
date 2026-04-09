@@ -20,15 +20,16 @@ export class SmsCode {
   type: string;
 
   @Column({
+    name: 'is_used',
     type: 'tinyint',
     default: 0,
     comment: '是否已使用',
   })
   isUsed: number;
 
-  @Column({ type: 'datetime', comment: '过期时间' })
+  @Column({ name: 'expire_at', type: 'datetime', comment: '过期时间' })
   expireAt: Date;
 
-  @CreateDateColumn({ comment: '创建时间' })
+  @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;
 }

@@ -31,19 +31,19 @@ export class RedemptionOrder {
   id: string;
 
   @Index()
-  @Column({ length: 32, unique: true, comment: '买断编号' })
+  @Column({ name: 'redemption_no', length: 32, unique: true, comment: '买断编号' })
   redemptionNo: string;
 
   @Index()
-  @Column({ length: 32, comment: '领养记录ID' })
+  @Column({ name: 'adoption_id', length: 32, comment: '领养记录ID' })
   adoptionId: string;
 
   @Index()
-  @Column({ length: 32, comment: '用户ID' })
+  @Column({ name: 'user_id', length: 32, comment: '用户ID' })
   userId: string;
 
   @Index()
-  @Column({ length: 32, comment: '活体ID' })
+  @Column({ name: 'livestock_id', length: 32, comment: '活体ID' })
   livestockId: string;
 
   @Column({
@@ -52,16 +52,16 @@ export class RedemptionOrder {
   })
   type: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, comment: '原买断金额' })
+  @Column({ name: 'original_amount', type: 'decimal', precision: 10, scale: 2, comment: '原买断金额' })
   originalAmount: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true, comment: '调整后金额' })
+  @Column({ name: 'adjusted_amount', type: 'decimal', precision: 10, scale: 2, nullable: true, comment: '调整后金额' })
   adjustedAmount: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, comment: '最终买断金额' })
+  @Column({ name: 'final_amount', type: 'decimal', precision: 10, scale: 2, comment: '最终买断金额' })
   finalAmount: number;
 
-  @Column({ length: 255, nullable: true, comment: '调整原因' })
+  @Column({ name: 'adjust_reason', length: 255, nullable: true, comment: '调整原因' })
   adjustReason: string;
 
   @Index()
@@ -72,34 +72,34 @@ export class RedemptionOrder {
   })
   status: number;
 
-  @Column({ length: 32, nullable: true, comment: '审核管理员ID' })
+  @Column({ name: 'audit_admin_id', length: 32, nullable: true, comment: '审核管理员ID' })
   auditAdminId: string;
 
-  @Column({ type: 'datetime', nullable: true, comment: '审核时间' })
+  @Column({ name: 'audit_at', type: 'datetime', nullable: true, comment: '审核时间' })
   auditAt: Date;
 
-  @Column({ length: 255, nullable: true, comment: '审核备注' })
+  @Column({ name: 'audit_remark', length: 255, nullable: true, comment: '审核备注' })
   auditRemark: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0, comment: '实付金额' })
+  @Column({ name: 'paid_amount', type: 'decimal', precision: 10, scale: 2, default: 0, comment: '实付金额' })
   paidAmount: number;
 
-  @Column({ length: 20, nullable: true, comment: '支付方式' })
+  @Column({ name: 'payment_method', length: 20, nullable: true, comment: '支付方式' })
   paymentMethod: string;
 
-  @Column({ length: 64, nullable: true, comment: '支付平台订单号' })
+  @Column({ name: 'payment_no', length: 64, nullable: true, comment: '支付平台订单号' })
   paymentNo: string;
 
-  @Column({ type: 'datetime', nullable: true, comment: '支付时间' })
+  @Column({ name: 'paid_at', type: 'datetime', nullable: true, comment: '支付时间' })
   paidAt: Date;
 
-  @Column({ type: 'datetime', nullable: true, comment: '过期时间' })
+  @Column({ name: 'expire_at', type: 'datetime', nullable: true, comment: '过期时间' })
   expireAt: Date;
 
-  @CreateDateColumn({ comment: '创建时间' })
+  @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;
 
-  @UpdateDateColumn({ comment: '更新时间' })
+  @UpdateDateColumn({ name: 'updated_at', comment: '更新时间' })
   updatedAt: Date;
 
   // 关联

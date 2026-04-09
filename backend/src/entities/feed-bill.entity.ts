@@ -25,50 +25,50 @@ export class FeedBill {
   id: string;
 
   @Index()
-  @Column({ length: 32, unique: true, comment: '账单编号' })
+  @Column({ name: 'bill_no', length: 32, unique: true, comment: '账单编号' })
   billNo: string;
 
   @Index()
-  @Column({ length: 32, comment: '领养记录ID' })
+  @Column({ name: 'adoption_id', length: 32, comment: '领养记录ID' })
   adoptionId: string;
 
   @Index()
-  @Column({ length: 32, comment: '用户ID' })
+  @Column({ name: 'user_id', length: 32, comment: '用户ID' })
   userId: string;
 
   @Index()
-  @Column({ length: 32, comment: '活体ID' })
+  @Column({ name: 'livestock_id', length: 32, comment: '活体ID' })
   livestockId: string;
 
   @Index()
-  @Column({ length: 7, comment: '账单月份：2026-04' })
+  @Column({ name: 'bill_month', length: 7, comment: '账单月份：2026-04' })
   billMonth: string;
 
-  @Column({ type: 'date', comment: '账单日期' })
+  @Column({ name: 'bill_date', type: 'date', comment: '账单日期' })
   billDate: Date;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, comment: '原金额' })
+  @Column({ name: 'original_amount', type: 'decimal', precision: 10, scale: 2, comment: '原金额' })
   originalAmount: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true, comment: '调整后金额' })
+  @Column({ name: 'adjusted_amount', type: 'decimal', precision: 10, scale: 2, nullable: true, comment: '调整后金额' })
   adjustedAmount: number;
 
-  @Column({ type: 'decimal', precision: 5, scale: 4, nullable: true, comment: '滞纳金比例（日）' })
+  @Column({ name: 'late_fee_rate', type: 'decimal', precision: 5, scale: 4, nullable: true, comment: '滞纳金比例（日）' })
   lateFeeRate: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true, comment: '滞纳金上限' })
+  @Column({ name: 'late_fee_cap', type: 'decimal', precision: 10, scale: 2, nullable: true, comment: '滞纳金上限' })
   lateFeeCap: number;
 
-  @Column({ type: 'int', default: 0, comment: '逾期天数' })
+  @Column({ name: 'late_fee_days', type: 'int', default: 0, comment: '逾期天数' })
   lateFeeDays: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0, comment: '滞纳金金额' })
+  @Column({ name: 'late_fee_amount', type: 'decimal', precision: 10, scale: 2, default: 0, comment: '滞纳金金额' })
   lateFeeAmount: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0, comment: '累计滞纳金' })
+  @Column({ name: 'total_late_fee', type: 'decimal', precision: 10, scale: 2, default: 0, comment: '累计滞纳金' })
   totalLateFee: number;
 
-  @Column({ type: 'date', nullable: true, comment: '滞纳金开始计算日期' })
+  @Column({ name: 'late_fee_start_date', type: 'date', nullable: true, comment: '滞纳金开始计算日期' })
   lateFeeStartDate: Date;
 
   @Index()
@@ -79,31 +79,31 @@ export class FeedBill {
   })
   status: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0, comment: '实付金额' })
+  @Column({ name: 'paid_amount', type: 'decimal', precision: 10, scale: 2, default: 0, comment: '实付金额' })
   paidAmount: number;
 
-  @Column({ length: 20, nullable: true, comment: '支付方式' })
+  @Column({ name: 'payment_method', length: 20, nullable: true, comment: '支付方式' })
   paymentMethod: string;
 
-  @Column({ length: 64, nullable: true, comment: '支付平台订单号' })
+  @Column({ name: 'payment_no', length: 64, nullable: true, comment: '支付平台订单号' })
   paymentNo: string;
 
-  @Column({ type: 'datetime', nullable: true, comment: '支付时间' })
+  @Column({ name: 'paid_at', type: 'datetime', nullable: true, comment: '支付时间' })
   paidAt: Date;
 
-  @Column({ type: 'datetime', nullable: true, comment: '过期时间' })
+  @Column({ name: 'expire_at', type: 'datetime', nullable: true, comment: '过期时间' })
   expireAt: Date;
 
-  @Column({ length: 255, nullable: true, comment: '调整原因' })
+  @Column({ name: 'adjust_reason', length: 255, nullable: true, comment: '调整原因' })
   adjustReason: string;
 
-  @Column({ length: 32, nullable: true, comment: '操作管理员ID' })
+  @Column({ name: 'operator_id', length: 32, nullable: true, comment: '操作管理员ID' })
   operatorId: string;
 
-  @CreateDateColumn({ comment: '创建时间' })
+  @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;
 
-  @UpdateDateColumn({ comment: '更新时间' })
+  @UpdateDateColumn({ name: 'updated_at', comment: '更新时间' })
   updatedAt: Date;
 
   // 关联

@@ -30,29 +30,30 @@ export class RefundOrder {
   id: string;
 
   @Index()
-  @Column({ length: 32, unique: true, comment: '退款编号' })
+  @Column({ name: 'refund_no', length: 32, unique: true, comment: '退款编号' })
   refundNo: string;
 
   @Index()
-  @Column({ length: 32, comment: '用户ID' })
+  @Column({ name: 'user_id', length: 32, comment: '用户ID' })
   userId: string;
 
-  @Column({ length: 20, comment: '订单类型：adoption/feed/redemption' })
+  @Column({ name: 'order_type', length: 20, comment: '订单类型：adoption/feed/redemption' })
   orderType: string;
 
   @Index()
-  @Column({ length: 32, comment: '原订单ID' })
+  @Column({ name: 'order_id', length: 32, comment: '原订单ID' })
   orderId: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, comment: '原订单金额' })
+  @Column({ name: 'original_amount', type: 'decimal', precision: 10, scale: 2, comment: '原订单金额' })
   originalAmount: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, comment: '退款金额' })
+  @Column({ name: 'refund_amount', type: 'decimal', precision: 10, scale: 2, comment: '退款金额' })
   refundAmount: number;
 
   @Column({
+    name: 'refund_livestock',
     type: 'tinyint',
-    default: 1,
+    default: 2,
     comment: '是否退活体：1是 2否',
   })
   refundLivestock: number;
@@ -74,28 +75,28 @@ export class RefundOrder {
   })
   status: number;
 
-  @Column({ length: 32, nullable: true, comment: '审核管理员ID' })
+  @Column({ name: 'audit_admin_id', length: 32, nullable: true, comment: '审核管理员ID' })
   auditAdminId: string;
 
-  @Column({ type: 'datetime', nullable: true, comment: '审核时间' })
+  @Column({ name: 'audit_at', type: 'datetime', nullable: true, comment: '审核时间' })
   auditAt: Date;
 
-  @Column({ length: 255, nullable: true, comment: '审核备注' })
+  @Column({ name: 'audit_remark', length: 255, nullable: true, comment: '审核备注' })
   auditRemark: string;
 
-  @Column({ length: 32, nullable: true, comment: '操作管理员ID' })
+  @Column({ name: 'operator_id', length: 32, nullable: true, comment: '操作管理员ID' })
   operatorId: string;
 
-  @Column({ length: 20, nullable: true, comment: '退款方式' })
+  @Column({ name: 'refund_method', length: 20, nullable: true, comment: '退款方式' })
   refundMethod: string;
 
-  @Column({ type: 'datetime', nullable: true, comment: '退款完成时间' })
+  @Column({ name: 'refund_at', type: 'datetime', nullable: true, comment: '退款完成时间' })
   refundAt: Date;
 
-  @CreateDateColumn({ comment: '创建时间' })
+  @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;
 
-  @UpdateDateColumn({ comment: '更新时间' })
+  @UpdateDateColumn({ name: 'updated_at', comment: '更新时间' })
   updatedAt: Date;
 
   // 关联

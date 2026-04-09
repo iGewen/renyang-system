@@ -22,28 +22,28 @@ export class PaymentRecord {
   id: string;
 
   @Index()
-  @Column({ length: 64, unique: true, comment: '支付平台订单号' })
+  @Column({ name: 'payment_no', length: 64, unique: true, comment: '支付平台订单号' })
   paymentNo: string;
 
   @Index()
-  @Column({ length: 32, comment: '商户订单号' })
+  @Column({ name: 'out_trade_no', length: 32, nullable: true, comment: '商户订单号' })
   outTradeNo: string;
 
   @Index()
-  @Column({ length: 32, comment: '用户ID' })
+  @Column({ name: 'user_id', length: 32, comment: '用户ID' })
   userId: string;
 
-  @Column({ length: 20, comment: '订单类型：adoption/feed/redemption/recharge' })
+  @Column({ name: 'order_type', length: 20, comment: '订单类型：adoption/feed/redemption/recharge' })
   orderType: string;
 
   @Index()
-  @Column({ length: 32, comment: '订单ID' })
+  @Column({ name: 'order_id', length: 32, comment: '订单ID' })
   orderId: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, comment: '支付金额' })
   amount: number;
 
-  @Column({ length: 20, comment: '支付方式：alipay/wechat/balance' })
+  @Column({ name: 'payment_method', length: 20, comment: '支付方式：alipay/wechat/balance' })
   paymentMethod: string;
 
   @Index()
@@ -54,16 +54,16 @@ export class PaymentRecord {
   })
   status: number;
 
-  @Column({ type: 'datetime', nullable: true, comment: '支付时间' })
+  @Column({ name: 'paid_at', type: 'datetime', nullable: true, comment: '支付时间' })
   paidAt: Date;
 
-  @Column({ type: 'datetime', nullable: true, comment: '回调时间' })
+  @Column({ name: 'notify_at', type: 'datetime', nullable: true, comment: '回调时间' })
   notifyAt: Date;
 
-  @Column({ type: 'json', nullable: true, comment: '回调数据' })
+  @Column({ name: 'notify_data', type: 'json', nullable: true, comment: '回调数据' })
   notifyData: any;
 
-  @CreateDateColumn({ comment: '创建时间' })
+  @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;
 
   // 关联

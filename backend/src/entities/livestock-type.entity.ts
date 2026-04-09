@@ -26,7 +26,7 @@ export class LivestockType {
   @Column({ length: 500, nullable: true, comment: '图标URL' })
   icon: string;
 
-  @Column({ type: 'int', default: 0, comment: '排序' })
+  @Column({ name: 'sort_order', type: 'int', default: 0, comment: '排序' })
   sortOrder: number;
 
   @Column({
@@ -36,13 +36,13 @@ export class LivestockType {
   })
   status: number;
 
-  @CreateDateColumn({ comment: '创建时间' })
+  @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;
 
-  @UpdateDateColumn({ comment: '更新时间' })
+  @UpdateDateColumn({ name: 'updated_at', comment: '更新时间' })
   updatedAt: Date;
 
-  @DeleteDateColumn({ comment: '软删除时间' })
+  @DeleteDateColumn({ name: 'deleted_at', comment: '软删除时间' })
   deletedAt: Date;
 
   // 关联

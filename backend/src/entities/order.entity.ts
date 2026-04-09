@@ -27,36 +27,36 @@ export class Order {
   id: string;
 
   @Index()
-  @Column({ length: 32, unique: true, comment: '订单编号' })
+  @Column({ name: 'order_no', length: 32, unique: true, comment: '订单编号' })
   orderNo: string;
 
   @Index()
-  @Column({ length: 32, comment: '用户ID' })
+  @Column({ name: 'user_id', length: 32, comment: '用户ID' })
   userId: string;
 
   @Index()
-  @Column({ length: 32, comment: '活体ID' })
+  @Column({ name: 'livestock_id', length: 32, comment: '活体ID' })
   livestockId: string;
 
-  @Column({ type: 'json', comment: '活体快照' })
+  @Column({ name: 'livestock_snapshot', type: 'json', comment: '活体快照' })
   livestockSnapshot: any;
 
   @Column({ type: 'int', default: 1, comment: '数量' })
   quantity: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, comment: '订单总金额' })
+  @Column({ name: 'total_amount', type: 'decimal', precision: 10, scale: 2, comment: '订单总金额' })
   totalAmount: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0, comment: '实付金额' })
+  @Column({ name: 'paid_amount', type: 'decimal', precision: 10, scale: 2, default: 0, comment: '实付金额' })
   paidAmount: number;
 
-  @Column({ length: 20, nullable: true, comment: '支付方式' })
+  @Column({ name: 'payment_method', length: 20, nullable: true, comment: '支付方式' })
   paymentMethod: string;
 
-  @Column({ length: 64, nullable: true, comment: '支付平台订单号' })
+  @Column({ name: 'payment_no', length: 64, nullable: true, comment: '支付平台订单号' })
   paymentNo: string;
 
-  @Column({ type: 'datetime', nullable: true, comment: '支付时间' })
+  @Column({ name: 'paid_at', type: 'datetime', nullable: true, comment: '支付时间' })
   paidAt: Date;
 
   @Index()
@@ -67,22 +67,22 @@ export class Order {
   })
   status: number;
 
-  @Column({ type: 'datetime', nullable: true, comment: '过期时间' })
+  @Column({ name: 'expire_at', type: 'datetime', nullable: true, comment: '过期时间' })
   expireAt: Date;
 
-  @Column({ length: 255, nullable: true, comment: '取消原因' })
+  @Column({ name: 'cancel_reason', length: 255, nullable: true, comment: '取消原因' })
   cancelReason: string;
 
-  @Column({ type: 'datetime', nullable: true, comment: '取消时间' })
+  @Column({ name: 'canceled_at', type: 'datetime', nullable: true, comment: '取消时间' })
   canceledAt: Date;
 
-  @Column({ length: 64, nullable: true, comment: '客户端幂等键' })
+  @Column({ name: 'client_order_id', length: 64, nullable: true, comment: '客户端幂等键' })
   clientOrderId: string;
 
-  @CreateDateColumn({ comment: '创建时间' })
+  @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;
 
-  @UpdateDateColumn({ comment: '更新时间' })
+  @UpdateDateColumn({ name: 'updated_at', comment: '更新时间' })
   updatedAt: Date;
 
   // 关联
