@@ -275,7 +275,7 @@ export class AdminController {
   @ApiOperation({ summary: '获取当前管理员信息' })
   @ApiResponse({ status: 200, description: '返回管理员信息' })
   async getAdminInfo(@Req() req: any) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     return this.adminService.getAdminInfo(adminId);
   }
 
@@ -287,7 +287,7 @@ export class AdminController {
   @ApiOperation({ summary: '修改密码' })
   @ApiResponse({ status: 200, description: '密码修改成功' })
   async changePassword(@Body() dto: ChangePasswordDto, @Req() req: any) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const ip = this.getClientIp(req);
     return this.adminService.changePassword(adminId, dto.oldPassword, dto.newPassword, ip);
   }
@@ -301,7 +301,7 @@ export class AdminController {
   @ApiResponse({ status: 200, description: '密码验证成功' })
   @ApiResponse({ status: 401, description: '密码错误' })
   async verifyPassword(@Body('password') password: string, @Req() req: any) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     return this.adminService.verifyPassword(adminId, password);
   }
 
@@ -367,7 +367,7 @@ export class AdminController {
     @Body('status') status: number,
     @Req() req: any,
   ) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.updateUserStatus(id, status, adminId, adminName, ip);
@@ -385,7 +385,7 @@ export class AdminController {
     @Body() body: { nickname?: string; phone?: string },
     @Req() req: any,
   ) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.updateUserInfo(id, body, adminId, adminName, ip);
@@ -403,7 +403,7 @@ export class AdminController {
     @Body() body: { amount: number; reason: string },
     @Req() req: any,
   ) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.adjustUserBalance(id, body.amount, body.reason, adminId, adminName, ip);
@@ -428,7 +428,7 @@ export class AdminController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建活体类型' })
   async createLivestockType(@Body() dto: CreateLivestockTypeDto, @Req() req: any) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.createLivestockType(dto, adminId, adminName, ip);
@@ -446,7 +446,7 @@ export class AdminController {
     @Body() dto: UpdateLivestockTypeDto,
     @Req() req: any,
   ) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.updateLivestockType(id, dto, adminId, adminName, ip);
@@ -460,7 +460,7 @@ export class AdminController {
   @ApiOperation({ summary: '删除活体类型' })
   @ApiParam({ name: 'id', description: '类型ID' })
   async deleteLivestockType(@Param('id') id: string, @Req() req: any) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.deleteLivestockType(id, adminId, adminName, ip);
@@ -502,7 +502,7 @@ export class AdminController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建活体' })
   async createLivestock(@Body() dto: CreateLivestockDto, @Req() req: any) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.createLivestock(dto, adminId, adminName, ip);
@@ -520,7 +520,7 @@ export class AdminController {
     @Body() dto: UpdateLivestockDto,
     @Req() req: any,
   ) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.updateLivestock(id, dto, adminId, adminName, ip);
@@ -538,7 +538,7 @@ export class AdminController {
     @Body('status') status: string | number,
     @Req() req: any,
   ) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     // 支持 'on_sale'/'off_sale' 字符串和数字
@@ -556,7 +556,7 @@ export class AdminController {
   @ApiOperation({ summary: '删除活体' })
   @ApiParam({ name: 'id', description: '活体ID' })
   async deleteLivestock(@Param('id') id: string, @Req() req: any) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.deleteLivestock(id, adminId, adminName, ip);
@@ -691,7 +691,7 @@ export class AdminController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '更新系统配置' })
   async updateSystemConfig(@Body() dto: UpdateSystemConfigDto, @Req() req: any) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.updateSystemConfig(dto.configKey, dto.configValue, adminId, adminName, ip);
@@ -706,7 +706,7 @@ export class AdminController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '发送系统公告' })
   async sendAnnouncement(@Body() dto: SendAnnouncementDto, @Req() req: any) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.sendSystemAnnouncement(dto.title, dto.content, adminId, adminName, ip);
@@ -745,7 +745,7 @@ export class AdminController {
     @Body() body: { userIds?: string[]; title: string; content: string; type: string },
     @Req() req: any,
   ) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.sendNotification(body, adminId, adminName, ip);
@@ -778,7 +778,7 @@ export class AdminController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建管理员' })
   async createAdmin(@Body() dto: CreateAdminDto, @Req() req: any) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.createAdmin(dto, adminId, adminName, ip);
@@ -796,7 +796,7 @@ export class AdminController {
     @Body('status') status: number,
     @Req() req: any,
   ) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.updateAdminStatus(id, status, adminId, adminName, ip);
@@ -841,7 +841,7 @@ export class AdminController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '清空审计日志' })
   async clearAuditLogs(@Req() req: any) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.clearAuditLogs(adminId, adminName, ip);
@@ -893,7 +893,7 @@ export class AdminController {
     @Body() body: { approved: boolean; adjustedAmount?: number; remark?: string },
     @Req() req: any,
   ) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.auditRedemption(id, body.approved, body.adjustedAmount, body.remark, adminId, adminName, ip);
@@ -945,7 +945,7 @@ export class AdminController {
     @Body() body: { approved: boolean; remark?: string },
     @Req() req: any,
   ) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.auditRefund(id, body.approved, body.remark, adminId, adminName, ip);
@@ -981,7 +981,7 @@ export class AdminController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '保存协议' })
   async saveAgreement(@Body() dto: SaveAgreementDto, @Req() req: any) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.saveAgreement(dto, adminId, adminName, ip);
@@ -995,7 +995,7 @@ export class AdminController {
   @ApiOperation({ summary: '删除协议' })
   @ApiParam({ name: 'key', description: '协议键名' })
   async deleteAgreement(@Param('key') key: string, @Req() req: any) {
-    const adminId = req.user?.sub;
+    const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.deleteAgreement(key, adminId, adminName, ip);
