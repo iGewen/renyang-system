@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ADMIN_ROLE_KEY, AdminRole } from '../decorators/admin-role.decorator';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Admin } from '@/entities/admin.entity';
@@ -20,6 +21,15 @@ export class AdminGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // 检查是否是公开接口
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) {
+      return true;
+    }
+
     // 获取接口要求的管理员角色
     const requiredRole = this.reflector.getAllAndOverride<AdminRole>(
       ADMIN_ROLE_KEY,
