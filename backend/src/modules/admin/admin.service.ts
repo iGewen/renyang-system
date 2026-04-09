@@ -396,13 +396,9 @@ export class AdminService {
    * 创建活体类型
    */
   async createLivestockType(data: Partial<LivestockType>, adminId: string, adminName: string, ip?: string) {
-    // 生成编码：取名称首字母拼音或使用ID前缀
-    const code = data.code || IdUtil.generate('LT');
-
     const type = this.livestockTypeRepository.create({
       id: IdUtil.generate('LT'),
       ...data,
-      code,
     });
 
     await this.livestockTypeRepository.save(type);
