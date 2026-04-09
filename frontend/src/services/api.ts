@@ -748,6 +748,14 @@ export const adminApi = {
     return request('/admin/audit-logs', { method: 'DELETE' });
   },
 
+  // 验证管理员密码（敏感操作确认）
+  verifyPassword: async (password: string): Promise<{ success: boolean }> => {
+    return request('/admin/auth/verify-password', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    });
+  },
+
   // ==================== 协议管理 ====================
   getAgreements: async (): Promise<{ id: string; agreementKey: string; title: string; content: string; createdAt: string; updatedAt: string }[]> => {
     return request('/admin/agreements');

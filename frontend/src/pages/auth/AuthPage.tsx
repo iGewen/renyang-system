@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Icons, PageTransition, Input, Button } from '../components/ui';
@@ -24,6 +24,16 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
 
   // 验证码倒计时
   const [countdown, setCountdown] = useState(0);
+  const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 组件卸载时清理定时器
+  useEffect(() => {
+    return () => {
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+      }
+    };
+  }, []);
 
   // 加载状态
   const [loading, setLoading] = useState(false);
@@ -42,10 +52,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
       const type = mode === 'register' ? 'register' : mode === 'forgot' ? 'reset_password' : 'login';
       await authApi.sendSmsCode(phone, type);
       setCountdown(60);
-      const timer = setInterval(() => {
+      // 清理之前的定时器
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+      }
+      countdownTimerRef.current = setInterval(() => {
         setCountdown(prev => {
           if (prev <= 1) {
-            clearInterval(timer);
+            if (countdownTimerRef.current) {
+              clearInterval(countdownTimerRef.current);
+              countdownTimerRef.current = null;
+            }
             return 0;
           }
           return prev - 1;

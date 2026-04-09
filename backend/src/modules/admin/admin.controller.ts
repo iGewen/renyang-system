@@ -288,6 +288,19 @@ export class AdminController {
     return this.adminService.changePassword(adminId, dto.oldPassword, dto.newPassword, ip);
   }
 
+  /**
+   * 验证密码（用于敏感操作确认）
+   */
+  @Post('auth/verify-password')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '验证密码' })
+  @ApiResponse({ status: 200, description: '密码验证成功' })
+  @ApiResponse({ status: 401, description: '密码错误' })
+  async verifyPassword(@Body('password') password: string, @Req() req: any) {
+    const adminId = req.user?.sub;
+    return this.adminService.verifyPassword(adminId, password);
+  }
+
   // =============== 仪表盘 ===============
 
   /**

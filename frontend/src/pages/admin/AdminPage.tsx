@@ -1,10 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState, ToastProvider, useToast } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { adminApi, refundApi } from '../../services/api';
 import type { Livestock, LivestockType, AdoptionOrder, FeedBill, User, DashboardStats, SystemConfig, AuditLog, Notification } from '../../types';
 import { OrderStatus, UserStatus, FeedBillStatus, RedemptionStatus, getOrderStatusText, getUserStatusText, getFeedBillStatusText, getRedemptionStatusText } from '../../types/enums';
+
+// ==================== 防抖 Hook ====================
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 // ==================== 敏感文本区域组件 ====================
 
@@ -820,10 +837,13 @@ export const AdminUsers: React.FC = () => {
   const [balanceForm, setBalanceForm] = useState({ amount: '', reason: '' });
   const [submitting, setSubmitting] = useState(false);
 
+  // 搜索防抖
+  const debouncedKeyword = useDebounce(keyword, 500);
+
   const loadUsers = async () => {
     setLoading(true);
     try {
-      const res = await adminApi.getUsers({ keyword: keyword || undefined });
+      const res = await adminApi.getUsers({ keyword: debouncedKeyword || undefined });
       setUsers(res.list || []);
     } catch (error) {
       console.error('Failed to load users:', error);
@@ -834,7 +854,7 @@ export const AdminUsers: React.FC = () => {
 
   useEffect(() => {
     loadUsers();
-  }, [keyword]);
+  }, [debouncedKeyword]);
 
   // 用户状态映射 - 使用数字枚举
   const userStatusMap: Record<number, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
@@ -873,6 +893,10 @@ export const AdminUsers: React.FC = () => {
     }
   };
 
+  // 余额调整限制
+  const BALANCE_ADJUST_MIN = -10000; // 最大扣减金额
+  const BALANCE_ADJUST_MAX = 10000;  // 最大增加金额
+
   const handleAdjustBalance = async () => {
     if (!selectedUser) return;
     const amount = parseFloat(balanceForm.amount);
@@ -880,8 +904,29 @@ export const AdminUsers: React.FC = () => {
       toast.error('请输入有效的金额');
       return;
     }
+    // 金额限制检查
+    if (amount < BALANCE_ADJUST_MIN) {
+      toast.error(`单次扣减金额不能超过 ¥${Math.abs(BALANCE_ADJUST_MIN).toLocaleString()}`);
+      return;
+    }
+    if (amount > BALANCE_ADJUST_MAX) {
+      toast.error(`单次增加金额不能超过 ¥${BALANCE_ADJUST_MAX.toLocaleString()}`);
+      return;
+    }
+    // 检查扣减后余额是否为负
+    const currentBalance = typeof selectedUser.balance === 'number'
+      ? selectedUser.balance
+      : parseFloat(selectedUser.balance || '0');
+    if (currentBalance + amount < 0) {
+      toast.error('扣减后余额不能为负数');
+      return;
+    }
     if (!balanceForm.reason.trim()) {
       toast.error('请填写调整原因');
+      return;
+    }
+    if (balanceForm.reason.trim().length < 5) {
+      toast.error('调整原因至少需要5个字符');
       return;
     }
     setSubmitting(true);
@@ -1018,21 +1063,27 @@ export const AdminUsers: React.FC = () => {
               ¥{typeof selectedUser?.balance === 'number' ? selectedUser.balance.toFixed(2) : parseFloat(selectedUser?.balance || '0').toFixed(2)}
             </p>
           </div>
-          <Input
-            label="调整金额"
-            type="number"
-            value={balanceForm.amount}
-            onChange={e => setBalanceForm({ ...balanceForm, amount: e.target.value })}
-            placeholder="正数为增加，负数为扣减"
-          />
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">调整原因</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">调整金额</label>
+            <input
+              type="number"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none"
+              value={balanceForm.amount}
+              onChange={e => setBalanceForm({ ...balanceForm, amount: e.target.value })}
+              placeholder="正数为增加，负数为扣减"
+            />
+            <p className="text-xs text-slate-400 mt-1">
+              单次限额：增加 ¥10,000 / 扣减 ¥10,000
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">调整原因 <span className="text-red-500">*</span></label>
             <textarea
               className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none"
               rows={3}
               value={balanceForm.reason}
               onChange={e => setBalanceForm({ ...balanceForm, reason: e.target.value })}
-              placeholder="请输入调整原因（必填）"
+              placeholder="请输入调整原因（至少5个字符）"
             />
           </div>
           <div className="flex gap-3 pt-4">
@@ -1841,6 +1892,8 @@ export const AdminAuditLogs: React.FC = () => {
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   const loadLogs = async () => {
     setLoading(true);
@@ -1859,17 +1912,36 @@ export const AdminAuditLogs: React.FC = () => {
   }, [moduleFilter]);
 
   const handleClearLogs = async () => {
+    if (!confirmPassword.trim()) {
+      setPasswordError('请输入管理员密码');
+      return;
+    }
     setClearing(true);
+    setPasswordError('');
     try {
+      // 先验证密码
+      await adminApi.verifyPassword(confirmPassword);
+      // 密码正确，执行清空
       await adminApi.clearAuditLogs();
       toast.success('审计日志已清空');
       setShowClearConfirm(false);
+      setConfirmPassword('');
       loadLogs();
     } catch (error: any) {
-      toast.error(error.message || '清空失败');
+      if (error.message?.includes('密码') || error.status === 401) {
+        setPasswordError('密码错误');
+      } else {
+        toast.error(error.message || '清空失败');
+      }
     } finally {
       setClearing(false);
     }
+  };
+
+  const openClearConfirm = () => {
+    setConfirmPassword('');
+    setPasswordError('');
+    setShowClearConfirm(true);
   };
 
   if (loading) return <LoadingSpinner />;
@@ -1902,7 +1974,7 @@ export const AdminAuditLogs: React.FC = () => {
               </button>
             ))}
           </div>
-          <Button variant="danger" onClick={() => setShowClearConfirm(true)}>
+          <Button variant="danger" onClick={openClearConfirm}>
             <Icons.Trash2 className="w-4 h-4 mr-2" />
             清空日志
           </Button>
@@ -1952,16 +2024,38 @@ export const AdminAuditLogs: React.FC = () => {
         </div>
       </Card>
 
-      {/* 清空确认弹窗 */}
-      <ConfirmDialog
-        open={showClearConfirm}
-        onClose={() => setShowClearConfirm(false)}
-        onConfirm={handleClearLogs}
-        title="确认清空审计日志"
-        message="此操作将清空所有审计日志，且无法恢复。确定要继续吗？"
-        confirmText="确认清空"
-        loading={clearing}
-      />
+      {/* 清空确认弹窗 - 需要密码确认 */}
+      <Modal open={showClearConfirm} onClose={() => { setShowClearConfirm(false); setConfirmPassword(''); setPasswordError(''); }} title="确认清空审计日志">
+        <div className="p-6 space-y-4">
+          <div className="p-4 bg-red-50 rounded-xl">
+            <div className="flex items-start gap-3">
+              <Icons.AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-red-800">危险操作警告</p>
+                <p className="text-sm text-red-600 mt-1">此操作将清空所有审计日志，且无法恢复。请输入管理员密码确认操作。</p>
+              </div>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">管理员密码</label>
+            <input
+              type="password"
+              className={cn(
+                "w-full px-4 py-3 rounded-xl border outline-none",
+                passwordError ? "border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-500" : "border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+              )}
+              value={confirmPassword}
+              onChange={e => { setConfirmPassword(e.target.value); setPasswordError(''); }}
+              placeholder="请输入密码确认"
+            />
+            {passwordError && <p className="text-sm text-red-500 mt-1">{passwordError}</p>}
+          </div>
+          <div className="flex gap-3 pt-4">
+            <Button variant="outline" className="flex-1" onClick={() => { setShowClearConfirm(false); setConfirmPassword(''); setPasswordError(''); }}>取消</Button>
+            <Button variant="danger" className="flex-1" onClick={handleClearLogs} loading={clearing}>确认清空</Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* 详情弹窗 */}
       <Modal open={!!selectedLog} onClose={() => setSelectedLog(null)} title="日志详情">

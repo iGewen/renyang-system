@@ -176,6 +176,28 @@ export class AdminService {
     return { success: true };
   }
 
+  /**
+   * 验证管理员密码（用于敏感操作确认）
+   */
+  async verifyPassword(adminId: string, password: string) {
+    const admin = await this.adminRepository
+      .createQueryBuilder('admin')
+      .where('admin.id = :id', { id: adminId })
+      .addSelect('admin.password')
+      .getOne();
+
+    if (!admin) {
+      throw new NotFoundException('管理员不存在');
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, admin.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('密码错误');
+    }
+
+    return { success: true };
+  }
+
   // =============== 用户管理 ===============
 
   /**
