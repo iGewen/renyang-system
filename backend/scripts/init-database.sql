@@ -292,6 +292,7 @@ CREATE TABLE IF NOT EXISTS `admins` (
   `avatar` varchar(500) DEFAULT NULL,
   `role` tinyint NOT NULL DEFAULT '2' COMMENT '1超级管理员 2普通管理员',
   `status` tinyint NOT NULL DEFAULT '1' COMMENT '1启用 2禁用',
+  `force_change_password` tinyint NOT NULL DEFAULT '0' COMMENT '是否需要强制修改密码：0否 1是',
   `last_login_at` datetime DEFAULT NULL,
   `last_login_ip` varchar(45) DEFAULT NULL,
   `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),

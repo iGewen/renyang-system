@@ -49,9 +49,9 @@ COPY --from=builder /app/package.json ./
 # 暴露端口
 EXPOSE 3001
 
-# 健康检查（使用curl）
+# 健康检查（使用根路由）
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
-  CMD curl -f http://localhost:3001/api/docs || exit 1
+  CMD curl -f http://localhost:3001/api/ || exit 1
 
 # 启动应用
 CMD ["node", "dist/main.js"]

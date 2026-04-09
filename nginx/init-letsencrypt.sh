@@ -10,63 +10,7 @@ DOMAIN="${DOMAIN:-}"
 EMAIL="${EMAIL:-}"
 STAGING="${STAGING:-0}"
 
-# 检查域名是否配置
-if [ -z "$DOMAIN" ]; then
-    echo "=========================================="
-    echo "未配置 DOMAIN，使用HTTP模式"
-    echo "=========================================="
-    exit 0
-fi
-
-echo "=========================================="
-echo "开始配置SSL证书"
-echo "域名: $DOMAIN"
-echo "邮箱: $EMAIL"
-echo "=========================================="
-
-# 检查证书是否已存在
-if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
-    echo "证书已存在，配置HTTPS..."
-    configure_https
-    exit 0
-fi
-
-# 等待nginx启动
-echo "等待Nginx启动..."
-sleep 10
-
-# 测试域名解析
-echo "测试域名解析..."
-if ! nslookup $DOMAIN > /dev/null 2>&1; then
-    echo "警告: 无法解析域名 $DOMAIN"
-fi
-
-# 申请证书
-echo "申请SSL证书..."
-CERTBOT_ARGS="certonly --webroot -w /var/www/certbot --email $EMAIL --agree-tos --no-eff-email -d $DOMAIN"
-
-if [ "$STAGING" = "1" ]; then
-    CERTBOT_ARGS="$CERTBOT_ARGS --test-cert"
-    echo "使用测试模式申请证书"
-fi
-
-certbot $CERTBOT_ARGS || {
-    echo "=========================================="
-    echo "证书申请失败！"
-    echo "请检查："
-    echo "  1. 域名 $DOMAIN 是否正确解析到服务器IP"
-    echo "  2. 服务器80端口是否对外开放"
-    echo "  3. 阿里云安全组是否开放80端口"
-    echo "=========================================="
-    echo "当前使用HTTP模式运行"
-    exit 0
-}
-
-echo "=========================================="
-echo "SSL证书申请成功！"
-echo "=========================================="
-
-# 配置HTTPS
+# 配置HTTPS函数
 configure_https() {
     echo "切换到HTTPS配置..."
 
@@ -152,11 +96,66 @@ server {
 }
 EOF
 
-    # 删除HTTP配置中的默认server（防止冲突）
-    # 保留Let's Encrypt验证路径
     echo "HTTPS配置完成"
 }
 
+# 检查域名是否配置
+if [ -z "$DOMAIN" ]; then
+    echo "=========================================="
+    echo "未配置 DOMAIN，使用HTTP模式"
+    echo "=========================================="
+    exit 0
+fi
+
+echo "=========================================="
+echo "开始配置SSL证书"
+echo "域名: $DOMAIN"
+echo "邮箱: $EMAIL"
+echo "=========================================="
+
+# 检查证书是否已存在
+if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
+    echo "证书已存在，配置HTTPS..."
+    configure_https
+    exit 0
+fi
+
+# 等待nginx启动
+echo "等待Nginx启动..."
+sleep 10
+
+# 测试域名解析
+echo "测试域名解析..."
+if ! nslookup $DOMAIN > /dev/null 2>&1; then
+    echo "警告: 无法解析域名 $DOMAIN"
+fi
+
+# 申请证书
+echo "申请SSL证书..."
+CERTBOT_ARGS="certonly --webroot -w /var/www/certbot --email $EMAIL --agree-tos --no-eff-email -d $DOMAIN"
+
+if [ "$STAGING" = "1" ]; then
+    CERTBOT_ARGS="$CERTBOT_ARGS --test-cert"
+    echo "使用测试模式申请证书"
+fi
+
+certbot $CERTBOT_ARGS || {
+    echo "=========================================="
+    echo "证书申请失败！"
+    echo "请检查："
+    echo "  1. 域名 $DOMAIN 是否正确解析到服务器IP"
+    echo "  2. 服务器80端口是否对外开放"
+    echo "  3. 阿里云安全组是否开放80端口"
+    echo "=========================================="
+    echo "当前使用HTTP模式运行"
+    exit 0
+}
+
+echo "=========================================="
+echo "SSL证书申请成功！"
+echo "=========================================="
+
+# 配置HTTPS
 configure_https
 
 # 重启nginx容器以加载新配置
