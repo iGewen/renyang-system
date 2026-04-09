@@ -24,6 +24,35 @@ export class UserController {
     return this.userService.getBalanceLogs(userId);
   }
 
+  // =============== 公开配置接口 ===============
+
+  /**
+   * 获取站点配置（公开接口，无需登录）
+   */
+  @Public()
+  @Get('site-config')
+  async getSiteConfig() {
+    const keys = [
+      'site_name',
+      'site_title',
+      'site_description',
+      'site_keywords',
+      'contact_phone',
+      'contact_email',
+    ];
+
+    const configs = await this.systemConfigRepository.find({
+      where: keys.map(key => ({ configKey: key })),
+    });
+
+    const result: Record<string, string> = {};
+    configs.forEach(config => {
+      result[config.configKey] = config.configValue || '';
+    });
+
+    return result;
+  }
+
   // =============== 协议接口 ===============
 
   /**

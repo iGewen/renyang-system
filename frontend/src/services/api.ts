@@ -309,6 +309,22 @@ export const agreementApi = {
   }
 };
 
+// ==================== 站点配置 ====================
+
+export const siteConfigApi = {
+  // 获取站点配置（公开接口）
+  get: async (): Promise<{
+    site_name: string;
+    site_title: string;
+    site_description: string;
+    site_keywords: string;
+    contact_phone: string;
+    contact_email: string;
+  }> => {
+    return request('/users/site-config');
+  }
+};
+
 // ==================== 退款相关 ====================
 
 export const refundApi = {
