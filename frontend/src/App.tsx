@@ -1328,7 +1328,7 @@ export default function App() {
               <Route path="/success" element={<SuccessPage />} />
               <Route path="/my-adoptions" element={<MyAdoptionsPage />} />
               <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/balance" element={<BalancePage />} />
+              <Route path="/balance" element={<Suspense fallback={<LoadingSpinner />}><BalancePage /></Suspense>} />
               <Route path="/notifications" element={<NotificationPage />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/orders" element={<Suspense fallback={<LoadingSpinner />}><OrdersPage /></Suspense>} />
