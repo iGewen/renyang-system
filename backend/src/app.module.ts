@@ -161,7 +161,8 @@ export class AppModule implements NestModule, OnModuleInit {
         ['admin']
       );
 
-      if (result[0].count === 0) {
+      const count = Number(result[0].count);
+      if (count === 0) {
         // 从环境变量获取默认密码，如果未设置则生成随机密码
         const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || this.generateRandomPassword();
         const hashedPassword = await bcrypt.hash(defaultPassword, 10);
