@@ -48,11 +48,9 @@ export class AdminGuard implements CanActivate {
     }
 
     // 检查是否是管理员（通过检查admins表）
-    console.log('AdminGuard checking user:', JSON.stringify(user));
     const admin = await this.adminRepository.findOne({
       where: { id: user.id },
     });
-    console.log('AdminGuard found admin:', admin ? admin.id : 'null');
 
     if (!admin) {
       throw new ForbiddenException('无权访问管理接口');
