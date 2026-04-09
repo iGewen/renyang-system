@@ -124,9 +124,9 @@ services:
       # SSL证书持久化
       - certbot_letsencrypt:/etc/letsencrypt
       - certbot_www:/var/www/certbot
-      # Nginx配置
+      # Nginx配置模板
       - ./nginx/nginx.conf.template:/etc/nginx/templates/nginx.conf.template:ro
-      - ./nginx/start-nginx.sh:/docker-entrypoint.d/40-start-nginx.sh:ro
+      - ./nginx/nginx.https.conf.template:/etc/nginx/templates/nginx.https.conf.template:ro
     depends_on:
       backend:
         condition: service_healthy
@@ -150,13 +150,13 @@ services:
     volumes:
       - certbot_letsencrypt:/etc/letsencrypt
       - certbot_www:/var/www/certbot
-      - ./nginx/init-letsencrypt.sh:/opt/init-letsencrypt.sh:ro
-      - ./nginx/renew-certs.sh:/opt/renew-certs.sh:ro
+      - ./nginx/init-letsencrypt.sh:/init-letsencrypt.sh:ro
+      - ./nginx/renew-certs.sh:/renew-certs.sh:ro
     depends_on:
       - frontend
     networks:
       - cloud-ranch-network
-    entrypoint: "/bin/sh -c 'chmod +x /opt/*.sh && /opt/init-letsencrypt.sh && crond -f -l 2'"
+    entrypoint: "/bin/sh -c 'cp /init-letsencrypt.sh /tmp/init.sh && cp /renew-certs.sh /tmp/renew.sh && chmod +x /tmp/*.sh && /tmp/init.sh && crond -f -l 2'"
     healthcheck:
       test: ["CMD-SHELL", "pgrep crond || exit 1"]
       interval: 1m

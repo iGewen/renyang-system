@@ -23,8 +23,8 @@ fi
 echo "检查证书续期..."
 certbot renew --webroot -w /var/www/certbot --quiet || true
 
-# 重新加载nginx
-echo "重新加载Nginx..."
-nginx -s reload || true
+# 重新加载nginx（通过向frontend容器发送信号）
+# 由于certbot和frontend不在同一容器，这里只是提示
+echo "证书续期检查完成，如需重载Nginx请重启frontend容器"
 
 exit 0
