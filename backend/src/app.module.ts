@@ -156,27 +156,6 @@ export class AppModule implements NestModule, OnModuleInit {
 
   private async initializeAdmin() {
     try {
-      // 修复已有数据的字符集问题
-      console.log('🔧 正在修复数据库字符集问题...');
-
-      // 修复管理员表
-      await this.dataSource.query(
-        "UPDATE admins SET name = '超级管理员' WHERE username = 'admin'"
-      );
-
-      // 修复活体类型表
-      await this.dataSource.query(
-        "UPDATE livestock_types SET name = CASE id WHEN 'LT001' THEN '羊' WHEN 'LT002' THEN '鸡' WHEN 'LT003' THEN '鸵鸟' ELSE name END WHERE id IN ('LT001', 'LT002', 'LT003')"
-      );
-
-      // 修复系统配置表
-      await this.dataSource.query(
-        `UPDATE system_configs SET
-          configKey = 'site_name',
-          description = '网站名称'
-        WHERE configKey = '' OR configKey IS NULL LIMIT 1`
-      );
-
       const result = await this.dataSource.query(
         'SELECT COUNT(*) as count FROM admins WHERE username = ?',
         ['admin']
@@ -207,8 +186,6 @@ export class AppModule implements NestModule, OnModuleInit {
       } else {
         console.log('ℹ️  管理员账号已存在');
       }
-
-      console.log('✅ 数据库字符集修复完成');
     } catch (error) {
       console.error('❌ 初始化管理员失败:', error);
     }
@@ -255,13 +232,13 @@ export class AppModule implements NestModule, OnModuleInit {
 
       for (const config of defaultConfigs) {
         const result = await this.dataSource.query(
-          'SELECT COUNT(*) as count FROM system_configs WHERE configKey = ?',
+          'SELECT COUNT(*) as count FROM system_configs WHERE config_key = ?',
           [config.key]
         );
 
         if (result[0].count === 0) {
           await this.dataSource.query(
-            'INSERT INTO system_configs (id, configKey, configValue, configType, description, isEncrypted, createdAt, updatedAt) VALUES (UUID(), ?, ?, ?, ?, 0, NOW(), NOW())',
+            'INSERT INTO system_configs (id, config_key, config_value, config_type, description, is_encrypted, created_at, updated_at) VALUES (UUID(), ?, ?, ?, ?, 0, NOW(), NOW())',
             [config.key, config.value, config.type, config.description]
           );
         }
