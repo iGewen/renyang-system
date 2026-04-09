@@ -1066,13 +1066,6 @@ const ProfilePage: React.FC = () => {
                       </div>
                       <Icons.ChevronRight className="w-5 h-5 text-slate-300" />
                     </Link>
-                    <Link to="/admin" className="p-5 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-brand-accent/10 flex items-center justify-center text-brand-accent"><Icons.LayoutDashboard className="w-6 h-6" /></div>
-                        <span className="text-base font-bold text-slate-700">进入后台管理</span>
-                      </div>
-                      <Icons.ChevronRight className="w-5 h-5 text-slate-300" />
-                    </Link>
                   </div>
                 </Card>
               </section>
