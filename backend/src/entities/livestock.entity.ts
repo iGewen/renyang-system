@@ -8,6 +8,7 @@ import {
   Index,
   ManyToOne,
   OneToMany,
+  JoinColumn,
 } from 'typeorm';
 import { LivestockType } from './livestock-type.entity';
 import { Order } from './order.entity';
@@ -70,6 +71,7 @@ export class Livestock {
 
   // 关联
   @ManyToOne(() => LivestockType)
+  @JoinColumn({ name: 'type_id' })
   type: LivestockType;
 
   @OneToMany(() => Order, (order) => order.livestock)

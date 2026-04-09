@@ -8,6 +8,7 @@ import {
   ManyToOne,
   OneToOne,
   OneToMany,
+  JoinColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 import { Livestock } from './livestock.entity';
@@ -97,12 +98,15 @@ export class Adoption {
 
   // 关联
   @ManyToOne(() => User)
+  @JoinColumn({ name: 'user_id' })
   user: User;
 
   @ManyToOne(() => Livestock)
+  @JoinColumn({ name: 'livestock_id' })
   livestock: Livestock;
 
   @OneToOne(() => Order)
+  @JoinColumn({ name: 'order_id' })
   order: Order;
 
   @OneToMany(() => FeedBill, (bill) => bill.adoption)

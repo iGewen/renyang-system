@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   Index,
   ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 
@@ -68,5 +69,6 @@ export class PaymentRecord {
 
   // 关联
   @ManyToOne(() => User)
+  @JoinColumn({ name: 'user_id' })
   user: User;
 }

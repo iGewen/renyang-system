@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   Index,
   ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 import { Livestock } from './livestock.entity';
@@ -108,11 +109,14 @@ export class FeedBill {
 
   // 关联
   @ManyToOne(() => Adoption)
+  @JoinColumn({ name: 'adoption_id' })
   adoption: Adoption;
 
   @ManyToOne(() => User)
+  @JoinColumn({ name: 'user_id' })
   user: User;
 
   @ManyToOne(() => Livestock)
+  @JoinColumn({ name: 'livestock_id' })
   livestock: Livestock;
 }

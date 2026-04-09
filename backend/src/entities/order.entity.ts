@@ -87,9 +87,11 @@ export class Order {
 
   // 关联
   @ManyToOne(() => User)
+  @JoinColumn({ name: 'user_id' })
   user: User;
 
   @ManyToOne(() => Livestock)
+  @JoinColumn({ name: 'livestock_id' })
   livestock: Livestock;
 
   @OneToOne(() => Adoption, (adoption) => adoption.order)

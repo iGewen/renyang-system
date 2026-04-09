@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   Index,
   ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 
@@ -101,5 +102,6 @@ export class RefundOrder {
 
   // 关联
   @ManyToOne(() => User)
+  @JoinColumn({ name: 'user_id' })
   user: User;
 }
