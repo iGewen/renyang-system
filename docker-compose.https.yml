@@ -124,8 +124,8 @@ services:
       # SSL证书持久化
       - certbot_letsencrypt:/etc/letsencrypt
       - certbot_www:/var/www/certbot
-      # Nginx配置模板
-      - ./nginx/nginx.conf.template:/etc/nginx/templates/nginx.conf.template:ro
+      # Nginx配置（允许certbot写入HTTPS配置）
+      - nginx_conf:/etc/nginx/conf.d
     depends_on:
       backend:
         condition: service_healthy
@@ -141,7 +141,7 @@ services:
   certbot:
     image: certbot/certbot:latest
     container_name: cloud-ranch-certbot
-    restart: unless-stopped
+    restart: "no"
     environment:
       DOMAIN: ${DOMAIN:-}
       EMAIL: ${EMAIL:-}
@@ -149,18 +149,14 @@ services:
     volumes:
       - certbot_letsencrypt:/etc/letsencrypt
       - certbot_www:/var/www/certbot
+      - nginx_conf:/etc/nginx/conf.d
       - ./nginx/init-letsencrypt.sh:/init-letsencrypt.sh:ro
-      - ./nginx/renew-certs.sh:/renew-certs.sh:ro
     depends_on:
-      - frontend
+      frontend:
+        condition: service_healthy
     networks:
       - cloud-ranch-network
-    entrypoint: "/bin/sh -c 'cp /init-letsencrypt.sh /tmp/init.sh && cp /renew-certs.sh /tmp/renew.sh && chmod +x /tmp/*.sh && /tmp/init.sh && crond -f -l 2'"
-    healthcheck:
-      test: ["CMD-SHELL", "pgrep crond || exit 1"]
-      interval: 1m
-      timeout: 10s
-      retries: 3
+    entrypoint: "/bin/sh -c 'cp /init-letsencrypt.sh /tmp/init.sh && chmod +x /tmp/init.sh && /tmp/init.sh'"
 
 networks:
   cloud-ranch-network:
@@ -171,3 +167,4 @@ volumes:
   redis_data:
   certbot_letsencrypt:
   certbot_www:
+  nginx_conf:
