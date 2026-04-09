@@ -29,6 +29,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { ServicesModule } from './services/services.module';
 import { TasksModule } from './tasks/tasks.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { HealthModule } from './modules/health/health.module';
 
 // 守卫
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -101,6 +102,7 @@ import { AppLogger, LoggerMiddleware } from './common/logger';
     NotificationModule,
     AdminModule,
     UploadModule,
+    HealthModule,
 
     // 定时任务模块
     TasksModule,
