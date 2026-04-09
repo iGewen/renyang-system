@@ -97,7 +97,7 @@ export const authApi = {
 
   // 重置密码
   resetPassword: async (data: { phone: string; code: string; newPassword: string }): Promise<{ success: boolean }> => {
-    return request('/auth/password/reset', {
+    return request('/auth/reset-password', {
       method: 'POST',
       body: JSON.stringify(data),
     });

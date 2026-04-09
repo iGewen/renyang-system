@@ -24,6 +24,7 @@ import { RedisService } from '@/common/utils/redis.service';
 import { JwtService } from '@nestjs/jwt';
 import { IdUtil } from '@/common/utils/id.util';
 import { NotificationService } from '../notification/notification.service';
+import { CryptoUtil } from '@/common/utils/crypto.util';
 
 @Injectable()
 export class AdminService {
@@ -1112,17 +1113,24 @@ export class AdminService {
   }
 
   /**
-   * 简单加密（实际应用中应使用更安全的方式）
+   * AES加密敏感配置
    */
   private encrypt(text: string): string {
-    return Buffer.from(text).toString('base64');
+    const key = this.configService.get('JWT_SECRET') || 'default-encryption-key-32chars!';
+    return CryptoUtil.aesEncrypt(text, key);
   }
 
   /**
-   * 简单解密
+   * AES解密敏感配置
    */
   private decrypt(text: string): string {
-    return Buffer.from(text, 'base64').toString();
+    try {
+      const key = this.configService.get('JWT_SECRET') || 'default-encryption-key-32chars!';
+      return CryptoUtil.aesDecrypt(text, key);
+    } catch {
+      // 如果解密失败，可能是旧的Base64编码数据，尝试兼容
+      return Buffer.from(text, 'base64').toString();
+    }
   }
 
   /**
