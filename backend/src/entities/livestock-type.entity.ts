@@ -19,12 +19,11 @@ export class LivestockType {
   @Column({ length: 50, comment: '类型名称' })
   name: string;
 
-  @Index()
-  @Column({ length: 20, unique: true, nullable: true, comment: '类型编码' })
-  code: string;
-
   @Column({ length: 500, nullable: true, comment: '图标URL' })
   icon: string;
+
+  @Column({ type: 'text', nullable: true, comment: '描述' })
+  description: string;
 
   @Column({ name: 'sort_order', type: 'int', default: 0, comment: '排序' })
   sortOrder: number;
