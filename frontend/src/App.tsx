@@ -1277,7 +1277,7 @@ const AdminLoginPage: React.FC = () => {
     try {
       // 先保存 token 以便调用修改密码接口
       localStorage.setItem('admin_token', adminData.token);
-      await adminApi.changePassword(oldPassword, newPassword);
+      await adminApi.updatePassword({ oldPassword, newPassword });
 
       // 清除状态，重新登录
       localStorage.removeItem('admin_token');
