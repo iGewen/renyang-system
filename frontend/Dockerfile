@@ -43,9 +43,29 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 # 复制Nginx配置（HTTP模式默认配置）
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# 复制配置监听脚本
-COPY nginx/watch-config.sh /usr/local/bin/watch-config.sh
-RUN chmod +x /usr/local/bin/watch-config.sh
+# 复制配置监听脚本（内联创建）
+RUN echo '#!/bin/sh' > /usr/local/bin/watch-config.sh && \
+    echo 'CONF_DIR="/etc/nginx/conf.d"' >> /usr/local/bin/watch-config.sh && \
+    echo 'HTTPS_CONF="https.conf"' >> /usr/local/bin/watch-config.sh && \
+    echo 'echo "配置监听服务启动..."' >> /usr/local/bin/watch-config.sh && \
+    echo 'while true; do' >> /usr/local/bin/watch-config.sh && \
+    echo '    if [ -f "$CONF_DIR/$HTTPS_CONF" ]; then' >> /usr/local/bin/watch-config.sh && \
+    echo '        if nginx -t 2>/dev/null; then' >> /usr/local/bin/watch-config.sh && \
+    echo '            echo "检测到HTTPS配置，重载Nginx..."' >> /usr/local/bin/watch-config.sh && \
+    echo '            nginx -s reload' >> /usr/local/bin/watch-config.sh && \
+    echo '            echo "Nginx已切换到HTTPS模式"' >> /usr/local/bin/watch-config.sh && \
+    echo '            exit 0' >> /usr/local/bin/watch-config.sh && \
+    echo '        fi' >> /usr/local/bin/watch-config.sh && \
+    echo '    fi' >> /usr/local/bin/watch-config.sh && \
+    echo '    sleep 5' >> /usr/local/bin/watch-config.sh && \
+    echo 'done' >> /usr/local/bin/watch-config.sh && \
+    chmod +x /usr/local/bin/watch-config.sh
+
+# 创建启动脚本（内联创建）
+RUN echo '#!/bin/sh' > /docker-entrypoint-wrapper.sh && \
+    echo '/usr/local/bin/watch-config.sh &' >> /docker-entrypoint-wrapper.sh && \
+    echo 'exec /docker-entrypoint.sh "$@"' >> /docker-entrypoint-wrapper.sh && \
+    chmod +x /docker-entrypoint-wrapper.sh
 
 # 暴露端口
 EXPOSE 80 443
@@ -54,9 +74,5 @@ EXPOSE 80 443
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:80 || exit 1
 
-# 启动脚本 - 同时启动nginx和配置监听
-COPY nginx/docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
-
-ENTRYPOINT ["/docker-entrypoint.sh"]
+ENTRYPOINT ["/docker-entrypoint-wrapper.sh"]
 CMD ["nginx", "-g", "daemon off;"]
