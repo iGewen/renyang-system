@@ -126,7 +126,6 @@ services:
       - certbot_www:/var/www/certbot
       # Nginx配置模板
       - ./nginx/nginx.conf.template:/etc/nginx/templates/nginx.conf.template:ro
-      - ./nginx/nginx.https.conf.template:/etc/nginx/templates/nginx.https.conf.template:ro
     depends_on:
       backend:
         condition: service_healthy
