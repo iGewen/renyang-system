@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { PageTransition, Icons, Card, Button, Input, EmptyState, useToast } from '../../components/ui';
+import { PageTransition, Icons, Card, Button, Input, useToast } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { balanceApi } from '../../services/api';
 import type { BalanceLog } from '../../types';
@@ -20,7 +20,6 @@ export const BalancePage: React.FC = () => {
   const [rechargeAmount, setRechargeAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'alipay' | 'wechat'>('alipay');
   const [recharging, setRecharging] = useState(false);
-  // 日期筛选
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
 
   const fetchData = async (pageNum: number = 1, append: boolean = false) => {
@@ -64,7 +63,6 @@ export const BalancePage: React.FC = () => {
     }
   };
 
-  // 根据日期筛选过滤记录
   const filteredLogs = React.useMemo(() => {
     if (dateFilter === 'all') return logs;
     const now = new Date();
@@ -91,11 +89,9 @@ export const BalancePage: React.FC = () => {
     return map[type] || '未知';
   };
 
-  // 更美观的类型图标
   const getTypeIcon = (log: BalanceLog) => {
     const type = Number(log.type);
     if (type === 1) {
-      // 充值图标 - 向下箭头进入钱包
       return (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 2v20M17 7l-5-5-5 5" />
@@ -105,7 +101,6 @@ export const BalancePage: React.FC = () => {
       );
     }
     if (type === 2) {
-      // 消费图标 - 向上箭头离开钱包
       return (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 22V2M17 17l-5 5-5-5" />
@@ -115,7 +110,6 @@ export const BalancePage: React.FC = () => {
       );
     }
     if (type === 3) {
-      // 退款图标 - 循环箭头
       return (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
@@ -123,7 +117,6 @@ export const BalancePage: React.FC = () => {
         </svg>
       );
     }
-    // 调整图标 - 齿轮调节
     return (
       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="3" />
@@ -140,7 +133,6 @@ export const BalancePage: React.FC = () => {
     return 'bg-slate-100 text-slate-600';
   };
 
-  // type=1是充值（正数），type=2是消费（存为正数，显示为负）
   const getAmount = (log: BalanceLog) => {
     const amount = Number(log.amount) || 0;
     const type = Number(log.type);
@@ -162,7 +154,6 @@ export const BalancePage: React.FC = () => {
     try {
       const result = await balanceApi.recharge(amount, paymentMethod);
       if (result.payUrl) {
-        // 跳转到支付页面
         window.location.href = result.payUrl;
       } else {
         success('充值成功');
@@ -187,7 +178,6 @@ export const BalancePage: React.FC = () => {
   return (
     <PageTransition>
       <div className="min-h-screen bg-brand-bg pb-8">
-        {/* 头部 */}
         <div className="bg-brand-primary text-white px-6 pt-6 pb-12 rounded-b-[32px]">
           <div className="flex items-center justify-between mb-8">
             <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
@@ -204,7 +194,6 @@ export const BalancePage: React.FC = () => {
         </div>
 
         <div className="px-6 -mt-6">
-          {/* 充值按钮 */}
           <Button
             className="w-full"
             size="lg"
@@ -214,14 +203,12 @@ export const BalancePage: React.FC = () => {
             充值余额
           </Button>
 
-          {/* 流水记录 */}
           <div className="mt-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-slate-900">交易记录</h2>
               <span className="text-sm text-slate-400">共 {total} 条</span>
             </div>
 
-            {/* 日期筛选 */}
             <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
               {[
                 { key: 'all', label: '全部' },
@@ -276,7 +263,6 @@ export const BalancePage: React.FC = () => {
                   );
                 })}
 
-                {/* 加载更多 */}
                 {hasMore && (
                   <div className="flex justify-center pt-4">
                     <Button
@@ -294,7 +280,6 @@ export const BalancePage: React.FC = () => {
           </div>
         </div>
 
-        {/* 充值弹窗 */}
         {showRecharge && (
           <div className="fixed inset-0 z-50 flex items-end justify-center">
             <div className="absolute inset-0 bg-black/50" onClick={() => setShowRecharge(false)} />
@@ -372,3 +357,5 @@ export const BalancePage: React.FC = () => {
     </PageTransition>
   );
 };
+
+export default BalancePage;
