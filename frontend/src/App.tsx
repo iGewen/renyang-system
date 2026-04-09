@@ -1298,6 +1298,8 @@ const AdminLoginPage: React.FC = () => {
       // 提示用户重新登录
       alert('密码修改成功，请使用新密码重新登录');
     } catch (err: any) {
+      // 修改失败时清除 token
+      localStorage.removeItem('admin_token');
       setError(err.message || '修改密码失败');
     } finally {
       setChangingPassword(false);

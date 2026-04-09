@@ -6,6 +6,63 @@ import { adminApi, refundApi } from '../../services/api';
 import type { Livestock, LivestockType, AdoptionOrder, FeedBill, User, DashboardStats, SystemConfig, AuditLog, Notification } from '../../types';
 import { OrderStatus, UserStatus, FeedBillStatus, RedemptionStatus, getOrderStatusText, getUserStatusText, getFeedBillStatusText, getRedemptionStatusText } from '../../types/enums';
 
+// ==================== 敏感文本区域组件 ====================
+
+const SensitiveTextarea: React.FC<{
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  rows?: number;
+}> = ({ label, value, onChange, placeholder, rows = 4 }) => {
+  const [visible, setVisible] = useState(false);
+
+  const maskValue = (val: string) => {
+    if (!val || val.length === 0) return '';
+    if (val.length <= 8) return '••••••••';
+    return val.substring(0, 4) + '••••••••' + val.substring(val.length - 4);
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <label className="block text-sm font-medium text-slate-700">{label}</label>
+        <button
+          type="button"
+          onClick={() => setVisible(!visible)}
+          className="text-xs text-brand-primary hover:underline flex items-center gap-1"
+        >
+          {visible ? (
+            <>
+              <Icons.EyeOff className="w-3.5 h-3.5" /> 隐藏
+            </>
+          ) : (
+            <>
+              <Icons.Eye className="w-3.5 h-3.5" /> 显示
+            </>
+          )}
+        </button>
+      </div>
+      {visible ? (
+        <textarea
+          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none font-mono text-xs"
+          rows={rows}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+        />
+      ) : (
+        <div
+          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 font-mono text-xs text-slate-500 overflow-hidden"
+          style={{ minHeight: `${rows * 24 + 24}px` }}
+        >
+          {maskValue(value) || placeholder || '••••••••'}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ==================== 后台管理布局 ====================
 
 interface AdminLayoutProps {
@@ -1212,14 +1269,20 @@ export const AdminConfig: React.FC = () => {
             <h3 className="text-lg font-bold text-slate-900 mb-4">支付宝支付配置（H5支付）</h3>
             <div className="space-y-4 max-w-2xl">
               <Input label="App ID" value={paymentConfig.alipayAppId} onChange={e => setPaymentConfig({ ...paymentConfig, alipayAppId: e.target.value })} placeholder="支付宝应用ID" />
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">应用私钥</label>
-                <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none font-mono text-xs" rows={4} value={paymentConfig.alipayPrivateKey} onChange={e => setPaymentConfig({ ...paymentConfig, alipayPrivateKey: e.target.value })} placeholder="支付宝应用私钥（RSA2格式）" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">支付宝公钥</label>
-                <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none font-mono text-xs" rows={4} value={paymentConfig.alipayPublicKey} onChange={e => setPaymentConfig({ ...paymentConfig, alipayPublicKey: e.target.value })} placeholder="支付宝公钥（用于验签）" />
-              </div>
+              <SensitiveTextarea
+                label="应用私钥"
+                value={paymentConfig.alipayPrivateKey}
+                onChange={value => setPaymentConfig({ ...paymentConfig, alipayPrivateKey: value })}
+                placeholder="支付宝应用私钥（RSA2格式）"
+                rows={4}
+              />
+              <SensitiveTextarea
+                label="支付宝公钥"
+                value={paymentConfig.alipayPublicKey}
+                onChange={value => setPaymentConfig({ ...paymentConfig, alipayPublicKey: value })}
+                placeholder="支付宝公钥（用于验签）"
+                rows={4}
+              />
               <Input label="支付回调URL" value={paymentConfig.alipayNotifyUrl} onChange={e => setPaymentConfig({ ...paymentConfig, alipayNotifyUrl: e.target.value })} placeholder="https://example.com/api/payment/alipay/notify" />
               <Input label="支付返回URL" value={paymentConfig.alipayReturnUrl} onChange={e => setPaymentConfig({ ...paymentConfig, alipayReturnUrl: e.target.value })} placeholder="https://example.com/payment/result" />
             </div>
@@ -1232,22 +1295,31 @@ export const AdminConfig: React.FC = () => {
                 <Input label="App ID" value={paymentConfig.wechatAppId} onChange={e => setPaymentConfig({ ...paymentConfig, wechatAppId: e.target.value })} placeholder="微信应用ID" />
                 <Input label="商户号" value={paymentConfig.wechatMchId} onChange={e => setPaymentConfig({ ...paymentConfig, wechatMchId: e.target.value })} placeholder="微信商户号" />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">商户API密钥（V2）</label>
-                <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none font-mono text-xs" rows={2} value={paymentConfig.wechatPayKey} onChange={e => setPaymentConfig({ ...paymentConfig, wechatPayKey: e.target.value })} placeholder="微信支付V2密钥（32位）" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">API V3密钥</label>
-                <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none font-mono text-xs" rows={2} value={paymentConfig.wechatApiV3Key} onChange={e => setPaymentConfig({ ...paymentConfig, wechatApiV3Key: e.target.value })} placeholder="微信支付V3密钥（32位）" />
-              </div>
+              <SensitiveTextarea
+                label="商户API密钥（V2）"
+                value={paymentConfig.wechatPayKey}
+                onChange={value => setPaymentConfig({ ...paymentConfig, wechatPayKey: value })}
+                placeholder="微信支付V2密钥（32位）"
+                rows={2}
+              />
+              <SensitiveTextarea
+                label="API V3密钥"
+                value={paymentConfig.wechatApiV3Key}
+                onChange={value => setPaymentConfig({ ...paymentConfig, wechatApiV3Key: value })}
+                placeholder="微信支付V3密钥（32位）"
+                rows={2}
+              />
               <div className="grid grid-cols-2 gap-4">
                 <Input label="商户证书序列号" value={paymentConfig.wechatSerialNo} onChange={e => setPaymentConfig({ ...paymentConfig, wechatSerialNo: e.target.value })} placeholder="商户API证书序列号" />
                 <Input label="支付回调URL" value={paymentConfig.wechatNotifyUrl} onChange={e => setPaymentConfig({ ...paymentConfig, wechatNotifyUrl: e.target.value })} placeholder="https://example.com/api/payment/wechat/notify" />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">商户API私钥</label>
-                <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none font-mono text-xs" rows={4} value={paymentConfig.wechatPrivateKey} onChange={e => setPaymentConfig({ ...paymentConfig, wechatPrivateKey: e.target.value })} placeholder="商户API私钥（用于签名）" />
-              </div>
+              <SensitiveTextarea
+                label="商户API私钥"
+                value={paymentConfig.wechatPrivateKey}
+                onChange={value => setPaymentConfig({ ...paymentConfig, wechatPrivateKey: value })}
+                placeholder="商户API私钥（用于签名）"
+                rows={4}
+              />
               <div className="pt-4">
                 <Button onClick={handleSavePayment} loading={saving}>保存支付配置</Button>
               </div>

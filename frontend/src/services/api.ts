@@ -84,7 +84,7 @@ export const authApi = {
 
   // 微信授权回调
   wechatCallback: async (code: string, state: string): Promise<{ needBindPhone: boolean; tempToken?: string; token?: string; user?: User }> => {
-    return request(`/auth/wechat/callback?code=${code}&state=${state}`);
+    return request(`/auth/wechat/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`);
   },
 
   // 绑定手机号
