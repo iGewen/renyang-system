@@ -70,12 +70,9 @@ export class PaymentService {
     const lockKey = `payment:balance:${payment.userId}`;
 
     return this.redisService.withLock(lockKey, 30000, async () => {
-      console.log(`[PayWithBalance] Starting payment ${payment.paymentNo} for order ${payment.orderId}`);
-
       // 检查余额 - 重新从数据库获取最新余额
       const user = await this.userService.findOne(payment.userId);
       if (!user) {
-        console.error(`[PayWithBalance] User not found: ${payment.userId}`);
         throw new BadRequestException('用户不存在');
       }
 
@@ -83,20 +80,15 @@ export class PaymentService {
       const userBalance = Number(user.balance);
       const paymentAmount = Number(payment.amount);
 
-      console.log(`[PayWithBalance] User balance: ${userBalance}, Payment amount: ${paymentAmount}`);
-
       if (isNaN(userBalance) || isNaN(paymentAmount)) {
-        console.error(`[PayWithBalance] Invalid balance data: userBalance=${userBalance}, paymentAmount=${paymentAmount}`);
         throw new BadRequestException('余额数据异常');
       }
 
       if (userBalance < paymentAmount) {
-        console.error(`[PayWithBalance] Insufficient balance: ${userBalance} < ${paymentAmount}`);
         throw new BadRequestException(`余额不足，当前余额: ${userBalance.toFixed(2)}元，需要支付: ${paymentAmount.toFixed(2)}元`);
       }
 
       // 扣减余额
-      console.log(`[PayWithBalance] Deducting ${paymentAmount} from user ${payment.userId}`);
       await this.userService.updateBalance(
         payment.userId,
         -paymentAmount,
@@ -104,14 +96,7 @@ export class PaymentService {
       );
 
       // 处理支付成功（会更新状态为SUCCESS并处理订单）
-      // 注意：这里不先更新payment状态，让handlePaymentSuccess来更新
-      try {
-        await this.handlePaymentSuccess(payment);
-        console.log(`[PayWithBalance] handlePaymentSuccess completed for payment ${payment.paymentNo}`);
-      } catch (error) {
-        console.error(`[PayWithBalance] handlePaymentSuccess failed for payment ${payment.paymentNo}:`, error);
-        throw error;
-      }
+      await this.handlePaymentSuccess(payment);
 
       return { paymentNo: payment.paymentNo };
     });
@@ -197,13 +182,11 @@ export class PaymentService {
       });
 
       if (!latestPayment) {
-        console.error(`Payment ${payment.paymentNo} not found`);
         return;
       }
 
       // 如果已经处理过（状态已是SUCCESS且有paidAt），直接返回
       if (latestPayment.status === PaymentStatus.SUCCESS && latestPayment.paidAt) {
-        console.log(`Payment ${payment.paymentNo} already processed with paidAt, skipping...`);
         return;
       }
 
@@ -212,40 +195,25 @@ export class PaymentService {
       latestPayment.paidAt = new Date();
       await this.paymentRepository.save(latestPayment);
 
-      console.log(`Payment ${latestPayment.paymentNo} success, processing order type: ${latestPayment.orderType}, orderId: ${latestPayment.orderId}`);
-
       // 根据订单类型处理
       switch (latestPayment.orderType) {
         case 'adoption':
-          try {
-            const order = await this.orderService.handlePaymentSuccess(
-              latestPayment.orderId,
-              latestPayment.paymentNo,
-              latestPayment.paymentMethod,
-            );
-            console.log(`Order ${latestPayment.orderId} payment success, new status: ${order?.status}`);
-          } catch (error) {
-            console.error(`Failed to handle adoption order payment success: ${latestPayment.orderId}`, error);
-            throw error;
-          }
+          await this.orderService.handlePaymentSuccess(
+            latestPayment.orderId,
+            latestPayment.paymentNo,
+            latestPayment.paymentMethod,
+          );
           break;
         case 'feed':
-          // TODO: 处理饲料费支付
-          console.log(`Feed bill payment success: ${latestPayment.orderId}`);
+          // 饲料费支付成功，由 FeedService 处理
           break;
         case 'redemption':
           // 处理买断支付
-          try {
-            await this.redemptionService.handlePaymentSuccess(
-              latestPayment.orderId,
-              latestPayment.paymentNo,
-              latestPayment.paymentMethod,
-            );
-            console.log(`Redemption payment success: ${latestPayment.orderId}`);
-          } catch (error) {
-            console.error(`Failed to handle redemption payment success: ${latestPayment.orderId}`, error);
-            throw error;
-          }
+          await this.redemptionService.handlePaymentSuccess(
+            latestPayment.orderId,
+            latestPayment.paymentNo,
+            latestPayment.paymentMethod,
+          );
           break;
         case 'recharge':
           // 余额充值
@@ -254,7 +222,6 @@ export class PaymentService {
             latestPayment.amount,
             `余额充值: ${latestPayment.paymentNo}`,
           );
-          console.log(`Recharge success: ${latestPayment.paymentNo}, amount: ${latestPayment.amount}`);
           break;
       }
     });

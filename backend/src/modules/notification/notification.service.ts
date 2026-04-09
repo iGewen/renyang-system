@@ -160,12 +160,10 @@ export class NotificationService {
    */
   async markAllAsRead(userId: string) {
     // 只标记用户专属通知为已读，不标记系统公告（系统公告是共享的）
-    const result = await this.notificationRepository.update(
+    await this.notificationRepository.update(
       { userId, isRead: 0 },
       { isRead: 1, readAt: new Date() },
     );
-
-    console.log('[markAllAsRead] result:', result);
 
     return { success: true };
   }
