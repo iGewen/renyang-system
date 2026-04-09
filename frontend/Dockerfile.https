@@ -1,0 +1,49 @@
+# ===========================================
+# 前端Dockerfile - 支持自动HTTPS
+# ===========================================
+
+# 构建阶段
+FROM node:lts-alpine AS builder
+
+# 更换镜像源
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+
+WORKDIR /app
+
+# 安装依赖
+COPY package*.json ./
+RUN npm config set registry https://registry.npmmirror.com && rm -f package-lock.json && npm install
+
+# 构建应用
+COPY . .
+RUN npm run build
+
+# 生产阶段
+FROM nginx:alpine
+
+# 更换镜像源
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+
+# 安装必要工具
+RUN apk add --no-cache curl netcat-openbsd
+
+# 创建必要目录
+RUN mkdir -p /var/www/certbot /etc/letsencrypt /usr/share/nginx/html
+
+# 复制构建产物
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# 复制Nginx配置模板和脚本
+COPY nginx/nginx.conf.template /etc/nginx/templates/nginx.conf.template
+COPY nginx/start-nginx.sh /docker-entrypoint.d/start-nginx.sh
+RUN chmod +x /docker-entrypoint.d/start-nginx.sh
+
+# 暴露端口
+EXPOSE 80 443
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost/ || exit 1
+
+# 启动Nginx
+CMD ["nginx", "-g", "daemon off;"]
