@@ -45,24 +45,25 @@ export class Admin {
   status: number;
 
   @Column({
+    name: 'force_change_password',
     type: 'tinyint',
     default: 0,
     comment: '是否需要强制修改密码：0否 1是',
   })
   forceChangePassword: number;
 
-  @Column({ type: 'datetime', nullable: true, comment: '最后登录时间' })
+  @Column({ name: 'last_login_at', type: 'datetime', nullable: true, comment: '最后登录时间' })
   lastLoginAt: Date;
 
-  @Column({ length: 45, nullable: true, comment: '最后登录IP' })
+  @Column({ name: 'last_login_ip', length: 45, nullable: true, comment: '最后登录IP' })
   lastLoginIp: string;
 
-  @CreateDateColumn({ comment: '创建时间' })
+  @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;
 
-  @UpdateDateColumn({ comment: '更新时间' })
+  @UpdateDateColumn({ name: 'updated_at', comment: '更新时间' })
   updatedAt: Date;
 
-  @DeleteDateColumn({ comment: '软删除时间' })
+  @DeleteDateColumn({ name: 'deleted_at', comment: '软删除时间' })
   deletedAt: Date;
 }

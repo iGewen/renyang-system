@@ -13,28 +13,29 @@ export class SystemConfig {
   id: string;
 
   @Index()
-  @Column({ length: 50, unique: true, comment: '配置键' })
+  @Column({ name: 'config_key', length: 50, unique: true, comment: '配置键' })
   configKey: string;
 
-  @Column({ type: 'text', nullable: true, comment: '配置值（JSON）' })
+  @Column({ name: 'config_value', type: 'text', nullable: true, comment: '配置值（JSON）' })
   configValue: string;
 
-  @Column({ length: 20, comment: '配置类型：payment/sms/business/other' })
+  @Column({ name: 'config_type', length: 20, comment: '配置类型：payment/sms/business/other' })
   configType: string;
 
   @Column({ length: 255, nullable: true, comment: '配置说明' })
   description: string;
 
   @Column({
+    name: 'is_encrypted',
     type: 'tinyint',
     default: 0,
     comment: '是否加密：0否 1是',
   })
   isEncrypted: number;
 
-  @CreateDateColumn({ comment: '创建时间' })
+  @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;
 
-  @UpdateDateColumn({ comment: '更新时间' })
+  @UpdateDateColumn({ name: 'updated_at', comment: '更新时间' })
   updatedAt: Date;
 }
