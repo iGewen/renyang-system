@@ -2,38 +2,17 @@
 
 一个基于 NestJS + React 的云端牧场管理系统，支持活体领养、饲料订阅、买断赎回等功能。
 
-## 项目结构
-
-```
-renyang-system/
-├── backend/          # NestJS 后端
-│   ├── src/
-│   │   ├── common/   # 公共模块（守卫、装饰器、工具类）
-│   │   ├── config/   # 配置文件
-│   │   ├── entities/ # 数据库实体
-│   │   ├── modules/  # 业务模块
-│   │   ├── services/ # 第三方服务
-│   │   └── tasks/    # 定时任务
-│   ├── test/         # 测试文件
-│   └── scripts/      # 脚本文件
-└── frontend/         # React 前端（待开发）
-```
-
 ## 技术栈
 
-### 后端
-- **框架**: NestJS 10
-- **数据库**: MySQL + TypeORM
-- **缓存**: Redis
-- **认证**: JWT + Passport
-- **API文档**: Swagger
-- **定时任务**: @nestjs/schedule
-
-### 前端
-- **框架**: React 18
-- **构建**: Vite
-- **UI**: 自定义组件库
-- **状态管理**: React Hooks
+| 类型 | 技术 |
+|------|------|
+| 后端框架 | NestJS 10 |
+| 数据库 | MySQL 8.0 + TypeORM |
+| 缓存 | Redis |
+| 认证 | JWT + Passport |
+| 前端框架 | React 18 + Vite |
+| UI组件 | 自定义组件库 |
+| 部署 | Docker Compose |
 
 ## 功能特性
 
@@ -48,210 +27,129 @@ renyang-system/
 ### 管理端
 - 📊 数据统计仪表盘
 - 👥 用户管理
-- 🐄 活体类型与管理
+- 🐄 活体管理
 - 📦 订单管理
-- 📝 领养记录管理
 - 💰 饲料费管理
-- 🔄 退款审核
+- 🔄 买断审核
+- 📝 协议管理
 - ⚙️ 系统配置
 
-## 快速开始
+## 快速部署
 
 ### 环境要求
-- Node.js >= 18
-- MySQL >= 8.0
-- Redis >= 6.0
+- Docker & Docker Compose
+- 服务器端口：80、443、3001
 
-### 后端安装
-
-```bash
-cd backend
-
-# 安装依赖
-npm install
-
-# 配置环境变量
-cp .env.example .env
-# 编辑 .env 文件，配置数据库和Redis连接信息
-
-# 初始化数据库
-mysql -u root -p < scripts/init-database.sql
-
-# 启动开发服务器
-npm run start:dev
-```
-
-### 前端安装
+### 一键部署
 
 ```bash
-cd frontend
-
-# 安装依赖
-npm install
-
-# 启动开发服务器
-npm run dev
-```
-
-## 环境配置
-
-### 后端环境变量 (.env)
-
-```env
-# 应用配置
-NODE_ENV=development
-PORT=3001
-
-# 数据库配置
-DB_HOST=localhost
-DB_PORT=3306
-DB_USERNAME=root
-DB_PASSWORD=your_password
-DB_DATABASE=cloud_ranch
-
-# Redis配置
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# JWT配置
-JWT_SECRET=your-jwt-secret
-JWT_EXPIRES_IN=7d
-
-# 支付配置
-ALIPAY_APP_ID=
-ALIPAY_PRIVATE_KEY=
-WECHAT_APP_ID=
-WECHAT_MCH_ID=
-```
-
-## API文档
-
-启动后端服务后访问：
-- Swagger UI: http://localhost:3001/api/docs
-
-## 数据库初始化
-
-### 方式一：SQL脚本
-```bash
-mysql -u root -p < backend/scripts/init-database.sql
-```
-
-### 方式二：TypeScript脚本
-```bash
-cd backend
-npm run db:init
-```
-
-默认管理员账号：
-- 用户名: `admin`
-- 密码: `admin123456`
-
-## 测试
-
-```bash
-# 运行单元测试
-npm test
-
-# 运行测试覆盖率
-npm run test:cov
-
-# 运行E2E测试
-npm run test:e2e
-```
-
-## 部署
-
-### 生产环境构建
-
-```bash
-# 后端
-cd backend
-npm run build
-npm run start:prod
-
-# 前端
-cd frontend
-npm run build
-```
-
-### Docker一键部署
-
-#### 快速开始（3步完成部署）
-
-```bash
-# 1. 创建目录并克隆代码（dev分支）
-sudo mkdir -p /var/www/wwwroot
-cd /var/www/wwwroot
+# 1. 克隆代码
 git clone -b dev https://github.com/iGewen/renyang-system.git
-sudo chown -R $USER:$USER /var/www/wwwroot/renyang-system
 cd renyang-system
 
 # 2. 配置环境变量
 cp .env.docker .env
-# 编辑 .env 文件，修改 MySQL密码 和 JWT密钥
+# 编辑 .env 文件，修改以下配置：
+# - MYSQL_ROOT_PASSWORD（MySQL密码）
+# - JWT_SECRET（JWT密钥，至少32位）
+# - DOMAIN（域名，启用HTTPS）
+# - EMAIL（证书申请邮箱）
 
-# 3. 一键启动（自动拉取镜像、构建、启动）
-# 新版Docker命令（推荐）
+# 3. 启动服务
 docker compose up -d
-
-# 旧版Docker命令（兼容）
-docker-compose up -d
 ```
 
-> **兼容性说明：** 支持 Docker Compose V1 (`docker-compose`) 和 V2 (`docker compose`) 两种命令格式。
-
-#### 查看部署状态
+### 启用HTTPS（推荐）
 
 ```bash
-# 查看服务状态
-docker-compose ps
-
-# 查看日志
-docker-compose logs -f
-
-# 查看单个服务日志
-docker-compose logs -f backend
+# 配置域名后使用HTTPS模式
+docker compose -f docker-compose.https.yml up -d
 ```
 
-#### 访问地址
+HTTPS模式会自动：
+- ✅ 申请Let's Encrypt SSL证书
+- ✅ 配置Nginx HTTPS
+- ✅ 证书到期自动续签
 
-| 服务 | 地址 | 说明 |
-|------|------|------|
-| 前端页面 | http://服务器IP | 用户端页面 |
-| 后端API | http://服务器IP:3001/api/docs | Swagger文档 |
-| 管理后台 | http://服务器IP/admin | 管理员后台 |
+## 访问地址
 
-**默认管理员账号:** `admin` / `admin123456` ⚠️ 请登录后立即修改密码
+| 服务 | 地址 |
+|------|------|
+| 用户端 | http://服务器IP |
+| 管理后台 | http://服务器IP/admin |
+| API文档 | http://服务器IP:3001/api/docs |
 
-#### 部署说明
+## 默认账号
 
-Docker Compose 会自动完成：
-1. ✅ 拉取 MySQL、Redis 基础镜像（阿里云ACR）
-2. ✅ 构建后端 NestJS 镜像
-3. ✅ 构建前端 React 镜像（Nginx）
-4. ✅ 自动初始化数据库
-5. ✅ 启动所有服务并健康检查
+- 管理员密码通过环境变量 `ADMIN_DEFAULT_PASSWORD` 设置
+- 首次登录后强制修改密码
+- 未设置则使用随机生成的密码（查看后端日志）
 
-详细教程请查看 [Docker部署教程](./docs/DOCKER_DEPLOY.md)
+## 环境变量
 
-## 项目进度
+主要配置项：
 
-- [x] 后端基础架构
-- [x] 用户认证模块
-- [x] 活体管理模块
-- [x] 订单系统
-- [x] 领养管理
-- [x] 饲料费管理
-- [x] 买断系统
-- [x] 退款系统
-- [x] 支付集成
-- [x] 管理后台API
-- [x] Swagger文档
-- [x] 日志系统
-- [x] 文件上传
-- [x] 单元测试
-- [x] 前端开发
-- [x] Docker部署
+```env
+# 域名配置（启用HTTPS必填）
+DOMAIN=your-domain.com
+EMAIL=your@email.com
+
+# 数据库
+MYSQL_ROOT_PASSWORD=your_strong_password
+
+# 安全
+JWT_SECRET=your-very-long-jwt-secret-key
+
+# 支付配置（可选）
+ALIPAY_APP_ID=
+WECHAT_APP_ID=
+
+# 短信配置（可选）
+ALIYUN_SMS_ACCESS_KEY_ID=
+```
+
+## 本地开发
+
+### 后端
+
+```bash
+cd backend
+npm install
+cp .env.example .env
+npm run start:dev
+```
+
+### 前端
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## 项目结构
+
+```
+renyang-system/
+├── backend/                # NestJS 后端
+│   ├── src/
+│   │   ├── modules/        # 业务模块
+│   │   ├── entities/       # 数据库实体
+│   │   ├── common/         # 公共模块
+│   │   └── config/         # 配置文件
+│   └── scripts/            # 脚本
+├── frontend/               # React 前端
+│   ├── src/
+│   │   ├── pages/          # 页面组件
+│   │   ├── components/     # 通用组件
+│   │   ├── services/       # API服务
+│   │   └── contexts/       # 状态管理
+│   └── nginx.conf          # Nginx配置
+├── nginx/                  # HTTPS配置脚本
+├── docker-compose.yml      # HTTP模式部署
+├── docker-compose.https.yml # HTTPS模式部署
+└── .env.docker             # 环境变量模板
+```
 
 ## 许可证
 
