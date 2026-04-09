@@ -117,6 +117,7 @@ export class AdminService {
         name: admin.name,
         role: admin.role,
         avatar: admin.avatar,
+        forceChangePassword: admin.forceChangePassword === 1,
       },
     };
   }
@@ -140,7 +141,7 @@ export class AdminService {
   /**
    * 修改管理员密码
    */
-  async changePassword(adminId: string, oldPassword: string, newPassword: string) {
+  async changePassword(adminId: string, oldPassword: string, newPassword: string, ip?: string) {
     const admin = await this.adminRepository
       .createQueryBuilder('admin')
       .where('admin.id = :id', { id: adminId })
@@ -157,7 +158,20 @@ export class AdminService {
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await this.adminRepository.update(adminId, { password: hashedPassword });
+    await this.adminRepository.update(adminId, {
+      password: hashedPassword,
+      forceChangePassword: 0, // 密码修改后清除强制修改标志
+    });
+
+    // 记录审计日志
+    await this.createAuditLog({
+      adminId,
+      adminName: admin.username,
+      module: 'auth',
+      action: 'change_password',
+      remark: '修改密码',
+      ip,
+    });
 
     return { success: true };
   }

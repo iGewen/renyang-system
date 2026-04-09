@@ -44,6 +44,13 @@ export class Admin {
   })
   status: number;
 
+  @Column({
+    type: 'tinyint',
+    default: 0,
+    comment: '是否需要强制修改密码：0否 1是',
+  })
+  forceChangePassword: number;
+
   @Column({ type: 'datetime', nullable: true, comment: '最后登录时间' })
   lastLoginAt: Date;
 

@@ -156,12 +156,19 @@ export class AppModule implements NestModule, OnModuleInit {
       );
 
       if (result[0].count === 0) {
-        const hashedPassword = await bcrypt.hash('admin123456', 10);
+        // 从环境变量获取默认密码，如果未设置则生成随机密码
+        const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || this.generateRandomPassword();
+        const hashedPassword = await bcrypt.hash(defaultPassword, 10);
         await this.dataSource.query(
-          'INSERT INTO admins (id, username, password, name, role, status, created_at, updated_at) VALUES (UUID(), ?, ?, ?, 1, 1, NOW(), NOW())',
+          'INSERT INTO admins (id, username, password, name, role, status, force_change_password, created_at, updated_at) VALUES (UUID(), ?, ?, ?, 1, 1, 1, NOW(), NOW())',
           ['admin', hashedPassword, '超级管理员']
         );
-        console.log('✅ 默认管理员账号已创建: admin / admin123456');
+        console.log('✅ 默认管理员账号已创建');
+        console.log('   用户名: admin');
+        console.log('   密码: ' + defaultPassword);
+        if (!process.env.ADMIN_DEFAULT_PASSWORD) {
+          console.log('   ⚠️  请登录后立即修改密码！');
+        }
       } else {
         console.log('ℹ️  管理员账号已存在');
       }
@@ -170,6 +177,15 @@ export class AppModule implements NestModule, OnModuleInit {
     } catch (error) {
       console.error('❌ 初始化管理员失败:', error);
     }
+  }
+
+  private generateRandomPassword(length: number = 12): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+    let password = '';
+    for (let i = 0; i < length; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
   }
 
   private async initializeSystemConfig() {

@@ -284,7 +284,8 @@ export class AdminController {
   @ApiResponse({ status: 200, description: '密码修改成功' })
   async changePassword(@Body() dto: ChangePasswordDto, @Req() req: any) {
     const adminId = req.user?.sub;
-    return this.adminService.changePassword(adminId, dto.oldPassword, dto.newPassword);
+    const ip = this.getClientIp(req);
+    return this.adminService.changePassword(adminId, dto.oldPassword, dto.newPassword, ip);
   }
 
   // =============== 仪表盘 ===============

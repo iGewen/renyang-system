@@ -1235,15 +1235,30 @@ const AdminLoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // 强制修改密码状态
+  const [needChangePassword, setNeedChangePassword] = useState(false);
+  const [adminData, setAdminData] = useState<any>(null);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+
   const handleLogin = async () => {
     if (!username || !password) { setError('请输入用户名和密码'); return; }
     setLoading(true);
     try {
       const result = await adminApi.login({ username, password });
-      localStorage.setItem('admin_token', result.token);
-      localStorage.setItem('admin_info', JSON.stringify(result.admin));
-      // 使用 window.location.href 强制刷新页面，避免白屏
-      window.location.href = '/admin';
+
+      // 检查是否需要强制修改密码
+      if (result.admin?.forceChangePassword) {
+        setAdminData(result);
+        setNeedChangePassword(true);
+        setOldPassword(password); // 预填原密码
+      } else {
+        localStorage.setItem('admin_token', result.token);
+        localStorage.setItem('admin_info', JSON.stringify(result.admin));
+        window.location.href = '/admin';
+      }
     } catch (err: any) {
       setError(err.message || '登录失败');
     } finally {
@@ -1251,24 +1266,84 @@ const AdminLoginPage: React.FC = () => {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      setError('请填写完整信息');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('两次密码输入不一致');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setError('密码长度至少6位');
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      // 先保存 token 以便调用修改密码接口
+      localStorage.setItem('admin_token', adminData.token);
+      await adminApi.changePassword(oldPassword, newPassword);
+
+      // 清除状态，重新登录
+      localStorage.removeItem('admin_token');
+      setNeedChangePassword(false);
+      setAdminData(null);
+      setError('');
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+
+      // 提示用户重新登录
+      alert('密码修改成功，请使用新密码重新登录');
+    } catch (err: any) {
+      setError(err.message || '修改密码失败');
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   return (
     <PageTransition>
       <div className="min-h-screen bg-brand-bg flex items-center justify-center p-6">
         <Card className="w-full max-w-md p-8">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-brand-primary rounded-[20px] flex items-center justify-center mx-auto mb-4">
-              <Icons.LayoutDashboard className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-2xl font-display font-bold text-brand-primary mb-2">后台管理系统</h1>
-            <p className="text-slate-400 text-sm">请使用管理员账号登录</p>
-          </div>
-          <div className="space-y-4">
-            <Input placeholder="请输入用户名" value={username} onChange={e => setUsername(e.target.value)} icon={<Icons.User className="w-5 h-5" />} />
-            <Input placeholder="请输入密码" type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} icon={<Icons.Lock className="w-5 h-5" />}
-              suffix={<button onClick={() => setShowPassword(!showPassword)} className="text-slate-400">{showPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}</button>} />
-            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-            <Button className="w-full" size="lg" onClick={handleLogin} loading={loading}>登录</Button>
-          </div>
+          {!needChangePassword ? (
+            <>
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 bg-brand-primary rounded-[20px] flex items-center justify-center mx-auto mb-4">
+                  <Icons.LayoutDashboard className="w-8 h-8 text-white" />
+                </div>
+                <h1 className="text-2xl font-display font-bold text-brand-primary mb-2">后台管理系统</h1>
+                <p className="text-slate-400 text-sm">请使用管理员账号登录</p>
+              </div>
+              <div className="space-y-4">
+                <Input placeholder="请输入用户名" value={username} onChange={e => setUsername(e.target.value)} icon={<Icons.User className="w-5 h-5" />} />
+                <Input placeholder="请输入密码" type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} icon={<Icons.Lock className="w-5 h-5" />}
+                  suffix={<button onClick={() => setShowPassword(!showPassword)} className="text-slate-400">{showPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}</button>} />
+                {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+                <Button className="w-full" size="lg" onClick={handleLogin} loading={loading}>登录</Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 bg-orange-500 rounded-[20px] flex items-center justify-center mx-auto mb-4">
+                  <Icons.Lock className="w-8 h-8 text-white" />
+                </div>
+                <h1 className="text-2xl font-display font-bold text-brand-primary mb-2">首次登录</h1>
+                <p className="text-orange-500 text-sm">请修改初始密码后继续使用</p>
+              </div>
+              <div className="space-y-4">
+                <Input label="原密码" type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} placeholder="请输入原密码" />
+                <Input label="新密码" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="请输入新密码（至少6位）" />
+                <Input label="确认密码" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="请再次输入新密码" />
+                {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+                <Button className="w-full" size="lg" onClick={handleChangePassword} loading={changingPassword}>确认修改</Button>
+                <Button variant="outline" className="w-full" onClick={() => { setNeedChangePassword(false); setError(''); }}>返回登录</Button>
+              </div>
+            </>
+          )}
         </Card>
       </div>
     </PageTransition>
