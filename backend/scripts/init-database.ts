@@ -70,28 +70,10 @@ async function initDatabase() {
 
     console.log('✅ 数据库连接成功');
 
-    // 创建默认超级管理员
-    const adminRepository = connection.getRepository(Admin);
-    const existingAdmin = await adminRepository.findOne({ where: { username: 'admin' } });
-
-    if (!existingAdmin) {
-      const bcrypt = require('bcryptjs');
-      const hashedPassword = await bcrypt.hash('admin123456', 10);
-
-      const admin = adminRepository.create({
-        id: `A${Date.now()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-        username: 'admin',
-        password: hashedPassword,
-        name: '超级管理员',
-        role: 1, // 超级管理员
-        status: 1,
-      });
-
-      await adminRepository.save(admin);
-      console.log('✅ 创建默认管理员账号: admin / admin123456');
-    } else {
-      console.log('ℹ️  管理员账号已存在');
-    }
+    // 注意：管理员账号由应用启动时自动创建（app.module.ts）
+    // 管理员密码通过环境变量 ADMIN_DEFAULT_PASSWORD 设置
+    // 如果未设置，系统会生成随机密码并打印到日志
+    console.log('ℹ️  管理员账号将由应用启动时自动创建');
 
     // 创建默认活体类型
     const livestockTypeRepository = connection.getRepository(LivestockType);

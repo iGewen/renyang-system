@@ -13,9 +13,10 @@ async function bootstrap() {
   // 全局前缀
   app.setGlobalPrefix('api');
 
-  // 跨域配置
+  // 跨域配置 - 生产环境应限制具体域名
+  const corsOrigin = process.env.CORS_ORIGIN;
   app.enableCors({
-    origin: true,
+    origin: corsOrigin ? corsOrigin.split(',').map(s => s.trim()) : true,
     credentials: true,
   });
 
@@ -42,48 +43,53 @@ async function bootstrap() {
   // 全局响应转换拦截器
   app.useGlobalInterceptors(new TransformInterceptor());
 
-  // Swagger API文档配置
-  const config = new DocumentBuilder()
-    .setTitle('云端牧场 API')
-    .setDescription('云端牧场后端API文档')
-    .setVersion('1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: '输入JWT token',
-        in: 'header',
-      },
-      'JWT-auth',
-    )
-    .addTag('认证', '用户认证相关接口')
-    .addTag('用户', '用户信息管理')
-    .addTag('活体', '活体动物管理')
-    .addTag('订单', '订单管理')
-    .addTag('领养', '领养管理')
-    .addTag('饲料费', '饲料费账单管理')
-    .addTag('买断', '买断管理')
-    .addTag('退款', '退款管理')
-    .addTag('支付', '支付相关')
-    .addTag('余额', '余额管理')
-    .addTag('通知', '消息通知')
-    .addTag('管理员', '后台管理接口')
-    .addTag('文件上传', '文件上传相关接口')
-    .build();
+  // Swagger API文档配置 - 仅在非生产环境启用
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (!isProduction) {
+    const config = new DocumentBuilder()
+      .setTitle('云端牧场 API')
+      .setDescription('云端牧场后端API文档')
+      .setVersion('1.0')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          name: 'JWT',
+          description: '输入JWT token',
+          in: 'header',
+        },
+        'JWT-auth',
+      )
+      .addTag('认证', '用户认证相关接口')
+      .addTag('用户', '用户信息管理')
+      .addTag('活体', '活体动物管理')
+      .addTag('订单', '订单管理')
+      .addTag('领养', '领养管理')
+      .addTag('饲料费', '饲料费账单管理')
+      .addTag('买断', '买断管理')
+      .addTag('退款', '退款管理')
+      .addTag('支付', '支付相关')
+      .addTag('余额', '余额管理')
+      .addTag('通知', '消息通知')
+      .addTag('管理员', '后台管理接口')
+      .addTag('文件上传', '文件上传相关接口')
+      .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document, {
-    swaggerOptions: {
-      persistAuthorization: true,
-    },
-  });
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document, {
+      swaggerOptions: {
+        persistAuthorization: true,
+      },
+    });
+  }
 
   const port = process.env.PORT || 3001;
   await app.listen(port);
   console.log(`🚀 Application is running on: http://localhost:${port}/api`);
-  console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
+  if (!isProduction) {
+    console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
+  }
 }
 
 bootstrap();

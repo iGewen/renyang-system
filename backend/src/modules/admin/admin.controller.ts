@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth, ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { IsString, IsNumber, IsOptional, IsBoolean, IsIn, IsObject } from 'class-validator';
 import { Public } from '@/common/decorators/public.decorator';
+import { AdminGuard } from '@/common/guards/admin.guard';
+import { RequireAdmin, AdminRole } from '@/common/decorators/admin-role.decorator';
 
 // DTOs
 class LoginDto {
@@ -236,6 +238,8 @@ class CreateAdminDto {
 
 @ApiTags('管理员')
 @Controller('admin')
+@UseGuards(AdminGuard)
+@RequireAdmin()
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 

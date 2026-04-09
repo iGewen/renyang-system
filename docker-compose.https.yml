@@ -39,7 +39,7 @@ services:
     image: crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/redis:latest
     container_name: cloud-ranch-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123456}
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
@@ -47,7 +47,7 @@ services:
     networks:
       - cloud-ranch-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis123456}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -71,8 +71,9 @@ services:
       # Redis配置
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123456}
       # JWT配置
-      JWT_SECRET: ${JWT_SECRET:-your-jwt-secret-key-please-change-in-production}
+      JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: 7d
       # 支付宝配置
       ALIPAY_APP_ID: ${ALIPAY_APP_ID:-}

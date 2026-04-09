@@ -341,11 +341,10 @@ CREATE TABLE IF NOT EXISTS `audit_logs` (
 -- 插入初始数据
 -- ===========================================
 
--- 插入默认管理员账号 (密码: admin123456)
--- 注意：实际使用时需要用 bcrypt 加密
-INSERT INTO `admins` (`id`, `username`, `password`, `name`, `role`, `status`, `created_at`, `updated_at`)
-VALUES ('A001', 'admin', '$2a$10$YourHashedPasswordHere', '超级管理员', 1, 1, NOW(), NOW())
-ON DUPLICATE KEY UPDATE `username` = `username`;
+-- 注意：管理员账号由应用启动时自动创建
+-- 如果需要手动创建，请使用以下SQL（密码需要在应用中生成bcrypt hash）
+-- INSERT INTO `admins` (`id`, `username`, `password`, `name`, `role`, `status`, `created_at`, `updated_at`)
+-- VALUES ('A001', 'admin', '<bcrypt_hash>', '超级管理员', 1, 1, NOW(), NOW());
 
 -- 插入默认活体类型
 INSERT INTO `livestock_types` (`id`, `name`, `icon`, `description`, `sort_order`, `status`, `created_at`, `updated_at`)

@@ -123,8 +123,33 @@ export class AppModule implements NestModule, OnModuleInit {
   }
 
   async onModuleInit() {
+    // 验证必要的环境变量
+    this.validateEnvironment();
     await this.initializeAdmin();
     await this.initializeSystemConfig();
+  }
+
+  private validateEnvironment() {
+    const requiredEnvVars = ['JWT_SECRET'];
+    const missing: string[] = [];
+
+    for (const envVar of requiredEnvVars) {
+      if (!process.env[envVar]) {
+        missing.push(envVar);
+      }
+    }
+
+    if (missing.length > 0) {
+      console.error('❌ 缺少必要的环境变量:');
+      missing.forEach(v => console.error(`   - ${v}`));
+      console.error('请在 .env 文件中配置这些变量后重新启动');
+      throw new Error(`缺少必要的环境变量: ${missing.join(', ')}`);
+    }
+
+    // 检查JWT_SECRET长度
+    if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
+      console.warn('⚠️  JWT_SECRET 长度建议至少32位，当前长度: ' + process.env.JWT_SECRET.length);
+    }
   }
 
   private async initializeAdmin() {
@@ -165,10 +190,18 @@ export class AppModule implements NestModule, OnModuleInit {
         );
         console.log('✅ 默认管理员账号已创建');
         console.log('   用户名: admin');
-        console.log('   密码: ' + defaultPassword);
-        if (!process.env.ADMIN_DEFAULT_PASSWORD) {
-          console.log('   ⚠️  请登录后立即修改密码！');
+        if (process.env.NODE_ENV === 'production') {
+          // 生产环境不打印密码，提示查看环境变量
+          if (process.env.ADMIN_DEFAULT_PASSWORD) {
+            console.log('   密码: 请查看 ADMIN_DEFAULT_PASSWORD 环境变量');
+          } else {
+            console.log('   密码: 请查看服务器启动日志（仅显示一次）');
+            console.log('   密码: ' + defaultPassword);
+          }
+        } else {
+          console.log('   密码: ' + defaultPassword);
         }
+        console.log('   ⚠️  首次登录将强制修改密码！');
       } else {
         console.log('ℹ️  管理员账号已存在');
       }
