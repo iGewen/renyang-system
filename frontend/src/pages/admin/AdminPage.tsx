@@ -1028,7 +1028,7 @@ export const AdminConfig: React.FC = () => {
   const [configs, setConfigs] = useState<SystemConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'basic' | 'payment' | 'sms'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'payment' | 'sms' | 'wechat'>('basic');
 
   // 配置表单
   const [basicConfig, setBasicConfig] = useState({
@@ -1065,6 +1065,14 @@ export const AdminConfig: React.FC = () => {
     smsTemplateResetPassword: '',// 找回密码验证码
     smsTemplateOrder: '',        // 订单通知
     smsTemplateFeedBill: '',     // 饲料费通知
+  });
+
+  const [wechatTemplateConfig, setWechatTemplateConfig] = useState({
+    adoptionSuccess: '',      // 领养成功通知
+    feedBill: '',             // 饲料费账单
+    feedBillOverdue: '',      // 饲料费逾期
+    redemptionAudit: '',      // 买断审核
+    redemptionSuccess: '',    // 买断成功
   });
 
   useEffect(() => {
@@ -1111,6 +1119,13 @@ export const AdminConfig: React.FC = () => {
         if (config.configKey === 'sms_template_reset_password') setSmsConfig(prev => ({ ...prev, smsTemplateResetPassword: value }));
         if (config.configKey === 'sms_template_order') setSmsConfig(prev => ({ ...prev, smsTemplateOrder: value }));
         if (config.configKey === 'sms_template_feed_bill') setSmsConfig(prev => ({ ...prev, smsTemplateFeedBill: value }));
+
+        // 微信模板配置
+        if (config.configKey === 'wechat_template_adoption_success') setWechatTemplateConfig(prev => ({ ...prev, adoptionSuccess: value }));
+        if (config.configKey === 'wechat_template_feed_bill') setWechatTemplateConfig(prev => ({ ...prev, feedBill: value }));
+        if (config.configKey === 'wechat_template_feed_bill_overdue') setWechatTemplateConfig(prev => ({ ...prev, feedBillOverdue: value }));
+        if (config.configKey === 'wechat_template_redemption_audit') setWechatTemplateConfig(prev => ({ ...prev, redemptionAudit: value }));
+        if (config.configKey === 'wechat_template_redemption_success') setWechatTemplateConfig(prev => ({ ...prev, redemptionSuccess: value }));
       });
     } catch (error) {
       console.error('加载配置失败', error);
@@ -1191,12 +1206,32 @@ export const AdminConfig: React.FC = () => {
     }
   };
 
+  const handleSaveWechatTemplate = async () => {
+    setSaving(true);
+    try {
+      await Promise.all([
+        adminApi.updateConfig('wechat_template_adoption_success', wechatTemplateConfig.adoptionSuccess),
+        adminApi.updateConfig('wechat_template_feed_bill', wechatTemplateConfig.feedBill),
+        adminApi.updateConfig('wechat_template_feed_bill_overdue', wechatTemplateConfig.feedBillOverdue),
+        adminApi.updateConfig('wechat_template_redemption_audit', wechatTemplateConfig.redemptionAudit),
+        adminApi.updateConfig('wechat_template_redemption_success', wechatTemplateConfig.redemptionSuccess),
+      ]);
+      toast.success('保存成功');
+      await loadConfigs();
+    } catch (error: any) {
+      toast.error(error.message || '保存失败');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) return <LoadingSpinner />;
 
   const tabs = [
     { id: 'basic', label: '基础配置', icon: Icons.Settings },
     { id: 'payment', label: '支付配置', icon: Icons.CreditCard },
     { id: 'sms', label: '短信配置', icon: Icons.MessageSquare },
+    { id: 'wechat', label: '微信通知', icon: Icons.Bell },
   ];
 
   return (
@@ -1352,6 +1387,60 @@ export const AdminConfig: React.FC = () => {
             />
             <div className="pt-4">
               <Button onClick={handleSaveSms} loading={saving}>保存短信配置</Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {activeTab === 'wechat' && (
+        <Card className="p-6">
+          <h3 className="text-lg font-bold text-slate-900 mb-4">微信公众号模板消息配置</h3>
+          <p className="text-sm text-slate-500 mb-4">
+            请在微信公众平台 → 功能 → 模板消息中申请对应模板，填写模板ID
+          </p>
+          <div className="space-y-4 max-w-2xl">
+            <Input
+              label="领养成功通知模板"
+              value={wechatTemplateConfig.adoptionSuccess}
+              onChange={e => setWechatTemplateConfig({ ...wechatTemplateConfig, adoptionSuccess: e.target.value })}
+              placeholder="模板ID（如：OPENTM410000000）"
+            />
+            <p className="text-xs text-slate-400 -mt-2">用于：领养/订单支付成功时通知用户</p>
+
+            <Input
+              label="饲料费账单模板"
+              value={wechatTemplateConfig.feedBill}
+              onChange={e => setWechatTemplateConfig({ ...wechatTemplateConfig, feedBill: e.target.value })}
+              placeholder="模板ID（如：OPENTM410000000）"
+            />
+            <p className="text-xs text-slate-400 -mt-2">用于：每月饲料费账单生成时通知用户</p>
+
+            <Input
+              label="饲料费逾期模板"
+              value={wechatTemplateConfig.feedBillOverdue}
+              onChange={e => setWechatTemplateConfig({ ...wechatTemplateConfig, feedBillOverdue: e.target.value })}
+              placeholder="模板ID（如：OPENTM410000000）"
+            />
+            <p className="text-xs text-slate-400 -mt-2">用于：饲料费逾期时提醒用户</p>
+
+            <Input
+              label="买断审核模板"
+              value={wechatTemplateConfig.redemptionAudit}
+              onChange={e => setWechatTemplateConfig({ ...wechatTemplateConfig, redemptionAudit: e.target.value })}
+              placeholder="模板ID（如：OPENTM410000000）"
+            />
+            <p className="text-xs text-slate-400 -mt-2">用于：买断申请审核结果通知</p>
+
+            <Input
+              label="买断成功模板"
+              value={wechatTemplateConfig.redemptionSuccess}
+              onChange={e => setWechatTemplateConfig({ ...wechatTemplateConfig, redemptionSuccess: e.target.value })}
+              placeholder="模板ID（如：OPENTM410000000）"
+            />
+            <p className="text-xs text-slate-400 -mt-2">用于：买断支付成功时通知用户</p>
+
+            <div className="pt-4">
+              <Button onClick={handleSaveWechatTemplate} loading={saving}>保存微信模板配置</Button>
             </div>
           </div>
         </Card>

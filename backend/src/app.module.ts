@@ -229,6 +229,12 @@ export class AppModule implements NestModule, OnModuleInit {
         { key: 'aliyun_access_key_secret', value: '', type: 'sms', description: '阿里云Access Key Secret' },
         { key: 'aliyun_sign_name', value: '', type: 'sms', description: '短信签名' },
         { key: 'aliyun_template_code', value: '', type: 'sms', description: '短信模板Code' },
+        // 微信公众号模板消息配置
+        { key: 'wechat_template_adoption_success', value: '', type: 'wechat_template', description: '领养成功通知模板ID' },
+        { key: 'wechat_template_feed_bill', value: '', type: 'wechat_template', description: '饲料费账单模板ID' },
+        { key: 'wechat_template_feed_bill_overdue', value: '', type: 'wechat_template', description: '饲料费逾期模板ID' },
+        { key: 'wechat_template_redemption_audit', value: '', type: 'wechat_template', description: '买断审核模板ID' },
+        { key: 'wechat_template_redemption_success', value: '', type: 'wechat_template', description: '买断成功模板ID' },
       ];
 
       for (const config of defaultConfigs) {

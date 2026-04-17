@@ -1,13 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Notification } from '@/entities';
+import { Notification, User } from '@/entities';
+import { WechatService } from '@/services/wechat.service';
 
 @Injectable()
 export class NotificationService {
   constructor(
     @InjectRepository(Notification)
     private notificationRepository: Repository<Notification>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    private wechatService: WechatService,
   ) {}
 
   /**
@@ -198,5 +202,182 @@ export class NotificationService {
     });
 
     return { success: true };
+  }
+
+  // ==================== 微信模板消息通知 ====================
+
+  /**
+   * 获取用户的微信openid
+   */
+  private async getUserWechatOpenId(userId: string): Promise<string | null> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['wechatOpenId'],
+    });
+    return user?.wechatOpenId || null;
+  }
+
+  /**
+   * 发送领养成功通知（站内信 + 微信）
+   */
+  async sendAdoptionSuccess(params: {
+    userId: string;
+    orderNo: string;
+    livestockName: string;
+    amount: number;
+    orderId: string;
+  }) {
+    // 发送站内信
+    await this.sendOrderNotification(
+      params.userId,
+      '领养成功',
+      `您已成功领养「${params.livestockName}」，订单金额¥${params.amount.toFixed(2)}。感谢您的信任！`,
+      params.orderId,
+    );
+
+    // 发送微信通知
+    const openid = await this.getUserWechatOpenId(params.userId);
+    if (openid) {
+      await this.wechatService.sendAdoptionSuccessNotice({
+        openid,
+        orderNo: params.orderNo,
+        livestockName: params.livestockName,
+        amount: params.amount,
+        time: new Date().toLocaleString('zh-CN'),
+      });
+    }
+  }
+
+  /**
+   * 发送饲料费账单通知（站内信 + 微信）
+   */
+  async sendFeedBillCreated(params: {
+    userId: string;
+    billId: string;
+    billMonth: string;
+    livestockName: string;
+    amount: number;
+    deadline: string;
+  }) {
+    // 发送站内信
+    await this.sendFeedNotification(
+      params.userId,
+      '饲料费账单',
+      `您的${params.billMonth}月饲料费账单已生成，金额¥${params.amount.toFixed(2)}，请于${params.deadline}前缴纳。`,
+      params.billId,
+    );
+
+    // 发送微信通知
+    const openid = await this.getUserWechatOpenId(params.userId);
+    if (openid) {
+      await this.wechatService.sendFeedBillNotice({
+        openid,
+        billMonth: params.billMonth,
+        livestockName: params.livestockName,
+        amount: params.amount,
+        deadline: params.deadline,
+      });
+    }
+  }
+
+  /**
+   * 发送饲料费逾期提醒（站内信 + 微信）
+   */
+  async sendFeedBillOverdue(params: {
+    userId: string;
+    billId: string;
+    billMonth: string;
+    livestockName: string;
+    amount: number;
+    overdueDays: number;
+    lateFee: number;
+  }) {
+    // 发送站内信
+    await this.sendFeedNotification(
+      params.userId,
+      '饲料费逾期提醒',
+      `您的${params.billMonth}月饲料费已逾期${params.overdueDays}天，滞纳金¥${params.lateFee.toFixed(2)}，请尽快缴纳！`,
+      params.billId,
+    );
+
+    // 发送微信通知
+    const openid = await this.getUserWechatOpenId(params.userId);
+    if (openid) {
+      await this.wechatService.sendFeedBillOverdueNotice({
+        openid,
+        billMonth: params.billMonth,
+        livestockName: params.livestockName,
+        amount: params.amount,
+        overdueDays: params.overdueDays,
+        lateFee: params.lateFee,
+      });
+    }
+  }
+
+  /**
+   * 发送买断审核结果通知（站内信 + 微信）
+   */
+  async sendRedemptionAuditResult(params: {
+    userId: string;
+    redemptionId: string;
+    redemptionNo: string;
+    livestockName: string;
+    approved: boolean;
+    amount?: number;
+    remark?: string;
+  }) {
+    // 发送站内信
+    await this.sendRedemptionNotification(
+      params.userId,
+      params.approved ? '买断申请已通过' : '买断申请已拒绝',
+      params.approved
+        ? `您的买断申请（${params.livestockName}）已通过审核，金额¥${params.amount?.toFixed(2) || '-'}，请尽快完成支付。`
+        : `您的买断申请（${params.livestockName}）未通过审核。${params.remark ? `原因：${params.remark}` : ''}`,
+      params.redemptionId,
+    );
+
+    // 发送微信通知
+    const openid = await this.getUserWechatOpenId(params.userId);
+    if (openid) {
+      await this.wechatService.sendRedemptionAuditNotice({
+        openid,
+        redemptionNo: params.redemptionNo,
+        livestockName: params.livestockName,
+        approved: params.approved,
+        amount: params.amount,
+        remark: params.remark,
+      });
+    }
+  }
+
+  /**
+   * 发送买断成功通知（站内信 + 微信）
+   */
+  async sendRedemptionSuccess(params: {
+    userId: string;
+    redemptionId: string;
+    redemptionNo: string;
+    livestockName: string;
+    amount: number;
+  }) {
+    // 发送站内信
+    await this.sendRedemptionNotification(
+      params.userId,
+      '买断成功',
+      `恭喜您成功买断「${params.livestockName}」，金额¥${params.amount.toFixed(2)}。感谢您的支持！`,
+      params.redemptionId,
+    );
+
+    // 发送微信通知
+    const openid = await this.getUserWechatOpenId(params.userId);
+    if (openid) {
+      await this.wechatService.sendRedemptionSuccessNotice({
+        openid,
+        redemptionNo: params.redemptionNo,
+        livestockName: params.livestockName,
+        amount: params.amount,
+        time: new Date().toLocaleString('zh-CN'),
+      });
+    }
   }
 }

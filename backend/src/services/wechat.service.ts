@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { RedisService } from '@/common/utils/redis.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '@/entities';
+import { User, SystemConfig } from '@/entities';
 import { JwtService } from '@nestjs/jwt';
 import { IdUtil } from '@/common/utils/id.util';
 import { CryptoUtil } from '@/common/utils/crypto.util';
@@ -24,6 +24,8 @@ export class WechatService {
     private redisService: RedisService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(SystemConfig)
+    private systemConfigRepository: Repository<SystemConfig>,
     private jwtService: JwtService,
   ) {
     // 微信支付相关
@@ -302,5 +304,267 @@ export class WechatService {
   private sanitizeUser(user: User) {
     const { password, ...result } = user;
     return result;
+  }
+
+  // ==================== 模板消息通知 ====================
+
+  /**
+   * 获取全局access_token（用于发送模板消息等）
+   */
+  private async getGlobalAccessToken(): Promise<string> {
+    const appId = this.loginAppId || this.appId;
+    const appSecret = this.loginAppSecret || this.appSecret;
+
+    // 先从缓存获取
+    let accessToken = await this.redisService.get('wechat:global:access_token');
+    if (accessToken) {
+      return accessToken;
+    }
+
+    // 重新获取
+    const url = `https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=${appId}&secret=${appSecret}`;
+    const response = await fetch(url);
+    const data = await response.json() as any;
+
+    if (data.errcode) {
+      console.error('获取微信access_token失败:', data);
+      throw new BadRequestException('获取微信access_token失败: ' + data.errmsg);
+    }
+
+    accessToken = data.access_token;
+    // 缓存7000秒（约2小时，微信token有效期2小时）
+    await this.redisService.set('wechat:global:access_token', accessToken!, 7000);
+
+    return accessToken!;
+  }
+
+  /**
+   * 发送模板消息
+   * @param openid 用户openid
+   * @param templateId 模板ID
+   * @param data 模板数据
+   * @param page 跳转页面（可选）
+   */
+  async sendTemplateMessage(
+    openid: string,
+    templateId: string,
+    data: Record<string, { value: string; color?: string }>,
+    page?: string,
+  ): Promise<boolean> {
+    try {
+      const accessToken = await this.getGlobalAccessToken();
+      const url = `https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=${accessToken}`;
+
+      const body: any = {
+        touser: openid,
+        template_id: templateId,
+        data,
+      };
+
+      if (page) {
+        body.url = page;
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const result = await response.json() as any;
+
+      if (result.errcode !== 0) {
+        console.error('发送模板消息失败:', result);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('发送模板消息异常:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 发送领养成功通知
+   */
+  async sendAdoptionSuccessNotice(params: {
+    openid: string;
+    orderNo: string;
+    livestockName: string;
+    amount: number;
+    time: string;
+  }): Promise<boolean> {
+    // 模板ID需要从配置或数据库获取
+    const templateId = await this.getTemplateId('adoption_success');
+    if (!templateId) {
+      console.warn('领养成功通知模板未配置');
+      return false;
+    }
+
+    return this.sendTemplateMessage(
+      params.openid,
+      templateId,
+      {
+        first: { value: '恭喜您，领养成功！' },
+        keyword1: { value: params.orderNo },
+        keyword2: { value: params.livestockName },
+        keyword3: { value: `¥${params.amount.toFixed(2)}` },
+        keyword4: { value: params.time },
+        remark: { value: '感谢您的信任，我们将用心照料您的爱宠！' },
+      },
+      '/pages/adoption/index',
+    );
+  }
+
+  /**
+   * 发送饲料费账单通知
+   */
+  async sendFeedBillNotice(params: {
+    openid: string;
+    billMonth: string;
+    livestockName: string;
+    amount: number;
+    deadline: string;
+  }): Promise<boolean> {
+    const templateId = await this.getTemplateId('feed_bill');
+    if (!templateId) {
+      console.warn('饲料费账单模板未配置');
+      return false;
+    }
+
+    return this.sendTemplateMessage(
+      params.openid,
+      templateId,
+      {
+        first: { value: '您的饲料费账单已生成，请及时缴纳。' },
+        keyword1: { value: params.billMonth },
+        keyword2: { value: params.livestockName },
+        keyword3: { value: `¥${params.amount.toFixed(2)}` },
+        keyword4: { value: params.deadline },
+        remark: { value: '逾期将产生滞纳金，请尽快缴纳。' },
+      },
+      '/pages/feed-bill/index',
+    );
+  }
+
+  /**
+   * 发送饲料费逾期提醒
+   */
+  async sendFeedBillOverdueNotice(params: {
+    openid: string;
+    billMonth: string;
+    livestockName: string;
+    amount: number;
+    overdueDays: number;
+    lateFee: number;
+  }): Promise<boolean> {
+    const templateId = await this.getTemplateId('feed_bill_overdue');
+    if (!templateId) {
+      console.warn('饲料费逾期模板未配置');
+      return false;
+    }
+
+    return this.sendTemplateMessage(
+      params.openid,
+      templateId,
+      {
+        first: { value: '您的饲料费已逾期，请尽快缴纳！' },
+        keyword1: { value: params.billMonth },
+        keyword2: { value: `¥${params.amount.toFixed(2)}` },
+        keyword3: { value: `${params.overdueDays}天` },
+        keyword4: { value: `¥${params.lateFee.toFixed(2)}` },
+        remark: { value: '请尽快缴纳以免影响您的领养权益。' },
+      },
+      '/pages/feed-bill/index',
+    );
+  }
+
+  /**
+   * 发送买断审核结果通知
+   */
+  async sendRedemptionAuditNotice(params: {
+    openid: string;
+    redemptionNo: string;
+    livestockName: string;
+    approved: boolean;
+    amount?: number;
+    remark?: string;
+  }): Promise<boolean> {
+    const templateId = await this.getTemplateId('redemption_audit');
+    if (!templateId) {
+      console.warn('买断审核模板未配置');
+      return false;
+    }
+
+    return this.sendTemplateMessage(
+      params.openid,
+      templateId,
+      {
+        first: { value: params.approved ? '您的买断申请已通过审核！' : '您的买断申请未通过审核' },
+        keyword1: { value: params.redemptionNo },
+        keyword2: { value: params.livestockName },
+        keyword3: { value: params.approved ? '审核通过' : '审核拒绝' },
+        keyword4: { value: params.amount ? `¥${params.amount.toFixed(2)}` : '-' },
+        remark: { value: params.remark || (params.approved ? '请尽快完成支付。' : '如有疑问请联系客服。') },
+      },
+      '/pages/redemption/index',
+    );
+  }
+
+  /**
+   * 发送买断成功通知
+   */
+  async sendRedemptionSuccessNotice(params: {
+    openid: string;
+    redemptionNo: string;
+    livestockName: string;
+    amount: number;
+    time: string;
+  }): Promise<boolean> {
+    const templateId = await this.getTemplateId('redemption_success');
+    if (!templateId) {
+      console.warn('买断成功模板未配置');
+      return false;
+    }
+
+    return this.sendTemplateMessage(
+      params.openid,
+      templateId,
+      {
+        first: { value: '恭喜您，买断成功！' },
+        keyword1: { value: params.redemptionNo },
+        keyword2: { value: params.livestockName },
+        keyword3: { value: `¥${params.amount.toFixed(2)}` },
+        keyword4: { value: params.time },
+        remark: { value: '感谢您的支持，我们会继续提供优质服务！' },
+      },
+    );
+  }
+
+  /**
+   * 从数据库获取模板ID
+   */
+  private async getTemplateId(templateKey: string): Promise<string | null> {
+    // 从Redis缓存获取
+    const cacheKey = `wechat:template:${templateKey}`;
+    const cached = await this.redisService.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    // 从数据库获取
+    const configKey = `wechat_template_${templateKey}`;
+    const config = await this.systemConfigRepository.findOne({
+      where: { configKey },
+    });
+
+    if (config && config.configValue) {
+      // 缓存1小时
+      await this.redisService.set(cacheKey, config.configValue, 3600);
+      return config.configValue;
+    }
+
+    return null;
   }
 }
