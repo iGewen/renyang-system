@@ -1396,9 +1396,9 @@ export default function App() {
             <AnimatePresence mode="wait">
               <Routes>
                 <Route path="/" element={<HomePage />} />
-                <Route path="/details/:id" element={<DetailsPage />} />
-                <Route path="/payment" element={<PaymentPage />} />
-                <Route path="/success" element={<SuccessPage />} />
+                <Route path="/details/:id" element={<UserProtectedRoute><DetailsPage /></UserProtectedRoute>} />
+                <Route path="/payment" element={<UserProtectedRoute><PaymentPage /></UserProtectedRoute>} />
+                <Route path="/success" element={<UserProtectedRoute><SuccessPage /></UserProtectedRoute>} />
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/admin-login" element={<AdminLoginPageWrapper />} />
                 {/* 用户需要登录才能访问的路由 */}
