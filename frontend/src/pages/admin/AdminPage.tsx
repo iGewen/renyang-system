@@ -96,48 +96,268 @@ export const AdminDashboard: React.FC = () => {
 
   if (loading) return <LoadingSpinner />;
 
+  // 计算增长率（模拟数据，实际应该对比昨日）
+  const todayOrders = stats?.orderToday || 0;
+  const monthRevenue = stats?.revenueMonth || 0;
+
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold text-slate-900 mb-6">控制台</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard title="今日收入" value={`¥${stats?.revenueToday?.toLocaleString() || 0}`} icon={<Icons.DollarSign className="w-6 h-6" />} />
-        <StatCard title="今日订单" value={stats?.orderToday || 0} icon={<Icons.ShoppingCart className="w-6 h-6" />} />
-        <StatCard title="总用户数" value={stats?.userTotal?.toLocaleString() || 0} icon={<Icons.Users className="w-6 h-6" />} />
-        <StatCard title="待处理事项" value={(stats?.pendingOrders || 0) + (stats?.pendingRedemptions || 0) + (stats?.exceptionAdoptions || 0)} icon={<Icons.AlertTriangle className="w-6 h-6" />} />
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-900">控制台</h2>
+        <p className="text-sm text-slate-400">
+          数据更新时间：{new Date().toLocaleString('zh-CN')}
+        </p>
       </div>
+
+      {/* 核心指标卡片 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* 今日收入 */}
+        <Card className="p-5 relative overflow-hidden">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm text-slate-500 mb-1">今日收入</p>
+              <p className="text-2xl font-bold text-slate-900">¥{(stats?.revenueToday || 0).toLocaleString()}</p>
+              <p className="text-xs text-slate-400 mt-1">
+                本月：¥{(stats?.revenueMonth || 0).toLocaleString()}
+              </p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center">
+              <Icons.DollarSign className="w-6 h-6 text-emerald-600" />
+            </div>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-emerald-600" />
+        </Card>
+
+        {/* 今日订单 */}
+        <Card className="p-5 relative overflow-hidden">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm text-slate-500 mb-1">今日订单</p>
+              <p className="text-2xl font-bold text-slate-900">{todayOrders}</p>
+              <p className="text-xs text-slate-400 mt-1">
+                总计：{stats?.orderTotal || 0} 笔
+              </p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+              <Icons.ShoppingCart className="w-6 h-6 text-blue-600" />
+            </div>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 to-blue-600" />
+        </Card>
+
+        {/* 用户数据 */}
+        <Card className="p-5 relative overflow-hidden">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm text-slate-500 mb-1">用户总数</p>
+              <p className="text-2xl font-bold text-slate-900">{(stats?.userTotal || 0).toLocaleString()}</p>
+              <p className="text-xs text-slate-400 mt-1">
+                今日新增：+{stats?.userToday || 0}
+              </p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
+              <Icons.Users className="w-6 h-6 text-purple-600" />
+            </div>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-400 to-purple-600" />
+        </Card>
+
+        {/* 活跃领养 */}
+        <Card className="p-5 relative overflow-hidden">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm text-slate-500 mb-1">活跃领养</p>
+              <p className="text-2xl font-bold text-slate-900">{stats?.activeUsers || 0}</p>
+              <p className="text-xs text-slate-400 mt-1">
+                总领养：{stats?.orderPaid || 0} 笔
+              </p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center">
+              <Icons.Package className="w-6 h-6 text-orange-600" />
+            </div>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-400 to-orange-600" />
+        </Card>
+      </div>
+
+      {/* 待处理事项 */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-slate-900">待处理事项</h3>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-bold text-red-500">
+              {(stats?.pendingOrders || 0) + (stats?.pendingRedemptions || 0) + (stats?.exceptionAdoptions || 0) + (stats?.pendingRefunds || 0)}
+            </span>
+            <span className="text-sm text-slate-400">项</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'orders' }))}
+            className="p-4 bg-orange-50 rounded-xl text-left hover:bg-orange-100 transition-colors cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                <Icons.Clock className="w-5 h-5 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-orange-600">{stats?.pendingOrders || 0}</p>
+                <p className="text-xs text-slate-500">待支付订单</p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'redemption' }))}
+            className="p-4 bg-blue-50 rounded-xl text-left hover:bg-blue-100 transition-colors cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                <Icons.FileCheck className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-blue-600">{stats?.pendingRedemptions || 0}</p>
+                <p className="text-xs text-slate-500">待审核买断</p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'feed' }))}
+            className="p-4 bg-red-50 rounded-xl text-left hover:bg-red-100 transition-colors cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                <Icons.AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-red-600">{stats?.exceptionAdoptions || 0}</p>
+                <p className="text-xs text-slate-500">逾期/异常</p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'orders' }))}
+            className="p-4 bg-amber-50 rounded-xl text-left hover:bg-amber-100 transition-colors cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                <Icons.RefreshCw className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-amber-600">{stats?.pendingRefunds || 0}</p>
+                <p className="text-xs text-slate-500">待退款</p>
+              </div>
+            </div>
+          </button>
+        </div>
+      </Card>
+
+      {/* 数据概览 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 领养类型分布 */}
         <Card className="p-6">
           <h3 className="text-lg font-bold text-slate-900 mb-4">领养类型分布</h3>
-          <div className="space-y-3">
-            {stats?.adoptionByType?.map((item: any) => (
-              <div key={item.typeId} className="flex items-center justify-between">
-                <span className="text-sm text-slate-600">{item.typeName}</span>
-                <span className="text-sm font-bold text-brand-primary">{item.count}</span>
-              </div>
-            ))}
-            {(!stats?.adoptionByType || stats.adoptionByType.length === 0) && (
-              <p className="text-sm text-slate-400 text-center py-4">暂无数据</p>
-            )}
-          </div>
+          {stats?.adoptionByType && stats.adoptionByType.length > 0 ? (
+            <div className="space-y-3">
+              {stats.adoptionByType.map((item: any, index: number) => {
+                const total = stats.adoptionByType.reduce((sum: number, i: any) => sum + i.count, 0);
+                const percentage = total > 0 ? ((item.count / total) * 100).toFixed(1) : 0;
+                const colors = ['bg-brand-primary', 'bg-blue-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500'];
+                return (
+                  <div key={item.typeId} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-600">{item.typeName}</span>
+                      <span className="font-medium text-slate-900">{item.count} <span className="text-slate-400 text-xs">({percentage}%)</span></span>
+                    </div>
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${colors[index % colors.length]} transition-all duration-500`}
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 text-slate-400">
+              <Icons.PieChart className="w-12 h-12 mb-2" />
+              <p className="text-sm">暂无领养数据</p>
+            </div>
+          )}
         </Card>
+
+        {/* 收入概览 */}
         <Card className="p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">待处理事项</h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-xl">
-              <span className="text-sm text-slate-600">待支付订单</span>
-              <span className="text-sm font-bold text-orange-600">{stats?.pendingOrders || 0}</span>
+          <h3 className="text-lg font-bold text-slate-900 mb-4">收入概览</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+                  <Icons.Calendar className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">今日收入</p>
+                  <p className="text-lg font-bold text-emerald-600">¥{(stats?.revenueToday || 0).toLocaleString()}</p>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl">
-              <span className="text-sm text-slate-600">待审核买断</span>
-              <span className="text-sm font-bold text-blue-600">{stats?.pendingRedemptions || 0}</span>
+
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <Icons.BarChart3 className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">本月收入</p>
+                  <p className="text-lg font-bold text-blue-600">¥{(stats?.revenueMonth || 0).toLocaleString()}</p>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center justify-between p-3 bg-red-50 rounded-xl">
-              <span className="text-sm text-slate-600">异常领养</span>
-              <span className="text-sm font-bold text-red-600">{stats?.exceptionAdoptions || 0}</span>
+
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <Icons.TrendingUp className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">本年收入</p>
+                  <p className="text-lg font-bold text-purple-600">¥{(stats?.revenueYear || 0).toLocaleString()}</p>
+                </div>
+              </div>
             </div>
           </div>
         </Card>
       </div>
+
+      {/* 快捷操作 */}
+      <Card className="p-6">
+        <h3 className="text-lg font-bold text-slate-900 mb-4">快捷操作</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          {[
+            { icon: Icons.Plus, label: '添加活体', menu: 'livestock', color: 'text-brand-primary bg-brand-50' },
+            { icon: Icons.Users, label: '用户管理', menu: 'users', color: 'text-blue-600 bg-blue-50' },
+            { icon: Icons.ShoppingCart, label: '订单管理', menu: 'orders', color: 'text-orange-600 bg-orange-50' },
+            { icon: Icons.Coins, label: '饲料费', menu: 'feed', color: 'text-amber-600 bg-amber-50' },
+            { icon: Icons.CheckCircle2, label: '买断审核', menu: 'redemption', color: 'text-purple-600 bg-purple-50' },
+            { icon: Icons.Settings, label: '系统配置', menu: 'config', color: 'text-slate-600 bg-slate-100' },
+          ].map((item, index) => (
+            <button
+              key={index}
+              onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: item.menu }))}
+              className={cn(
+                "flex flex-col items-center gap-2 p-4 rounded-xl transition-all hover:scale-105 cursor-pointer",
+                item.color
+              )}
+            >
+              <item.icon className="w-6 h-6" />
+              <span className="text-sm font-medium">{item.label}</span>
+            </button>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 };

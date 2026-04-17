@@ -130,9 +130,10 @@ interface HeaderBarProps {
   title: string;
   adminInfo: any;
   onLogout: () => void;
+  onMenuChange: (menu: string) => void;
 }
 
-const HeaderBar: React.FC<HeaderBarProps> = ({ title, adminInfo, onLogout }) => {
+const HeaderBar: React.FC<HeaderBarProps> = ({ title, adminInfo, onLogout, onMenuChange }) => {
   const currentTime = new Date();
   const hour = currentTime.getHours();
   let greeting = '早上好';
@@ -147,9 +148,12 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ title, adminInfo, onLogout }) => 
 
       <div className="flex items-center gap-4">
         {/* 通知 */}
-        <button className="relative p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-colors">
+        <button
+          onClick={() => onMenuChange('notifications')}
+          className="relative p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer"
+          title="站内信"
+        >
           <Icons.Bell className="w-5 h-5" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
         </button>
 
         {/* 分隔线 */}
@@ -211,7 +215,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         )}
       >
         {/* 顶部栏 */}
-        <HeaderBar title={pageTitle} adminInfo={adminInfo} onLogout={onLogout} />
+        <HeaderBar title={pageTitle} adminInfo={adminInfo} onLogout={onLogout} onMenuChange={onMenuChange} />
 
         {/* 内容区域 */}
         <main className="p-6 min-h-[calc(100vh-64px)]">
