@@ -151,7 +151,7 @@ const AdoptionDetailPage: React.FC = () => {
   }
 
   const statusConfig = getStatusConfig(adoption.status, redemption?.status);
-  const livestock = adoption.livestockSnapshot || adoption.livestock;
+  const livestock = adoption.livestockSnapshot || adoption.livestock || {};
 
   return (
     <PageTransition>

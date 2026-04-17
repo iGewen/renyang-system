@@ -1371,9 +1371,9 @@ export default function App() {
                 <Route path="/balance" element={<UserProtectedRoute><Suspense fallback={<LoadingSpinner />}><BalancePage /></Suspense></UserProtectedRoute>} />
                 <Route path="/notifications" element={<UserProtectedRoute><NotificationPage /></UserProtectedRoute>} />
                 <Route path="/orders" element={<UserProtectedRoute><Suspense fallback={<LoadingSpinner />}><OrdersPage /></Suspense></UserProtectedRoute>} />
-                <Route path="/adoption/:id" element={<UserProtectedRoute><Suspense fallback={<LoadingSpinner />}><AdoptionDetailPage /></Suspense></UserProtectedRoute>} />
-                <Route path="/adoption/:id/redemption" element={<UserProtectedRoute><Suspense fallback={<LoadingSpinner />}><RedemptionPage /></Suspense></UserProtectedRoute>} />
-                <Route path="/feed-bill/:id" element={<UserProtectedRoute><Suspense fallback={<LoadingSpinner />}><FeedBillDetailPage /></Suspense></UserProtectedRoute>} />
+                <Route path="/adoption/:id" element={<Suspense fallback={<LoadingSpinner />}><UserProtectedRoute><AdoptionDetailPage /></UserProtectedRoute></Suspense>} />
+                <Route path="/adoption/:id/redemption" element={<Suspense fallback={<LoadingSpinner />}><UserProtectedRoute><RedemptionPage /></UserProtectedRoute></Suspense>} />
+                <Route path="/feed-bill/:id" element={<Suspense fallback={<LoadingSpinner />}><UserProtectedRoute><FeedBillDetailPage /></UserProtectedRoute></Suspense>} />
                 {/* 管理后台需要管理员登录 */}
                 <Route path="/admin/*" element={<AdminProtectedRoute><Suspense fallback={<LoadingSpinner />}><AdminPage /></Suspense></AdminProtectedRoute>} />
               </Routes>
