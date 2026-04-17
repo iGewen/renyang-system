@@ -22,24 +22,39 @@ const REQUEST_TIMEOUT = 30000; // 30秒超时
 
 // Token 管理工具
 const TokenManager = {
-  get: (): string | null => {
-    const token = localStorage.getItem('token') || localStorage.getItem('admin_token');
+  get: (isAdminRequest: boolean = false): string | null => {
+    // 如果是管理后台请求，优先使用 admin_token
+    if (isAdminRequest) {
+      const adminToken = localStorage.getItem('admin_token');
+      if (adminToken) {
+        try {
+          const payload = JSON.parse(atob(adminToken.split('.')[1]));
+          if (payload.exp && payload.exp * 1000 < Date.now()) {
+            localStorage.removeItem('admin_token');
+            localStorage.removeItem('admin_info');
+            return null;
+          }
+          return adminToken;
+        } catch {
+          return adminToken;
+        }
+      }
+      return null;
+    }
+
+    // 普通用户请求，使用 token
+    const token = localStorage.getItem('token');
     if (!token) return null;
 
-    // 检查 Token 是否过期
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       if (payload.exp && payload.exp * 1000 < Date.now()) {
-        // Token 已过期，清除
         localStorage.removeItem('token');
-        localStorage.removeItem('admin_token');
         localStorage.removeItem('user');
-        localStorage.removeItem('adminInfo');
         return null;
       }
       return token;
     } catch {
-      // Token 解析失败，仍然返回
       return token;
     }
   },
@@ -56,16 +71,16 @@ const TokenManager = {
     localStorage.removeItem('token');
     localStorage.removeItem('admin_token');
     localStorage.removeItem('user');
-    localStorage.removeItem('adminInfo');
+    localStorage.removeItem('admin_info');
   }
 };
 
 // 通用请求方法
-async function request<T>(url: string, options?: RequestInit): Promise<T> {
+async function request<T>(url: string, options?: RequestInit, isAdminRequest: boolean = false): Promise<T> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
-  const token = TokenManager.get();
+  const token = TokenManager.get(isAdminRequest);
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -102,6 +117,11 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+// 管理后台专用请求方法
+async function adminRequest<T>(url: string, options?: RequestInit): Promise<T> {
+  return request<T>(url, options, true);
 }
 
 // ==================== 认证相关 ====================
@@ -456,18 +476,18 @@ export const notificationApi = {
 export const adminApi = {
   // ==================== 认证 ====================
   login: async (data: { username: string; password: string }): Promise<{ token: string; admin: Admin }> => {
-    return request('/admin/auth/login', {
+    return adminRequest('/admin/auth/login', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
   getCurrentAdmin: async (): Promise<Admin> => {
-    return request('/admin/auth/info');
+    return adminRequest('/admin/auth/info');
   },
 
   updatePassword: async (data: { oldPassword: string; newPassword: string }): Promise<{ success: boolean }> => {
-    return request('/admin/auth/change-password', {
+    return adminRequest('/admin/auth/change-password', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -475,34 +495,34 @@ export const adminApi = {
 
   // ==================== 数据统计 ====================
   getDashboardStats: async (): Promise<DashboardStats> => {
-    return request('/admin/dashboard/stats');
+    return adminRequest('/admin/dashboard/stats');
   },
 
   getDashboardTrend: async (type: 'revenue' | 'order' | 'user', range: 'week' | 'month' | 'year'): Promise<{ dates: string[]; values: number[] }> => {
-    return request(`/admin/dashboard/trend?type=${type}&range=${range}`);
+    return adminRequest(`/admin/dashboard/trend?type=${type}&range=${range}`);
   },
 
   // ==================== 活体管理 ====================
   getLivestockTypes: async (): Promise<LivestockType[]> => {
-    return request('/admin/livestock-types');
+    return adminRequest('/admin/livestock-types');
   },
 
   createLivestockType: async (data: Partial<LivestockType>): Promise<LivestockType> => {
-    return request('/admin/livestock-types', {
+    return adminRequest('/admin/livestock-types', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
   updateLivestockType: async (id: string, data: Partial<LivestockType>): Promise<LivestockType> => {
-    return request(`/admin/livestock-types/${id}`, {
+    return adminRequest(`/admin/livestock-types/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   },
 
   deleteLivestockType: async (id: string): Promise<{ success: boolean }> => {
-    return request(`/admin/livestock-types/${id}`, { method: 'DELETE' });
+    return adminRequest(`/admin/livestock-types/${id}`, { method: 'DELETE' });
   },
 
   getLivestockList: async (params?: { typeId?: string; status?: string; keyword?: string; page?: number; pageSize?: number }): Promise<PaginatedResponse<Livestock>> => {
@@ -512,36 +532,36 @@ export const adminApi = {
     if (params?.keyword) query.set('keyword', params.keyword);
     if (params?.page) query.set('page', params.page.toString());
     if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
-    return request(`/admin/livestock?${query.toString()}`);
+    return adminRequest(`/admin/livestock?${query.toString()}`);
   },
 
   createLivestock: async (data: Partial<Livestock>): Promise<Livestock> => {
-    return request('/admin/livestock', {
+    return adminRequest('/admin/livestock', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
   updateLivestock: async (id: string, data: Partial<Livestock>): Promise<Livestock> => {
-    return request(`/admin/livestock/${id}`, {
+    return adminRequest(`/admin/livestock/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   },
 
   deleteLivestock: async (id: string): Promise<{ success: boolean }> => {
-    return request(`/admin/livestock/${id}`, { method: 'DELETE' });
+    return adminRequest(`/admin/livestock/${id}`, { method: 'DELETE' });
   },
 
   updateLivestockStatus: async (id: string, status: 'on_sale' | 'off_sale'): Promise<Livestock> => {
-    return request(`/admin/livestock/${id}/status`, {
+    return adminRequest(`/admin/livestock/${id}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
     });
   },
 
   updateLivestockStock: async (id: string, stock: number, reason?: string): Promise<Livestock> => {
-    return request(`/admin/livestock/${id}/stock`, {
+    return adminRequest(`/admin/livestock/${id}/stock`, {
       method: 'PUT',
       body: JSON.stringify({ stock, reason }),
     });
@@ -557,11 +577,11 @@ export const adminApi = {
     if (params?.endDate) query.set('endDate', params.endDate);
     if (params?.page) query.set('page', params.page.toString());
     if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
-    return request(`/admin/orders?${query.toString()}`);
+    return adminRequest(`/admin/orders?${query.toString()}`);
   },
 
   getOrderById: async (id: string): Promise<AdoptionOrder> => {
-    return request(`/admin/orders/${id}`);
+    return adminRequest(`/admin/orders/${id}`);
   },
 
   // ==================== 饲料费管理 ====================
@@ -575,25 +595,25 @@ export const adminApi = {
     if (params?.endDate) query.set('endDate', params.endDate);
     if (params?.page) query.set('page', params.page.toString());
     if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
-    return request(`/admin/feed-bills?${query.toString()}`);
+    return adminRequest(`/admin/feed-bills?${query.toString()}`);
   },
 
   adjustFeedBill: async (id: string, data: { adjustedAmount: number; reason: string }): Promise<FeedBill> => {
-    return request(`/admin/feed-bills/${id}/adjust`, {
+    return adminRequest(`/admin/feed-bills/${id}/adjust`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   },
 
   waiveFeedBill: async (id: string, reason: string): Promise<FeedBill> => {
-    return request(`/admin/feed-bills/${id}/waive`, {
+    return adminRequest(`/admin/feed-bills/${id}/waive`, {
       method: 'PUT',
       body: JSON.stringify({ reason }),
     });
   },
 
   waiveLateFee: async (id: string, reason: string): Promise<FeedBill> => {
-    return request(`/admin/feed-bills/${id}/waive-late-fee`, {
+    return adminRequest(`/admin/feed-bills/${id}/waive-late-fee`, {
       method: 'PUT',
       body: JSON.stringify({ reason }),
     });
@@ -603,11 +623,11 @@ export const adminApi = {
     const query = new URLSearchParams();
     if (params?.page) query.set('page', params.page.toString());
     if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
-    return request(`/admin/adoptions/exception?${query.toString()}`);
+    return adminRequest(`/admin/adoptions/exception?${query.toString()}`);
   },
 
   resolveException: async (id: string, data: { action: 'contact' | 'terminate' | 'continue'; remark: string }): Promise<Adoption> => {
-    return request(`/admin/adoptions/${id}/resolve`, {
+    return adminRequest(`/admin/adoptions/${id}/resolve`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
@@ -623,15 +643,15 @@ export const adminApi = {
     if (params?.endDate) query.set('endDate', params.endDate);
     if (params?.page) query.set('page', params.page.toString());
     if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
-    return request(`/admin/redemptions?${query.toString()}`);
+    return adminRequest(`/admin/redemptions?${query.toString()}`);
   },
 
   getRedemptionById: async (id: string): Promise<RedemptionOrder> => {
-    return request(`/admin/redemptions/${id}`);
+    return adminRequest(`/admin/redemptions/${id}`);
   },
 
   auditRedemption: async (id: string, data: { approved: boolean; adjustedAmount?: number; remark?: string }): Promise<RedemptionOrder> => {
-    return request(`/admin/redemptions/${id}/audit`, {
+    return adminRequest(`/admin/redemptions/${id}/audit`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -648,22 +668,22 @@ export const adminApi = {
     if (params?.endDate) query.set('endDate', params.endDate);
     if (params?.page) query.set('page', params.page.toString());
     if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
-    return request(`/admin/refunds?${query.toString()}`);
+    return adminRequest(`/admin/refunds?${query.toString()}`);
   },
 
   getRefundById: async (id: string): Promise<RefundOrder> => {
-    return request(`/admin/refunds/${id}`);
+    return adminRequest(`/admin/refunds/${id}`);
   },
 
   auditRefund: async (id: string, data: { approved: boolean; remark?: string }): Promise<RefundOrder> => {
-    return request(`/admin/refunds/${id}/audit`, {
+    return adminRequest(`/admin/refunds/${id}/audit`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   },
 
   manualRefund: async (data: { orderType: string; orderId: string; refundAmount: number; refundLivestock: 'yes' | 'no'; reason: string; confirmPassword: string }): Promise<RefundOrder> => {
-    return request('/admin/refunds/manual', {
+    return adminRequest('/admin/refunds/manual', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -678,41 +698,41 @@ export const adminApi = {
     if (params?.endDate) query.set('endDate', params.endDate);
     if (params?.page) query.set('page', params.page.toString());
     if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
-    return request(`/admin/users?${query.toString()}`);
+    return adminRequest(`/admin/users?${query.toString()}`);
   },
 
   getUserById: async (id: string): Promise<User> => {
-    return request(`/admin/users/${id}`);
+    return adminRequest(`/admin/users/${id}`);
   },
 
   getUserAdoptions: async (id: string): Promise<Adoption[]> => {
-    return request(`/admin/users/${id}/adoptions`);
+    return adminRequest(`/admin/users/${id}/adoptions`);
   },
 
   getUserOrders: async (id: string): Promise<AdoptionOrder[]> => {
-    return request(`/admin/users/${id}/orders`);
+    return adminRequest(`/admin/users/${id}/orders`);
   },
 
   getUserBalanceLogs: async (id: string): Promise<BalanceLog[]> => {
-    return request(`/admin/users/${id}/balance-logs`);
+    return adminRequest(`/admin/users/${id}/balance-logs`);
   },
 
   updateUserStatus: async (id: string, status: number): Promise<{ success: boolean }> => {
-    return request(`/admin/users/${id}/status`, {
+    return adminRequest(`/admin/users/${id}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
     });
   },
 
   updateUserInfo: async (id: string, data: { nickname?: string; phone?: string }): Promise<{ success: boolean }> => {
-    return request(`/admin/users/${id}`, {
+    return adminRequest(`/admin/users/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   },
 
   adjustUserBalance: async (id: string, amount: number, reason: string): Promise<{ success: boolean; balance: number }> => {
-    return request(`/admin/users/${id}/balance`, {
+    return adminRequest(`/admin/users/${id}/balance`, {
       method: 'POST',
       body: JSON.stringify({ amount, reason }),
     });
@@ -724,11 +744,11 @@ export const adminApi = {
     if (params?.type) query.set('type', params.type);
     if (params?.page) query.set('page', params.page.toString());
     if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
-    return request(`/admin/notifications?${query.toString()}`);
+    return adminRequest(`/admin/notifications?${query.toString()}`);
   },
 
   sendNotification: async (data: { userIds?: string[]; title: string; content: string; type: string }): Promise<{ success: boolean; sendCount: number }> => {
-    return request('/admin/notifications/send', {
+    return adminRequest('/admin/notifications/send', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -737,22 +757,22 @@ export const adminApi = {
   // ==================== 系统配置 ====================
   getConfigs: async (configType?: string): Promise<SystemConfig[]> => {
     const query = configType ? `?type=${configType}` : '';
-    return request(`/admin/system-config${query}`);
+    return adminRequest(`/admin/system-config${query}`);
   },
 
   updateConfig: async (key: string, value: any): Promise<SystemConfig> => {
-    return request(`/admin/system-config`, {
+    return adminRequest(`/admin/system-config`, {
       method: 'POST',
       body: JSON.stringify({ configKey: key, configValue: value }),
     });
   },
 
   testPayment: async (type: 'alipay' | 'wechat'): Promise<{ success: boolean; message: string }> => {
-    return request(`/admin/configs/test-payment/${type}`, { method: 'POST' });
+    return adminRequest(`/admin/configs/test-payment/${type}`, { method: 'POST' });
   },
 
   testSms: async (phone: string): Promise<{ success: boolean; message: string }> => {
-    return request('/admin/configs/test-sms', {
+    return adminRequest('/admin/configs/test-sms', {
       method: 'POST',
       body: JSON.stringify({ phone }),
     });
@@ -765,32 +785,32 @@ export const adminApi = {
     if (params?.keyword) query.set('keyword', params.keyword);
     if (params?.page) query.set('page', params.page.toString());
     if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
-    return request(`/admin/admins?${query.toString()}`);
+    return adminRequest(`/admin/admins?${query.toString()}`);
   },
 
   createAdmin: async (data: { username: string; password: string; name: string; phone?: string; role: 'super_admin' | 'admin' }): Promise<Admin> => {
-    return request('/admin/admins', {
+    return adminRequest('/admin/admins', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
   updateAdmin: async (id: string, data: Partial<Admin>): Promise<Admin> => {
-    return request(`/admin/admins/${id}`, {
+    return adminRequest(`/admin/admins/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   },
 
   resetAdminPassword: async (id: string, newPassword: string): Promise<{ success: boolean }> => {
-    return request(`/admin/admins/${id}/reset-password`, {
+    return adminRequest(`/admin/admins/${id}/reset-password`, {
       method: 'PUT',
       body: JSON.stringify({ newPassword }),
     });
   },
 
   updateAdminStatus: async (id: string, status: 'enabled' | 'disabled'): Promise<Admin> => {
-    return request(`/admin/admins/${id}/status`, {
+    return adminRequest(`/admin/admins/${id}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
     });
@@ -807,20 +827,20 @@ export const adminApi = {
     if (params?.endDate) query.set('endDate', params.endDate);
     if (params?.page) query.set('page', params.page.toString());
     if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
-    return request(`/admin/audit-logs?${query.toString()}`);
+    return adminRequest(`/admin/audit-logs?${query.toString()}`);
   },
 
   getAuditLogById: async (id: string): Promise<AuditLog> => {
-    return request(`/admin/audit-logs/${id}`);
+    return adminRequest(`/admin/audit-logs/${id}`);
   },
 
   clearAuditLogs: async (): Promise<{ success: boolean }> => {
-    return request('/admin/audit-logs', { method: 'DELETE' });
+    return adminRequest('/admin/audit-logs', { method: 'DELETE' });
   },
 
   // 验证管理员密码（敏感操作确认）
   verifyPassword: async (password: string): Promise<{ success: boolean }> => {
-    return request('/admin/auth/verify-password', {
+    return adminRequest('/admin/auth/verify-password', {
       method: 'POST',
       body: JSON.stringify({ password }),
     });
@@ -828,21 +848,21 @@ export const adminApi = {
 
   // ==================== 协议管理 ====================
   getAgreements: async (): Promise<{ id: string; agreementKey: string; title: string; content: string; createdAt: string; updatedAt: string }[]> => {
-    return request('/admin/agreements');
+    return adminRequest('/admin/agreements');
   },
 
   getAgreement: async (key: string): Promise<{ id: string; agreementKey: string; title: string; content: string; createdAt: string; updatedAt: string }> => {
-    return request(`/admin/agreements/${key}`);
+    return adminRequest(`/admin/agreements/${key}`);
   },
 
   saveAgreement: async (data: { agreementKey: string; title: string; content: string }): Promise<{ success: boolean; id: string }> => {
-    return request('/admin/agreements', {
+    return adminRequest('/admin/agreements', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
   deleteAgreement: async (key: string): Promise<{ success: boolean }> => {
-    return request(`/admin/agreements/${key}`, { method: 'DELETE' });
+    return adminRequest(`/admin/agreements/${key}`, { method: 'DELETE' });
   }
 };
