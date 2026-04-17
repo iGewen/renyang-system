@@ -440,6 +440,27 @@ const NotificationBadge: React.FC = () => {
 const TabBar: React.FC = () => {
   const location = useLocation();
   const isActive = (path: string) => location.pathname === path;
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    // 获取未读消息数
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    notificationApi.getUnreadCount().then(res => {
+      setUnreadCount(res.count || 0);
+    }).catch(() => {});
+
+    // 每30秒刷新一次
+    const interval = setInterval(() => {
+      notificationApi.getUnreadCount().then(res => {
+        setUnreadCount(res.count || 0);
+      }).catch(() => {});
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
       <div className="max-w-md md:max-w-lg mx-auto px-6 pb-6 pointer-events-auto">
@@ -452,9 +473,14 @@ const TabBar: React.FC = () => {
             <Icons.Package className="w-6 h-6" />
             <span className="text-[10px] font-bold tracking-wider uppercase">牧场</span>
           </Link>
-          <Link to="/profile" className={cn("flex flex-col items-center justify-center gap-1 transition-colors duration-200 min-w-[60px]", isActive('/profile') ? "text-white" : "text-white/40 hover:text-white/60")}>
+          <Link to="/profile" className={cn("flex flex-col items-center justify-center gap-1 transition-colors duration-200 min-w-[60px] relative", isActive('/profile') ? "text-white" : "text-white/40 hover:text-white/60")}>
             <Icons.User className="w-6 h-6" />
             <span className="text-[10px] font-bold tracking-wider uppercase">我的</span>
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 right-2 w-4 h-4 bg-red-500 text-white text-[8px] rounded-full flex items-center justify-center font-bold">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </Link>
         </div>
       </div>
@@ -733,19 +759,27 @@ const PaymentPage: React.FC = () => {
             </div>
           </div>
           <div className="w-full mt-8 space-y-3">
-            {paymentConfig.alipayEnabled && (
-              <button onClick={() => handlePay('alipay')} disabled={isPaying} className="w-full flex items-center justify-center gap-3 py-4 border-2 border-blue-500 text-blue-600 rounded-2xl font-medium hover:bg-blue-50 transition-colors disabled:opacity-50">
-                <Icons.Alipay className="w-6 h-6" />支付宝支付
-              </button>
+            {paymentConfig.loaded ? (
+              <>
+                {paymentConfig.alipayEnabled && (
+                  <button onClick={() => handlePay('alipay')} disabled={isPaying} className="w-full flex items-center justify-center gap-3 py-4 border-2 border-blue-500 text-blue-600 rounded-2xl font-medium hover:bg-blue-50 transition-colors disabled:opacity-50">
+                    <Icons.Alipay className="w-6 h-6" />支付宝支付
+                  </button>
+                )}
+                {paymentConfig.wechatEnabled && (
+                  <button onClick={() => handlePay('wechat')} disabled={isPaying} className="w-full flex items-center justify-center gap-3 py-4 border-2 border-green-500 text-green-600 rounded-2xl font-medium hover:bg-green-50 transition-colors disabled:opacity-50">
+                    <Icons.Wechat className="w-6 h-6" />微信支付
+                  </button>
+                )}
+                <button onClick={() => handlePay('balance')} disabled={isPaying} className="w-full flex items-center justify-center gap-3 py-4 border-2 border-brand-primary text-brand-primary rounded-2xl font-medium hover:bg-brand-primary/5 transition-colors disabled:opacity-50">
+                  <Icons.Wallet className="w-6 h-6" />余额支付
+                </button>
+              </>
+            ) : (
+              <div className="flex justify-center py-8">
+                <Icons.Loader2 className="w-6 h-6 text-brand-primary animate-spin" />
+              </div>
             )}
-            {paymentConfig.wechatEnabled && (
-              <button onClick={() => handlePay('wechat')} disabled={isPaying} className="w-full flex items-center justify-center gap-3 py-4 border-2 border-green-500 text-green-600 rounded-2xl font-medium hover:bg-green-50 transition-colors disabled:opacity-50">
-                <Icons.Wechat className="w-6 h-6" />微信支付
-              </button>
-            )}
-            <button onClick={() => handlePay('balance')} disabled={isPaying} className="w-full flex items-center justify-center gap-3 py-4 border-2 border-brand-primary text-brand-primary rounded-2xl font-medium hover:bg-brand-primary/5 transition-colors disabled:opacity-50">
-              <Icons.Wallet className="w-6 h-6" />余额支付
-            </button>
           </div>
           <p className="mt-8 text-[10px] text-slate-300 flex items-center gap-2"><Icons.ShieldCheck className="w-3 h-3" /> 支付安全加密保障</p>
         </div>
@@ -892,11 +926,13 @@ const MyAdoptionsPage: React.FC = () => {
                         <img src={item.livestockSnapshot?.mainImage || item.livestock?.mainImage} className="w-full h-full object-cover" referrerPolicy="no-referrer" alt="" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-start justify-between gap-2 mb-1">
                           <h3 className="text-xl font-display font-bold text-brand-primary truncate">{item.livestockSnapshot?.name || item.livestock?.name}</h3>
-                          {getStatusBadge(item.status, redemption)}
                         </div>
                         <p className="text-[10px] text-slate-400 font-mono mb-2">ID: {item.adoptionNo}</p>
+                        <div className="flex items-center gap-2 mb-2">
+                          {getStatusBadge(item.status, redemption)}
+                        </div>
                         <div className="flex gap-4 text-xs text-slate-500">
                           <span>已领养 <b className="text-brand-primary">{item.days || 0}</b> 天</span>
                           <span>已缴 <b className="text-brand-primary">{item.feedMonthsPaid}</b> 月</span>
