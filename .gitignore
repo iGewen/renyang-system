@@ -36,14 +36,20 @@ docs/
 
 # Claude配置目录
 .claude/
-# Claude Code - Settings and local configuration
-.claude/settings.local.json
 
-# Claude Code - Installed skills, knowledge, and scripts
-# These are managed by @codihaus/claude-skills package
-.claude/skills/
-.claude/knowledge/
-.claude/scripts/
+# AI工具配置目录（不上传）
+.agents/
+.codebuddy/
+.qoder/
+.trae/
+
+# 开发计划目录
+plans/
+
+# 开发文档（不上传）
+CLAUDE.md
+FIELD_NAMING_CONVENTIONS.md
+NAMING_INCONSISTENCIES.md
 
 # Environment files
 .env
