@@ -10,61 +10,73 @@ export class IdUtil {
   }
 
   /**
-   * 生成订单号
+   * 获取当前时间的 YYMMDDHHmmss 格式
    */
-  static generateOrderNo(): string {
+  private static getTimestamp(): string {
     const date = new Date();
-    const year = date.getFullYear();
+    const year = String(date.getFullYear()).substring(2); // YY
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-    return `ORD${year}${month}${day}${random}`;
+    const hour = String(date.getHours()).padStart(2, '0');
+    const minute = String(date.getMinutes()).padStart(2, '0');
+    const second = String(date.getSeconds()).padStart(2, '0');
+    return `${year}${month}${day}${hour}${minute}${second}`;
+  }
+
+  /**
+   * 生成订单号
+   * 格式：ORD + YYMMDDHHmmss
+   */
+  static generateOrderNo(): string {
+    return `ORD${this.getTimestamp()}`;
   }
 
   /**
    * 生成支付单号
+   * 格式：PAY + YYMMDDHHmmss
    */
   static generatePaymentNo(): string {
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const random = Math.random().toString(36).substring(2, 10).toUpperCase();
-    return `PAY${year}${month}${day}${random}`;
+    return `PAY${this.getTimestamp()}`;
   }
 
   /**
-   * 生成领养编号
+   * 生成活体编号（领养编号）
+   * 格式：HT + YYMMDDHHmmss
+   * 注：活体编号 = 领养编号，一个活体只能被一个人领养
+   */
+  static generateLivestockNo(): string {
+    return `HT${this.getTimestamp()}`;
+  }
+
+  /**
+   * 生成领养编号（已废弃，使用 generateLivestockNo）
+   * @deprecated 使用 generateLivestockNo 替代
    */
   static generateAdoptionNo(): string {
-    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-    return `ADPT${random}`;
+    return this.generateLivestockNo();
   }
 
   /**
    * 生成账单编号
+   * 格式：BILL + YYMMDDHHmmss
    */
   static generateBillNo(): string {
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-    return `BILL${year}${month}${random}`;
+    return `BILL${this.getTimestamp()}`;
   }
 
   /**
    * 生成买断编号
+   * 格式：MD + YYMMDDHHmmss
    */
   static generateRedemptionNo(): string {
-    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-    return `RDM${random}`;
+    return `MD${this.getTimestamp()}`;
   }
 
   /**
    * 生成退款编号
+   * 格式：RFD + YYMMDDHHmmss
    */
   static generateRefundNo(): string {
-    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-    return `RFD${random}`;
+    return `RFD${this.getTimestamp()}`;
   }
 }

@@ -186,9 +186,12 @@ export class OrderService {
       // 创建领养记录
       const livestock = order.livestockSnapshot;
 
+      // 活体编号 = 领养编号（一个活体只能被一个人领养）
+      const adoptionNo = livestock.livestockNo || IdUtil.generateLivestockNo();
+
       const adoption = manager.create(Adoption, {
         id: IdUtil.generate('ADP'),
-        adoptionNo: IdUtil.generateAdoptionNo(),
+        adoptionNo: adoptionNo,
         orderId: order.id,
         userId: order.userId,
         livestockId: order.livestockId,

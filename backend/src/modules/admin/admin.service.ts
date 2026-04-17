@@ -531,6 +531,7 @@ export class AdminService {
   async createLivestock(data: Partial<Livestock>, adminId: string, adminName: string, ip?: string) {
     const livestock = this.livestockRepository.create({
       id: IdUtil.generate('L'),
+      livestockNo: IdUtil.generateLivestockNo(), // 活体编号 = 领养编号
       ...data,
     });
 

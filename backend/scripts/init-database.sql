@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS `livestock_types` (
 -- 创建活体表
 CREATE TABLE IF NOT EXISTS `livestock` (
   `id` varchar(36) NOT NULL,
+  `livestock_no` varchar(20) DEFAULT NULL COMMENT '活体编号(领养编号)',
   `name` varchar(100) NOT NULL,
   `type_id` varchar(36) NOT NULL,
   `price` decimal(10,2) NOT NULL,
@@ -78,6 +79,7 @@ CREATE TABLE IF NOT EXISTS `livestock` (
   `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   `deleted_at` datetime(6) DEFAULT NULL,
   PRIMARY KEY (`id`),
+  KEY `idx_livestock_no` (`livestock_no`),
   KEY `idx_type_id` (`type_id`),
   KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='活体表';
