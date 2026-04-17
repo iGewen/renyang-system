@@ -6,6 +6,7 @@ import { cn } from './lib/utils';
 import type { Livestock, Adoption, FeedBill, User, Order } from './types';
 import { AdoptionStatus, OrderStatus, getAdoptionStatusText, getOrderStatusText } from './types/enums';
 import { livestockApi, adoptionApi, orderApi, paymentApi, balanceApi, notificationApi, authApi, adminApi, agreementApi, redemptionApi } from './services/api';
+import { SiteConfigProvider } from './contexts/SiteConfigContext';
 
 // Lazy load pages for better performance
 const OrdersPage = lazy(() => import('./pages/order/OrdersPage'));
@@ -1277,31 +1278,33 @@ export default function App() {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated: !!token, login, logout }}>
-      <Router>
-        <div className="w-full min-h-screen bg-brand-bg relative overflow-x-hidden">
-          <AnimatePresence mode="wait">
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/details/:id" element={<DetailsPage />} />
-              <Route path="/payment" element={<PaymentPage />} />
-              <Route path="/success" element={<SuccessPage />} />
-              <Route path="/my-adoptions" element={<MyAdoptionsPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/balance" element={<Suspense fallback={<LoadingSpinner />}><BalancePage /></Suspense>} />
-              <Route path="/notifications" element={<NotificationPage />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/orders" element={<Suspense fallback={<LoadingSpinner />}><OrdersPage /></Suspense>} />
-              <Route path="/adoption/:id" element={<Suspense fallback={<LoadingSpinner />}><AdoptionDetailPage /></Suspense>} />
-              <Route path="/adoption/:id/redemption" element={<Suspense fallback={<LoadingSpinner />}><RedemptionPage /></Suspense>} />
-              <Route path="/feed-bill/:id" element={<Suspense fallback={<LoadingSpinner />}><FeedBillDetailPage /></Suspense>} />
-              <Route path="/admin-login" element={<AdminLoginPageWrapper />} />
-              <Route path="/admin/*" element={<Suspense fallback={<LoadingSpinner />}><AdminPage /></Suspense>} />
-            </Routes>
-          </AnimatePresence>
-          <GlobalTabBar />
-        </div>
-      </Router>
-    </AuthContext.Provider>
+    <SiteConfigProvider>
+      <AuthContext.Provider value={{ user, token, isAuthenticated: !!token, login, logout }}>
+        <Router>
+          <div className="w-full min-h-screen bg-brand-bg relative overflow-x-hidden">
+            <AnimatePresence mode="wait">
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/details/:id" element={<DetailsPage />} />
+                <Route path="/payment" element={<PaymentPage />} />
+                <Route path="/success" element={<SuccessPage />} />
+                <Route path="/my-adoptions" element={<MyAdoptionsPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/balance" element={<Suspense fallback={<LoadingSpinner />}><BalancePage /></Suspense>} />
+                <Route path="/notifications" element={<NotificationPage />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/orders" element={<Suspense fallback={<LoadingSpinner />}><OrdersPage /></Suspense>} />
+                <Route path="/adoption/:id" element={<Suspense fallback={<LoadingSpinner />}><AdoptionDetailPage /></Suspense>} />
+                <Route path="/adoption/:id/redemption" element={<Suspense fallback={<LoadingSpinner />}><RedemptionPage /></Suspense>} />
+                <Route path="/feed-bill/:id" element={<Suspense fallback={<LoadingSpinner />}><FeedBillDetailPage /></Suspense>} />
+                <Route path="/admin-login" element={<AdminLoginPageWrapper />} />
+                <Route path="/admin/*" element={<Suspense fallback={<LoadingSpinner />}><AdminPage /></Suspense>} />
+              </Routes>
+            </AnimatePresence>
+            <GlobalTabBar />
+          </div>
+        </Router>
+      </AuthContext.Provider>
+    </SiteConfigProvider>
   );
 }
