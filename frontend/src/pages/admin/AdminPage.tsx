@@ -84,7 +84,7 @@ const SensitiveTextarea: React.FC<{
 // ==================== 控制台 ====================
 
 export const AdminDashboard: React.FC = () => {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -96,9 +96,16 @@ export const AdminDashboard: React.FC = () => {
 
   if (loading) return <LoadingSpinner />;
 
-  // 计算增长率（模拟数据，实际应该对比昨日）
-  const todayOrders = stats?.orderToday || 0;
-  const monthRevenue = stats?.revenueMonth || 0;
+  // 后端返回字段：totalUsers, todayUsers, totalOrders, todayOrders, totalAdoptions, activeAdoptions, pendingFeedBills, pendingRedemptions, pendingRefunds, todayRevenue
+  const todayOrders = stats?.todayOrders || 0;
+  const totalOrders = stats?.totalOrders || 0;
+  const totalUsers = stats?.totalUsers || 0;
+  const todayUsers = stats?.todayUsers || 0;
+  const todayRevenue = stats?.todayRevenue || 0;
+  const activeAdoptions = stats?.activeAdoptions || 0;
+  const pendingFeedBills = stats?.pendingFeedBills || 0;
+  const pendingRedemptions = stats?.pendingRedemptions || 0;
+  const pendingRefunds = stats?.pendingRefunds || 0;
 
   return (
     <div className="p-6 space-y-6">
@@ -116,9 +123,9 @@ export const AdminDashboard: React.FC = () => {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-slate-500 mb-1">今日收入</p>
-              <p className="text-2xl font-bold text-slate-900">¥{(stats?.revenueToday || 0).toLocaleString()}</p>
+              <p className="text-2xl font-bold text-slate-900">¥{(todayRevenue || 0).toLocaleString()}</p>
               <p className="text-xs text-slate-400 mt-1">
-                本月：¥{(stats?.revenueMonth || 0).toLocaleString()}
+                活跃领养：{activeAdoptions}
               </p>
             </div>
             <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center">
@@ -135,7 +142,7 @@ export const AdminDashboard: React.FC = () => {
               <p className="text-sm text-slate-500 mb-1">今日订单</p>
               <p className="text-2xl font-bold text-slate-900">{todayOrders}</p>
               <p className="text-xs text-slate-400 mt-1">
-                总计：{stats?.orderTotal || 0} 笔
+                总计：{totalOrders} 笔
               </p>
             </div>
             <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
@@ -150,9 +157,9 @@ export const AdminDashboard: React.FC = () => {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-slate-500 mb-1">用户总数</p>
-              <p className="text-2xl font-bold text-slate-900">{(stats?.userTotal || 0).toLocaleString()}</p>
+              <p className="text-2xl font-bold text-slate-900">{totalUsers.toLocaleString()}</p>
               <p className="text-xs text-slate-400 mt-1">
-                今日新增：+{stats?.userToday || 0}
+                今日新增：+{todayUsers}
               </p>
             </div>
             <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
@@ -509,6 +516,7 @@ export const AdminLivestock: React.FC = () => {
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-100">
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">编号</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">名称</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">类型</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">价格</th>
@@ -520,6 +528,7 @@ export const AdminLivestock: React.FC = () => {
             <tbody>
               {livestock.map(item => (
                 <tr key={item.id} className="border-b border-slate-50">
+                  <td className="py-3 px-4 font-mono text-sm text-slate-600">{item.livestockNo || '-'}</td>
                   <td className="py-3 px-4">{item.name}</td>
                   <td className="py-3 px-4">{types.find(t => t.id === item.typeId)?.name || '-'}</td>
                   <td className="py-3 px-4">¥{item.price}</td>
