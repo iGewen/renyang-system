@@ -194,7 +194,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   const pageTitle = currentPage?.label || '控制台';
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50">
       {/* 侧边栏 */}
       <Sidebar
         activeMenu={activeMenu}
@@ -204,9 +204,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       />
 
       {/* 主内容区 */}
-      <main
+      <div
         className={cn(
-          "flex flex-col min-h-screen transition-all duration-300",
+          "transition-all duration-300",
           collapsed ? "ml-20" : "ml-64"
         )}
       >
@@ -214,10 +214,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         <HeaderBar title={pageTitle} adminInfo={adminInfo} onLogout={onLogout} />
 
         {/* 内容区域 */}
-        <div className="flex-1 p-6 overflow-y-auto">
+        <main className="p-6 min-h-[calc(100vh-64px)]">
           {children}
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 };
