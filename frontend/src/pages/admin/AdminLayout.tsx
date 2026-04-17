@@ -158,11 +158,11 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ title, adminInfo, onLogout }) => 
         {/* 用户信息 + 退出 */}
         <div className="flex items-center gap-3">
           <div className="text-right hidden sm:block">
-            <p className="text-sm font-semibold text-slate-800">{adminInfo?.name || adminInfo?.username || '管理员'}</p>
-            <p className="text-xs text-slate-400">{adminInfo?.role === 1 ? '超级管理员' : '管理员'}</p>
+            <p className="text-sm font-semibold text-slate-800">{adminInfo?.username || '管理员'}</p>
+            <p className="text-xs text-slate-400">{adminInfo?.role === 1 ? '超级管理员' : '管理员'}{adminInfo?.name && adminInfo?.name !== adminInfo?.username ? ` · ${adminInfo.name}` : ''}</p>
           </div>
           <div className="w-10 h-10 rounded-xl bg-brand-primary flex items-center justify-center text-white font-bold text-sm shadow-md shadow-brand-primary/20">
-            {adminInfo?.name?.charAt(0) || adminInfo?.username?.charAt(0) || 'A'}
+            {adminInfo?.username?.charAt(0)?.toUpperCase() || 'A'}
           </div>
           {/* 退出按钮 */}
           <button
