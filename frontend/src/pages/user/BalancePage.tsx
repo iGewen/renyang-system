@@ -5,6 +5,7 @@ import { PageTransition, Icons, Card, Button, Input, useToast } from '../../comp
 import { cn } from '../../lib/utils';
 import { balanceApi } from '../../services/api';
 import type { BalanceLog } from '../../types';
+import { usePaymentConfig } from '../../contexts/SiteConfigContext';
 
 export const BalancePage: React.FC = () => {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ export const BalancePage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'alipay' | 'wechat'>('alipay');
   const [recharging, setRecharging] = useState(false);
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const paymentConfig = usePaymentConfig();
 
   const fetchData = async (pageNum: number = 1, append: boolean = false) => {
     if (pageNum === 1) {
@@ -324,26 +326,30 @@ export const BalancePage: React.FC = () => {
               <div className="mt-6">
                 <p className="text-sm text-slate-500 mb-3">支付方式</p>
                 <div className="space-y-2">
-                  <button
-                    onClick={() => setPaymentMethod('alipay')}
-                    className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-colors ${
-                      paymentMethod === 'alipay' ? 'border-brand-primary bg-brand-primary/5' : 'border-slate-100'
-                    }`}
-                  >
-                    <Icons.Alipay className="w-6 h-6 text-blue-500" />
-                    <span className="font-medium">支付宝</span>
-                    {paymentMethod === 'alipay' && <Icons.Check className="w-5 h-5 text-brand-primary ml-auto" />}
-                  </button>
-                  <button
-                    onClick={() => setPaymentMethod('wechat')}
-                    className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-colors ${
-                      paymentMethod === 'wechat' ? 'border-brand-primary bg-brand-primary/5' : 'border-slate-100'
-                    }`}
-                  >
-                    <Icons.Wechat className="w-6 h-6 text-green-500" />
-                    <span className="font-medium">微信支付</span>
-                    {paymentMethod === 'wechat' && <Icons.Check className="w-5 h-5 text-brand-primary ml-auto" />}
-                  </button>
+                  {paymentConfig.alipayEnabled && (
+                    <button
+                      onClick={() => setPaymentMethod('alipay')}
+                      className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-colors ${
+                        paymentMethod === 'alipay' ? 'border-brand-primary bg-brand-primary/5' : 'border-slate-100'
+                      }`}
+                    >
+                      <Icons.Alipay className="w-6 h-6 text-blue-500" />
+                      <span className="font-medium">支付宝</span>
+                      {paymentMethod === 'alipay' && <Icons.Check className="w-5 h-5 text-brand-primary ml-auto" />}
+                    </button>
+                  )}
+                  {paymentConfig.wechatEnabled && (
+                    <button
+                      onClick={() => setPaymentMethod('wechat')}
+                      className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-colors ${
+                        paymentMethod === 'wechat' ? 'border-brand-primary bg-brand-primary/5' : 'border-slate-100'
+                      }`}
+                    >
+                      <Icons.Wechat className="w-6 h-6 text-green-500" />
+                      <span className="font-medium">微信支付</span>
+                      {paymentMethod === 'wechat' && <Icons.Check className="w-5 h-5 text-brand-primary ml-auto" />}
+                    </button>
+                  )}
                 </div>
               </div>
 

@@ -1041,6 +1041,8 @@ export const AdminConfig: React.FC = () => {
   });
 
   const [paymentConfig, setPaymentConfig] = useState({
+    alipayEnabled: true,
+    wechatEnabled: true,
     alipayAppId: '',
     alipayPrivateKey: '',
     alipayPublicKey: '',
@@ -1097,6 +1099,8 @@ export const AdminConfig: React.FC = () => {
         if (config.configKey === 'contact_email') setBasicConfig(prev => ({ ...prev, contactEmail: value }));
 
         // 支付配置
+        if (config.configKey === 'payment_alipay_enabled') setPaymentConfig(prev => ({ ...prev, alipayEnabled: value === 'true' }));
+        if (config.configKey === 'payment_wechat_enabled') setPaymentConfig(prev => ({ ...prev, wechatEnabled: value === 'true' }));
         if (config.configKey === 'alipay_app_id') setPaymentConfig(prev => ({ ...prev, alipayAppId: value }));
         if (config.configKey === 'alipay_private_key') setPaymentConfig(prev => ({ ...prev, alipayPrivateKey: value }));
         if (config.configKey === 'alipay_public_key') setPaymentConfig(prev => ({ ...prev, alipayPublicKey: value }));
@@ -1159,6 +1163,8 @@ export const AdminConfig: React.FC = () => {
     setSaving(true);
     try {
       await Promise.all([
+        adminApi.updateConfig('payment_alipay_enabled', paymentConfig.alipayEnabled ? 'true' : 'false'),
+        adminApi.updateConfig('payment_wechat_enabled', paymentConfig.wechatEnabled ? 'true' : 'false'),
         adminApi.updateConfig('alipay_app_id', paymentConfig.alipayAppId),
         adminApi.updateConfig('alipay_private_key', paymentConfig.alipayPrivateKey),
         adminApi.updateConfig('alipay_public_key', paymentConfig.alipayPublicKey),
@@ -1276,6 +1282,57 @@ export const AdminConfig: React.FC = () => {
 
       {activeTab === 'payment' && (
         <div className="space-y-6">
+          {/* 支付开关 */}
+          <Card className="p-6">
+            <h3 className="text-lg font-bold text-slate-900 mb-4">支付方式开关</h3>
+            <p className="text-sm text-slate-500 mb-4">开启或关闭对应的支付方式，关闭后用户端将不显示该支付选项</p>
+            <div className="flex gap-8">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <div
+                  className={cn(
+                    "w-12 h-6 rounded-full transition-colors relative",
+                    paymentConfig.alipayEnabled ? "bg-brand-primary" : "bg-slate-300"
+                  )}
+                  onClick={() => setPaymentConfig(prev => ({ ...prev, alipayEnabled: !prev.alipayEnabled }))}
+                >
+                  <div className={cn(
+                    "w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform",
+                    paymentConfig.alipayEnabled ? "translate-x-6" : "translate-x-0.5"
+                  )} />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Icons.Alipay className="w-5 h-5 text-blue-500" />
+                  <span className="font-medium">支付宝支付</span>
+                  <span className={cn("text-sm", paymentConfig.alipayEnabled ? "text-brand-primary" : "text-slate-400")}>
+                    {paymentConfig.alipayEnabled ? '已启用' : '已关闭'}
+                  </span>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 cursor-pointer">
+                <div
+                  className={cn(
+                    "w-12 h-6 rounded-full transition-colors relative",
+                    paymentConfig.wechatEnabled ? "bg-brand-primary" : "bg-slate-300"
+                  )}
+                  onClick={() => setPaymentConfig(prev => ({ ...prev, wechatEnabled: !prev.wechatEnabled }))}
+                >
+                  <div className={cn(
+                    "w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform",
+                    paymentConfig.wechatEnabled ? "translate-x-6" : "translate-x-0.5"
+                  )} />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Icons.Wechat className="w-5 h-5 text-green-500" />
+                  <span className="font-medium">微信支付</span>
+                  <span className={cn("text-sm", paymentConfig.wechatEnabled ? "text-brand-primary" : "text-slate-400")}>
+                    {paymentConfig.wechatEnabled ? '已启用' : '已关闭'}
+                  </span>
+                </div>
+              </label>
+            </div>
+          </Card>
+
           <Card className="p-6">
             <h3 className="text-lg font-bold text-slate-900 mb-4">支付宝支付配置（H5支付）</h3>
             <div className="space-y-4 max-w-2xl">
@@ -1620,19 +1677,20 @@ export const AdminAgreements: React.FC = () => {
   const [agreements, setAgreements] = useState<Agreement[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editingKey, setEditingKey] = useState<string | null | undefined>(undefined);
   const [formData, setFormData] = useState({
     agreementKey: '',
     title: '',
     content: '',
   });
 
-  // 预设协议类型
+  // 预设协议类型 - 项目中所有需要协议的地方
   const presetAgreements = [
-    { key: 'user_agreement', title: '用户协议' },
-    { key: 'adoption_agreement', title: '领养协议' },
-    { key: 'privacy_policy', title: '隐私政策' },
-    { key: 'disclaimer', title: '免责声明' },
+    { key: 'user', title: '用户协议', description: '用户注册/登录时需要同意' },
+    { key: 'privacy', title: '隐私政策', description: '用户注册/登录时需要同意' },
+    { key: 'adoption', title: '领养协议', description: '用户领养活体时需要同意' },
+    { key: 'feed', title: '饲料费协议', description: '用户缴纳饲料费时需要同意' },
+    { key: 'redemption', title: '买断协议', description: '用户申请买断时需要同意' },
   ];
 
   useEffect(() => {
@@ -1659,7 +1717,7 @@ export const AdminAgreements: React.FC = () => {
         content: agreement.content,
       });
     } else {
-      setEditingKey(null);
+      setEditingKey(null); // null 表示添加新协议
       setFormData({
         agreementKey: '',
         title: '',
@@ -1679,6 +1737,11 @@ export const AdminAgreements: React.FC = () => {
     });
   };
 
+  const handleCancel = () => {
+    setEditingKey(undefined);
+    setFormData({ agreementKey: '', title: '', content: '' });
+  };
+
   const handleSave = async () => {
     if (!formData.agreementKey || !formData.title || !formData.content) {
       toast.warning('请填写完整信息');
@@ -1689,7 +1752,7 @@ export const AdminAgreements: React.FC = () => {
     try {
       await adminApi.saveAgreement(formData);
       toast.success('保存成功');
-      setEditingKey(null);
+      setEditingKey(undefined);
       setFormData({ agreementKey: '', title: '', content: '' });
       loadAgreements();
     } catch (error: any) {
@@ -1725,8 +1788,8 @@ export const AdminAgreements: React.FC = () => {
 
       {/* 预设协议快捷入口 */}
       <div className="mb-6">
-        <h3 className="text-sm font-medium text-slate-500 mb-3">快捷编辑</h3>
-        <div className="flex flex-wrap gap-2">
+        <h3 className="text-sm font-medium text-slate-500 mb-3">快捷编辑（点击编辑对应协议）</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {presetAgreements.map(preset => {
             const existing = agreements.find(a => a.agreementKey === preset.key);
             return (
@@ -1734,14 +1797,17 @@ export const AdminAgreements: React.FC = () => {
                 key={preset.key}
                 onClick={() => handleSelectPreset(preset.key)}
                 className={cn(
-                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                  'p-3 rounded-xl text-left transition-all',
                   existing
-                    ? 'bg-brand-primary text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-brand-primary/10 border-2 border-brand-primary'
+                    : 'bg-slate-50 border-2 border-slate-100 hover:border-brand-primary/50'
                 )}
               >
-                {preset.title}
-                {existing && ' ✓'}
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-medium text-sm">{preset.title}</span>
+                  {existing && <Icons.Check className="w-4 h-4 text-brand-primary" />}
+                </div>
+                <p className="text-xs text-slate-500">{preset.description}</p>
               </button>
             );
           })}
@@ -1749,7 +1815,7 @@ export const AdminAgreements: React.FC = () => {
       </div>
 
       {/* 编辑表单 */}
-      {editingKey !== null && (
+      {editingKey !== undefined && (
         <Card className="p-6 mb-6">
           <h3 className="text-lg font-bold text-slate-900 mb-4">
             {agreements.find(a => a.agreementKey === editingKey) ? '编辑协议' : '添加协议'}
@@ -1781,7 +1847,7 @@ export const AdminAgreements: React.FC = () => {
               />
             </div>
             <div className="flex gap-3 pt-4">
-              <Button variant="outline" onClick={() => setEditingKey(null)}>取消</Button>
+              <Button variant="outline" onClick={handleCancel}>取消</Button>
               <Button onClick={handleSave} loading={saving}>保存</Button>
             </div>
           </div>

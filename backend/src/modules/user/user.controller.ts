@@ -53,6 +53,36 @@ export class UserController {
     return result;
   }
 
+  /**
+   * 获取支付配置（公开接口，返回哪些支付方式启用）
+   */
+  @Public()
+  @Get('payment-config')
+  async getPaymentConfig() {
+    const configs = await this.systemConfigRepository.find({
+      where: [
+        { configKey: 'payment_alipay_enabled' },
+        { configKey: 'payment_wechat_enabled' },
+      ],
+    });
+
+    const result = {
+      alipay_enabled: true,
+      wechat_enabled: true,
+    };
+
+    configs.forEach(config => {
+      if (config.configKey === 'payment_alipay_enabled') {
+        result.alipay_enabled = config.configValue === 'true';
+      }
+      if (config.configKey === 'payment_wechat_enabled') {
+        result.wechat_enabled = config.configValue === 'true';
+      }
+    });
+
+    return result;
+  }
+
   // =============== 协议接口 ===============
 
   /**

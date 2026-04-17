@@ -322,6 +322,14 @@ export const siteConfigApi = {
     contact_email: string;
   }> => {
     return request('/users/site-config');
+  },
+
+  // 获取支付配置（哪些支付方式启用）
+  getPaymentConfig: async (): Promise<{
+    alipay_enabled: boolean;
+    wechat_enabled: boolean;
+  }> => {
+    return request('/users/payment-config');
   }
 };
 

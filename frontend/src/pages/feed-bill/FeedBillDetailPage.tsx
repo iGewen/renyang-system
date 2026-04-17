@@ -6,6 +6,7 @@ import { cn } from '../../lib/utils';
 import { adoptionApi } from '../../services/api';
 import { FeedBillStatus } from '../../types/enums';
 import type { FeedBill } from '../../types';
+import { usePaymentConfig } from '../../contexts/SiteConfigContext';
 
 const FeedBillDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +16,7 @@ const FeedBillDetailPage: React.FC = () => {
   const [paying, setPaying] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'alipay' | 'wechat' | 'balance'>('alipay');
+  const paymentConfig = usePaymentConfig();
 
   useEffect(() => {
     const fetchBill = async () => {
@@ -184,8 +186,8 @@ const FeedBillDetailPage: React.FC = () => {
               </div>
               <div className="space-y-2">
                 {[
-                  { key: 'alipay', icon: Icons.Alipay, label: '支付宝', color: 'text-blue-500' },
-                  { key: 'wechat', icon: Icons.Wechat, label: '微信支付', color: 'text-green-500' },
+                  ...(paymentConfig.alipayEnabled ? [{ key: 'alipay', icon: Icons.Alipay, label: '支付宝', color: 'text-blue-500' }] : []),
+                  ...(paymentConfig.wechatEnabled ? [{ key: 'wechat', icon: Icons.Wechat, label: '微信支付', color: 'text-green-500' }] : []),
                   { key: 'balance', icon: Icons.Wallet, label: '余额支付', color: 'text-brand-primary' }
                 ].map(item => (
                   <button

@@ -649,6 +649,7 @@ const PaymentPage: React.FC = () => {
   const { error, success } = useToast();
   const orderData = location.state as any;
   const [isPaying, setIsPaying] = useState(false);
+  const paymentConfig = usePaymentConfig();
 
   // 检查是否有订单数据
   useEffect(() => {
@@ -713,12 +714,16 @@ const PaymentPage: React.FC = () => {
             </div>
           </div>
           <div className="w-full mt-8 space-y-3">
-            <button onClick={() => handlePay('alipay')} disabled={isPaying} className="w-full flex items-center justify-center gap-3 py-4 border-2 border-blue-500 text-blue-600 rounded-2xl font-medium hover:bg-blue-50 transition-colors disabled:opacity-50">
-              <Icons.Alipay className="w-6 h-6" />支付宝支付
-            </button>
-            <button onClick={() => handlePay('wechat')} disabled={isPaying} className="w-full flex items-center justify-center gap-3 py-4 border-2 border-green-500 text-green-600 rounded-2xl font-medium hover:bg-green-50 transition-colors disabled:opacity-50">
-              <Icons.Wechat className="w-6 h-6" />微信支付
-            </button>
+            {paymentConfig.alipayEnabled && (
+              <button onClick={() => handlePay('alipay')} disabled={isPaying} className="w-full flex items-center justify-center gap-3 py-4 border-2 border-blue-500 text-blue-600 rounded-2xl font-medium hover:bg-blue-50 transition-colors disabled:opacity-50">
+                <Icons.Alipay className="w-6 h-6" />支付宝支付
+              </button>
+            )}
+            {paymentConfig.wechatEnabled && (
+              <button onClick={() => handlePay('wechat')} disabled={isPaying} className="w-full flex items-center justify-center gap-3 py-4 border-2 border-green-500 text-green-600 rounded-2xl font-medium hover:bg-green-50 transition-colors disabled:opacity-50">
+                <Icons.Wechat className="w-6 h-6" />微信支付
+              </button>
+            )}
             <button onClick={() => handlePay('balance')} disabled={isPaying} className="w-full flex items-center justify-center gap-3 py-4 border-2 border-brand-primary text-brand-primary rounded-2xl font-medium hover:bg-brand-primary/5 transition-colors disabled:opacity-50">
               <Icons.Wallet className="w-6 h-6" />余额支付
             </button>

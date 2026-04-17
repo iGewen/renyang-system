@@ -6,6 +6,7 @@ import { cn } from '../../lib/utils';
 import { adoptionApi, redemptionApi, balanceApi, paymentApi } from '../../services/api';
 import { FeedBillStatus, RedemptionStatus } from '../../types/enums';
 import type { Adoption, FeedBill, RedemptionOrder } from '../../types';
+import { usePaymentConfig } from '../../contexts/SiteConfigContext';
 
 const AdoptionDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +21,7 @@ const AdoptionDetailPage: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'alipay' | 'wechat' | 'balance'>('alipay');
   const [balance, setBalance] = useState(0);
+  const paymentConfig = usePaymentConfig();
   const [activeTab, setActiveTab] = useState<'info' | 'bills'>(() => {
     return searchParams.get('tab') === 'bills' ? 'bills' : 'info';
   });
@@ -395,8 +397,8 @@ const AdoptionDetailPage: React.FC = () => {
               </div>
               <div className="space-y-2">
                 {[
-                  { key: 'alipay', icon: Icons.Alipay, label: '支付宝', color: 'text-blue-500' },
-                  { key: 'wechat', icon: Icons.Wechat, label: '微信支付', color: 'text-green-500' },
+                  ...(paymentConfig.alipayEnabled ? [{ key: 'alipay', icon: Icons.Alipay, label: '支付宝', color: 'text-blue-500' }] : []),
+                  ...(paymentConfig.wechatEnabled ? [{ key: 'wechat', icon: Icons.Wechat, label: '微信支付', color: 'text-green-500' }] : []),
                   { key: 'balance', icon: Icons.Wallet, label: `余额支付 (¥${balance.toFixed(2)})`, color: 'text-brand-primary', disabled: balance < Number(redemption.finalAmount || 0) },
                 ].map((method) => (
                   <button

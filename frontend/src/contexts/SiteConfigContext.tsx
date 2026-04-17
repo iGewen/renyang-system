@@ -11,7 +11,18 @@ interface SiteConfig {
   loaded: boolean;
 }
 
-const defaultConfig: SiteConfig = {
+interface PaymentConfig {
+  alipayEnabled: boolean;
+  wechatEnabled: boolean;
+  loaded: boolean;
+}
+
+interface AppConfig {
+  site: SiteConfig;
+  payment: PaymentConfig;
+}
+
+const defaultSiteConfig: SiteConfig = {
   siteName: '云端牧场',
   siteTitle: '云端牧场 - 智慧领养平台',
   siteDescription: '连接自然与科技，每一份领养都是对生命的尊重与呵护',
@@ -21,56 +32,87 @@ const defaultConfig: SiteConfig = {
   loaded: false,
 };
 
-const SiteConfigContext = createContext<SiteConfig>(defaultConfig);
+const defaultPaymentConfig: PaymentConfig = {
+  alipayEnabled: true,
+  wechatEnabled: true,
+  loaded: false,
+};
 
-export const useSiteConfig = () => useContext(SiteConfigContext);
+const defaultConfig: AppConfig = {
+  site: defaultSiteConfig,
+  payment: defaultPaymentConfig,
+};
 
-interface SiteConfigProviderProps {
+const AppConfigContext = createContext<AppConfig>(defaultConfig);
+
+export const useSiteConfig = () => useContext(AppConfigContext).site;
+export const usePaymentConfig = () => useContext(AppConfigContext).payment;
+export const useAppConfig = () => useContext(AppConfigContext);
+
+interface AppConfigProviderProps {
   children: ReactNode;
 }
 
-export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({ children }) => {
-  const [config, setConfig] = useState<SiteConfig>(defaultConfig);
+export const SiteConfigProvider: React.FC<AppConfigProviderProps> = ({ children }) => {
+  const [config, setConfig] = useState<AppConfig>(defaultConfig);
 
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        const data = await siteConfigApi.get();
-        const newConfig: SiteConfig = {
-          siteName: data.site_name || defaultConfig.siteName,
-          siteTitle: data.site_title || defaultConfig.siteTitle,
-          siteDescription: data.site_description || defaultConfig.siteDescription,
-          siteKeywords: data.site_keywords || defaultConfig.siteKeywords,
-          contactPhone: data.contact_phone || '',
-          contactEmail: data.contact_email || '',
+        // 并行加载站点配置和支付配置
+        const [siteData, paymentData] = await Promise.all([
+          siteConfigApi.get().catch(() => null),
+          siteConfigApi.getPaymentConfig().catch(() => null),
+        ]);
+
+        const newSiteConfig: SiteConfig = {
+          siteName: siteData?.site_name || defaultSiteConfig.siteName,
+          siteTitle: siteData?.site_title || defaultSiteConfig.siteTitle,
+          siteDescription: siteData?.site_description || defaultSiteConfig.siteDescription,
+          siteKeywords: siteData?.site_keywords || defaultSiteConfig.siteKeywords,
+          contactPhone: siteData?.contact_phone || '',
+          contactEmail: siteData?.contact_email || '',
           loaded: true,
         };
-        setConfig(newConfig);
+
+        const newPaymentConfig: PaymentConfig = {
+          alipayEnabled: paymentData?.alipay_enabled ?? true,
+          wechatEnabled: paymentData?.wechat_enabled ?? true,
+          loaded: true,
+        };
+
+        setConfig({
+          site: newSiteConfig,
+          payment: newPaymentConfig,
+        });
 
         // 更新页面标题
-        if (newConfig.siteTitle) {
-          document.title = newConfig.siteTitle;
+        if (newSiteConfig.siteTitle) {
+          document.title = newSiteConfig.siteTitle;
         }
 
         // 更新 meta 描述
         const metaDescription = document.querySelector('meta[name="description"]');
-        if (metaDescription && newConfig.siteDescription) {
-          metaDescription.setAttribute('content', newConfig.siteDescription);
+        if (metaDescription && newSiteConfig.siteDescription) {
+          metaDescription.setAttribute('content', newSiteConfig.siteDescription);
         }
 
         // 更新 meta 关键词
         let metaKeywords = document.querySelector('meta[name="keywords"]');
-        if (!metaKeywords && newConfig.siteKeywords) {
+        if (!metaKeywords && newSiteConfig.siteKeywords) {
           metaKeywords = document.createElement('meta');
           metaKeywords.setAttribute('name', 'keywords');
           document.head.appendChild(metaKeywords);
         }
-        if (metaKeywords && newConfig.siteKeywords) {
-          metaKeywords.setAttribute('content', newConfig.siteKeywords);
+        if (metaKeywords && newSiteConfig.siteKeywords) {
+          metaKeywords.setAttribute('content', newSiteConfig.siteKeywords);
         }
       } catch (error) {
-        console.error('Failed to load site config:', error);
-        setConfig(prev => ({ ...prev, loaded: true }));
+        console.error('Failed to load config:', error);
+        setConfig(prev => ({
+          site: { ...prev.site, loaded: true },
+          payment: { ...prev.payment, loaded: true },
+        }));
       }
     };
 
@@ -78,8 +120,8 @@ export const SiteConfigProvider: React.FC<SiteConfigProviderProps> = ({ children
   }, []);
 
   return (
-    <SiteConfigContext.Provider value={config}>
+    <AppConfigContext.Provider value={config}>
       {children}
-    </SiteConfigContext.Provider>
+    </AppConfigContext.Provider>
   );
 };
