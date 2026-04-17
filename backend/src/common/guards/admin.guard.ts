@@ -42,6 +42,8 @@ export class AdminGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
+    console.log('[AdminGuard] user:', user ? { id: user.id, type: user.type } : null);
+
     // 检查用户是否登录
     if (!user) {
       throw new UnauthorizedException('请先登录');
@@ -51,6 +53,8 @@ export class AdminGuard implements CanActivate {
     const admin = await this.adminRepository.findOne({
       where: { id: user.id },
     });
+
+    console.log('[AdminGuard] admin found:', admin ? { id: admin.id, status: admin.status, role: admin.role } : null);
 
     if (!admin) {
       throw new ForbiddenException('无权访问管理接口');
