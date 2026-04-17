@@ -5,6 +5,7 @@ import { cn } from '../../lib/utils';
 import { adminApi, refundApi } from '../../services/api';
 import type { Livestock, LivestockType, AdoptionOrder, FeedBill, User, DashboardStats, SystemConfig, AuditLog, Notification } from '../../types';
 import { OrderStatus, UserStatus, FeedBillStatus, RedemptionStatus, getOrderStatusText, getUserStatusText, getFeedBillStatusText, getRedemptionStatusText } from '../../types/enums';
+import { AdminLayout } from './AdminLayout';
 
 // ==================== 防抖 Hook ====================
 function useDebounce<T>(value: T, delay: number): T {
@@ -76,82 +77,6 @@ const SensitiveTextarea: React.FC<{
           {maskValue(value) || placeholder || '••••••••'}
         </div>
       )}
-    </div>
-  );
-};
-
-// ==================== 后台管理布局 ====================
-
-interface AdminLayoutProps {
-  children: React.ReactNode;
-  activeMenu: string;
-  onMenuChange: (menu: string) => void;
-  adminInfo: any;
-  onLogout: () => void;
-}
-
-const AdminLayout: React.FC<AdminLayoutProps> = ({ children, activeMenu, onMenuChange, adminInfo, onLogout }) => {
-  const menuItems = [
-    { id: 'dashboard', label: '控制台', icon: Icons.LayoutDashboard },
-    { id: 'livestock', label: '活体管理', icon: Icons.Package },
-    { id: 'orders', label: '订单管理', icon: Icons.ShoppingCart },
-    { id: 'feed', label: '饲料费管理', icon: Icons.Coins },
-    { id: 'redemption', label: '买断管理', icon: Icons.CheckCircle2 },
-    { id: 'users', label: '用户管理', icon: Icons.Users },
-    { id: 'notifications', label: '站内信', icon: Icons.Bell },
-    { id: 'agreements', label: '协议管理', icon: Icons.FileText },
-    { id: 'logs', label: '审计日志', icon: Icons.FileText },
-    { id: 'config', label: '系统配置', icon: Icons.Settings }
-  ];
-
-  return (
-    <div className="min-h-screen bg-slate-50 flex">
-      <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-100 flex flex-col">
-        <div className="h-16 flex items-center px-6 border-b border-slate-100">
-          <div className="w-8 h-8 bg-brand-primary rounded-xl flex items-center justify-center mr-3">
-            <Icons.LayoutDashboard className="w-4 h-4 text-white" />
-          </div>
-          <h1 className="text-lg font-display font-bold text-brand-primary">牧场管理后台</h1>
-        </div>
-        <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
-          {menuItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => onMenuChange(item.id)}
-              className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
-                activeMenu === item.id
-                  ? "bg-brand-primary text-white shadow-md shadow-brand-primary/20"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-              )}
-            >
-              <item.icon className="w-5 h-5" />
-              {item.label}
-            </button>
-          ))}
-        </div>
-        <div className="p-4 border-t border-slate-100">
-          <div className="flex items-center gap-3 px-4 py-3 mb-2">
-            <div className="w-8 h-8 rounded-full bg-brand-accent/20 flex items-center justify-center text-brand-accent font-bold text-sm">
-              {adminInfo?.name?.charAt(0) || 'A'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-900 truncate">{adminInfo?.name || '管理员'}</p>
-              <p className="text-xs text-slate-400">{adminInfo?.role === 1 ? '超级管理员' : '管理员'}</p>
-            </div>
-          </div>
-          <button
-            onClick={onLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors"
-          >
-            <Icons.LogOut className="w-5 h-5" />
-            退出登录
-          </button>
-        </div>
-      </aside>
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden ml-64">
-        {children}
-      </main>
     </div>
   );
 };
@@ -2200,28 +2125,7 @@ const AdminPage: React.FC<AdminPageProps> = () => {
     <ToastProvider>
       <PageTransition>
         <AdminLayout activeMenu={activeMenu} onMenuChange={handleMenuChange} adminInfo={adminInfo} onLogout={handleLogout}>
-          <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-6 z-30">
-            <h2 className="text-lg font-bold text-slate-900">
-              {activeMenu === 'dashboard' && '控制台'}
-              {activeMenu === 'livestock' && '活体管理'}
-              {activeMenu === 'orders' && '订单管理'}
-              {activeMenu === 'feed' && '饲料费管理'}
-              {activeMenu === 'redemption' && '买断管理'}
-              {activeMenu === 'users' && '用户管理'}
-              {activeMenu === 'notifications' && '站内信'}
-              {activeMenu === 'agreements' && '协议管理'}
-              {activeMenu === 'logs' && '审计日志'}
-              {activeMenu === 'config' && '系统配置'}
-            </h2>
-            <div className="flex items-center gap-4">
-              <button className="p-2 text-slate-400 hover:bg-slate-50 rounded-full relative">
-                <Icons.Bell className="w-5 h-5" />
-              </button>
-            </div>
-          </header>
-          <div className="flex-1 overflow-y-auto">
-            {renderContent()}
-          </div>
+          {renderContent()}
         </AdminLayout>
       </PageTransition>
     </ToastProvider>

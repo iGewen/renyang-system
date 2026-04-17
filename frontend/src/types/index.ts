@@ -265,8 +265,9 @@ export interface Admin {
   name: string;
   phone?: string;
   avatar?: string;
-  role: 'super_admin' | 'admin';
+  role: number;  // 1=超级管理员, 2=普通管理员
   status: number;  // 1启用 2禁用
+  forceChangePassword?: boolean;  // 是否需要强制修改密码
   lastLoginAt?: string;
   createdAt: string;
   updatedAt?: string;
