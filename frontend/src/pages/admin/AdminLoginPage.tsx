@@ -116,31 +116,13 @@ export const AdminLoginPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* 背景装饰 */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* 渐变圆形装饰 */}
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-violet-500/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
-
-        {/* 网格背景 */}
-        <div
-          className="absolute inset-0 opacity-[0.02]"
-          style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px'
-          }}
-        />
-      </div>
-
+    <div className="min-h-screen bg-brand-bg flex items-center justify-center p-4">
       {/* 登录卡片 */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md relative z-10"
+        className="w-full max-w-md"
       >
         {/* Logo 和标题 */}
         <div className="text-center mb-8">
@@ -148,7 +130,7 @@ export const AdminLoginPage: React.FC = () => {
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-500 mb-4 shadow-lg shadow-violet-500/25"
+            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-primary mb-4 shadow-lg shadow-brand-primary/20"
           >
             <Icons.LayoutDashboard className="w-8 h-8 text-white" />
           </motion.div>
@@ -156,7 +138,7 @@ export const AdminLoginPage: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-2xl font-bold text-white mb-2"
+            className="text-2xl font-bold text-brand-primary mb-2"
           >
             {!needChangePassword ? '牧场管理后台' : '首次登录'}
           </motion.h1>
@@ -164,7 +146,7 @@ export const AdminLoginPage: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="text-slate-400 text-sm"
+            className="text-slate-500 text-sm"
           >
             {!needChangePassword ? '云端牧场 · 智慧农业管理系统' : '请修改初始密码后继续使用'}
           </motion.p>
@@ -175,13 +157,13 @@ export const AdminLoginPage: React.FC = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
-          className="bg-slate-800/50 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-slate-700/50"
+          className="bg-white rounded-3xl p-8 shadow-xl border border-slate-100"
         >
           {!needChangePassword ? (
-            <form onSubmit={handleLogin} className="space-y-6">
+            <form onSubmit={handleLogin} className="space-y-5">
               {/* 用户名 */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">用户名</label>
+                <label className="text-sm font-medium text-slate-700">用户名</label>
                 <div className="relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                     <Icons.User className="w-5 h-5" />
@@ -190,7 +172,7 @@ export const AdminLoginPage: React.FC = () => {
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="w-full bg-slate-900/50 border border-slate-600/50 rounded-xl py-3 pl-12 pr-4 text-white placeholder-slate-500 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-colors"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-12 pr-4 text-slate-900 placeholder-slate-400 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
                     placeholder="请输入用户名"
                     autoComplete="username"
                   />
@@ -199,7 +181,7 @@ export const AdminLoginPage: React.FC = () => {
 
               {/* 密码 */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">密码</label>
+                <label className="text-sm font-medium text-slate-700">密码</label>
                 <div className="relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                     <Icons.Lock className="w-5 h-5" />
@@ -208,14 +190,14 @@ export const AdminLoginPage: React.FC = () => {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-slate-900/50 border border-slate-600/50 rounded-xl py-3 pl-12 pr-12 text-white placeholder-slate-500 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-colors"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-12 pr-12 text-slate-900 placeholder-slate-400 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
                     placeholder="请输入密码"
                     autoComplete="current-password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   >
                     {showPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}
                   </button>
@@ -229,14 +211,14 @@ export const AdminLoginPage: React.FC = () => {
                     className={cn(
                       "w-5 h-5 rounded border transition-colors flex items-center justify-center",
                       rememberMe
-                        ? "bg-violet-500 border-violet-500"
-                        : "border-slate-600 group-hover:border-slate-500"
+                        ? "bg-brand-primary border-brand-primary"
+                        : "border-slate-300 group-hover:border-brand-primary"
                     )}
                     onClick={() => setRememberMe(!rememberMe)}
                   >
                     {rememberMe && <Icons.Check className="w-3 h-3 text-white" />}
                   </div>
-                  <span className="ml-2 text-sm text-slate-400 group-hover:text-slate-300 transition-colors">
+                  <span className="ml-2 text-sm text-slate-500 group-hover:text-slate-700 transition-colors">
                     记住用户名
                   </span>
                 </label>
@@ -247,10 +229,10 @@ export const AdminLoginPage: React.FC = () => {
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-center gap-3"
+                  className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-3"
                 >
-                  <Icons.AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                  <span className="text-sm text-red-300">{error}</span>
+                  <Icons.AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                  <span className="text-sm text-red-600">{error}</span>
                 </motion.div>
               )}
 
@@ -260,9 +242,9 @@ export const AdminLoginPage: React.FC = () => {
                 disabled={loading}
                 className={cn(
                   "w-full py-3 rounded-xl font-medium text-white transition-all duration-200",
-                  "bg-gradient-to-r from-violet-500 to-cyan-500 hover:from-violet-600 hover:to-cyan-600",
-                  "shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40",
-                  "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-violet-500/25",
+                  "bg-brand-primary hover:bg-brand-primary/90",
+                  "shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/30",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
                   "flex items-center justify-center gap-2"
                 )}
               >
@@ -280,19 +262,19 @@ export const AdminLoginPage: React.FC = () => {
               </button>
             </form>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-5">
               {/* 强制修改密码提示 */}
-              <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4 flex items-start gap-3">
-                <Icons.AlertTriangle className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
+              <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-start gap-3">
+                <Icons.AlertTriangle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-orange-300">安全提示</p>
-                  <p className="text-xs text-orange-400/80 mt-1">首次登录需要修改初始密码，请设置新密码后继续使用。</p>
+                  <p className="text-sm font-medium text-orange-700">安全提示</p>
+                  <p className="text-xs text-orange-600 mt-1">首次登录需要修改初始密码，请设置新密码后继续使用。</p>
                 </div>
               </div>
 
               {/* 原密码 */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">原密码</label>
+                <label className="text-sm font-medium text-slate-700">原密码</label>
                 <div className="relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                     <Icons.Lock className="w-5 h-5" />
@@ -301,7 +283,7 @@ export const AdminLoginPage: React.FC = () => {
                     type="password"
                     value={oldPassword}
                     onChange={(e) => setOldPassword(e.target.value)}
-                    className="w-full bg-slate-900/50 border border-slate-600/50 rounded-xl py-3 pl-12 pr-4 text-white placeholder-slate-500 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-colors"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-12 pr-4 text-slate-900 placeholder-slate-400 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
                     placeholder="请输入原密码"
                   />
                 </div>
@@ -309,7 +291,7 @@ export const AdminLoginPage: React.FC = () => {
 
               {/* 新密码 */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">新密码</label>
+                <label className="text-sm font-medium text-slate-700">新密码</label>
                 <div className="relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                     <Icons.Lock className="w-5 h-5" />
@@ -318,7 +300,7 @@ export const AdminLoginPage: React.FC = () => {
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full bg-slate-900/50 border border-slate-600/50 rounded-xl py-3 pl-12 pr-4 text-white placeholder-slate-500 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-colors"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-12 pr-4 text-slate-900 placeholder-slate-400 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
                     placeholder="请输入新密码（至少6位）"
                   />
                 </div>
@@ -326,7 +308,7 @@ export const AdminLoginPage: React.FC = () => {
 
               {/* 确认密码 */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">确认密码</label>
+                <label className="text-sm font-medium text-slate-700">确认密码</label>
                 <div className="relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                     <Icons.Lock className="w-5 h-5" />
@@ -335,7 +317,7 @@ export const AdminLoginPage: React.FC = () => {
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full bg-slate-900/50 border border-slate-600/50 rounded-xl py-3 pl-12 pr-4 text-white placeholder-slate-500 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-colors"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-12 pr-4 text-slate-900 placeholder-slate-400 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
                     placeholder="请再次输入新密码"
                   />
                 </div>
@@ -346,15 +328,15 @@ export const AdminLoginPage: React.FC = () => {
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-center gap-3"
+                  className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-3"
                 >
-                  <Icons.AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                  <span className="text-sm text-red-300">{error}</span>
+                  <Icons.AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                  <span className="text-sm text-red-600">{error}</span>
                 </motion.div>
               )}
 
               {/* 按钮组 */}
-              <div className="flex gap-3">
+              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -362,7 +344,7 @@ export const AdminLoginPage: React.FC = () => {
                     setAdminData(null);
                     setError('');
                   }}
-                  className="flex-1 py-3 rounded-xl font-medium text-slate-300 bg-slate-700/50 hover:bg-slate-700 transition-colors"
+                  className="flex-1 py-3 rounded-xl font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
                 >
                   返回登录
                 </button>
@@ -372,8 +354,8 @@ export const AdminLoginPage: React.FC = () => {
                   disabled={changingPassword}
                   className={cn(
                     "flex-1 py-3 rounded-xl font-medium text-white transition-all duration-200",
-                    "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600",
-                    "shadow-lg shadow-orange-500/25",
+                    "bg-orange-500 hover:bg-orange-600",
+                    "shadow-lg shadow-orange-500/20",
                     "disabled:opacity-50 disabled:cursor-not-allowed",
                     "flex items-center justify-center gap-2"
                   )}
@@ -404,7 +386,7 @@ export const AdminLoginPage: React.FC = () => {
         >
           <button
             onClick={() => navigate('/')}
-            className="text-slate-500 hover:text-slate-300 text-sm transition-colors inline-flex items-center gap-2"
+            className="text-slate-400 hover:text-brand-primary text-sm transition-colors inline-flex items-center gap-2"
           >
             <Icons.ArrowLeft className="w-4 h-4" />
             返回首页
@@ -418,7 +400,7 @@ export const AdminLoginPage: React.FC = () => {
           transition={{ delay: 0.6 }}
           className="mt-8 text-center"
         >
-          <p className="text-slate-600 text-xs">
+          <p className="text-slate-300 text-xs">
             © 2024 云端牧场 · All Rights Reserved
           </p>
         </motion.div>
