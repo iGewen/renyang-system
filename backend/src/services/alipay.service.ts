@@ -117,13 +117,15 @@ export class AlipayService {
   /**
    * 验证回调签名
    * 文档：https://opendocs.alipay.com/apis/api_1/alipay.trade.wap.pay
+   * 安全修复：公钥未配置时安全失败，不再绕过验证
    */
   async verifyNotify(params: Record<string, string>): Promise<boolean> {
     const alipayPublicKey = await this.getConfig('alipay_public_key');
 
+    // 安全修复：公钥未配置时，拒绝验签而非绕过
     if (!alipayPublicKey) {
-      this.logger.log('[Alipay] 模拟环境，跳过验签');
-      return true;
+      this.logger.error('[Alipay] 支付宝公钥未配置，拒绝验签');
+      return false;
     }
 
     const sign = params.sign;

@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject, forwardRef, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -13,6 +13,8 @@ import { RedemptionService } from '../redemption/redemption.service';
 
 @Injectable()
 export class PaymentService {
+  private readonly logger = new Logger(PaymentService.name);
+
   constructor(
     @InjectRepository(PaymentRecord)
     private paymentRepository: Repository<PaymentRecord>,
@@ -36,6 +38,57 @@ export class PaymentService {
     amount: number,
     paymentMethod: string,
   ) {
+    // 安全修复：验证支付金额与实际订单金额是否一致
+    let expectedAmount: number;
+
+    switch (orderType) {
+      case 'adoption': {
+        const order = await this.orderService.getById(orderId);
+        if (!order) {
+          throw new BadRequestException('订单不存在');
+        }
+        if (order.userId !== userId) {
+          throw new BadRequestException('无权支付此订单');
+        }
+        expectedAmount = Number(order.totalAmount) - Number(order.paidAmount || 0);
+        break;
+      }
+      case 'redemption': {
+        const redemption = await this.redemptionService.getRedemptionDetail(orderId, userId);
+        if (!redemption) {
+          throw new BadRequestException('买断订单不存在');
+        }
+        expectedAmount = Number(redemption.finalAmount) || 0;
+        break;
+      }
+      case 'feed': {
+        // 饲料费需要从饲料账单中获取金额
+        const feedBill = await this.paymentRepository.manager.findOne('FeedBill' as any, {
+          where: { id: orderId },
+        }) as any;
+        if (!feedBill) {
+          throw new BadRequestException('饲料账单不存在');
+        }
+        expectedAmount = Number(feedBill.amount);
+        break;
+      }
+      case 'recharge': {
+        // 充值金额由用户指定，但需要验证最小金额
+        if (amount <= 0) {
+          throw new BadRequestException('充值金额必须大于0');
+        }
+        expectedAmount = amount;
+        break;
+      }
+      default:
+        throw new BadRequestException('不支持的订单类型');
+    }
+
+    // 验证金额（允许0.01的误差，处理浮点数精度问题）
+    if (orderType !== 'recharge' && Math.abs(amount - expectedAmount) > 0.01) {
+      throw new BadRequestException(`支付金额与订单金额不符，期望金额: ${expectedAmount.toFixed(2)}元`);
+    }
+
     // 创建支付记录
     const payment = this.paymentRepository.create({
       id: IdUtil.generate('PAY'),
@@ -229,8 +282,16 @@ export class PaymentService {
 
   /**
    * 支付宝回调
+   * 安全修复：添加签名验证，防止伪造回调
    */
   async handleAlipayNotify(data: any) {
+    // 安全修复：先验证签名
+    const isValid = await this.alipayService.verifyNotify(data);
+    if (!isValid) {
+      this.logger.error('[PaymentService] 支付宝签名验证失败');
+      return 'fail';
+    }
+
     const outTradeNo = data.out_trade_no;
     const tradeNo = data.trade_no;
     const tradeStatus = data.trade_status;
@@ -264,36 +325,89 @@ export class PaymentService {
   }
 
   /**
+   * 验证微信支付回调签名
+   * 安全修复：添加签名验证方法
+   */
+  async verifyWechatNotify(headers: any, body: string): Promise<boolean> {
+    return this.wechatPayService.verifyNotify(headers, body);
+  }
+
+  /**
    * 微信回调
+   * 完善处理：正确解密 resource 字段获取订单信息
    */
   async handleWechatNotify(data: any) {
-    const outTradeNo = data.out_trade_no;
-    const transactionId = data.transaction_id;
-    const resultCode = data.result_code;
+    // 微信支付回调报文结构：
+    // {
+    //   "event_type": "TRANSACTION.SUCCESS",
+    //   "resource": {
+    //     "ciphertext": "...",
+    //     "nonce": "...",
+    //     "associated_data": "..."
+    //   }
+    // }
 
-    if (resultCode !== 'SUCCESS') {
-      return { code: 'FAIL', message: '支付失败' };
+    const eventType = data.event_type;
+
+    // 检查事件类型
+    if (eventType !== 'TRANSACTION.SUCCESS') {
+      this.logger.log(`[WechatPay] 非支付成功事件: ${eventType}`);
+      return { code: 'SUCCESS', message: '已接收' };
     }
 
-    const payment = await this.paymentRepository.findOne({
-      where: { outTradeNo },
+    // 解密 resource 字段获取实际订单信息
+    let transactionData: any;
+    try {
+      if (data.resource) {
+        transactionData = await this.wechatPayService.decryptNotifyResource(data.resource);
+      } else {
+        // 兼容直接传入解密后数据的情况
+        transactionData = data;
+      }
+    } catch (error) {
+      this.logger.error('[WechatPay] 解密回调数据失败:', error);
+      return { code: 'FAIL', message: '解密失败' };
+    }
+
+    const outTradeNo = transactionData.out_trade_no;
+    const transactionId = transactionData.transaction_id;
+    const tradeState = transactionData.trade_state;
+
+    // 检查交易状态
+    if (tradeState !== 'SUCCESS') {
+      this.logger.log(`[WechatPay] 交易状态非成功: ${tradeState}`);
+      return { code: 'SUCCESS', message: '已接收' };
+    }
+
+    // 使用 outTradeNo 查找支付记录
+    // 注意：微信返回的 out_trade_no 是我们传入的订单号
+    // 我们存的是 payment.outTradeNo = orderId，需要通过 paymentNo 或 orderId 查找
+    let payment = await this.paymentRepository.findOne({
+      where: { paymentNo: outTradeNo },
     });
 
+    // 如果找不到，尝试用 outTradeNo 作为 orderId 查找
     if (!payment) {
+      payment = await this.paymentRepository.findOne({
+        where: { outTradeNo },
+      });
+    }
+
+    if (!payment) {
+      this.logger.error(`[WechatPay] 找不到支付记录: ${outTradeNo}`);
       return { code: 'FAIL', message: '订单不存在' };
     }
 
     const lockKey = `payment:notify:${payment.paymentNo}`;
     return this.redisService.withLock(lockKey, 30000, async () => {
-      if (payment.status === PaymentStatus.SUCCESS) {
+      if (payment!.status === PaymentStatus.SUCCESS) {
         return { code: 'SUCCESS', message: '成功' };
       }
 
-      payment.paymentNo = transactionId;
-      payment.notifyAt = new Date();
-      payment.notifyData = data;
+      payment!.notifyAt = new Date();
+      payment!.notifyData = transactionData;
 
-      await this.handlePaymentSuccess(payment);
+      await this.handlePaymentSuccess(payment!);
 
       return { code: 'SUCCESS', message: '成功' };
     });
@@ -315,5 +429,58 @@ export class PaymentService {
       status: payment.status,
       paidAt: payment.paidAt,
     };
+  }
+
+  /**
+   * 微信退款回调处理
+   */
+  async handleWechatRefundNotify(data: any) {
+    // 微信退款回调报文结构：
+    // {
+    //   "event_type": "REFUND.SUCCESS" 或 "REFUND.ABNORMAL" 或 "REFUND.CLOSED",
+    //   "resource": { ... }
+    // }
+
+    const eventType = data.event_type;
+
+    // 解密 resource 字段
+    let refundData: any;
+    try {
+      if (data.resource) {
+        refundData = await this.wechatPayService.decryptNotifyResource(data.resource);
+      } else {
+        refundData = data;
+      }
+    } catch (error) {
+      this.logger.error('[WechatPay] 解密退款回调数据失败:', error);
+      return { code: 'FAIL', message: '解密失败' };
+    }
+
+    const outRefundNo = refundData.out_refund_no;
+    const refundStatus = refundData.refund_status;
+    const transactionId = refundData.transaction_id;
+
+    this.logger.log(`[WechatPay] 退款回调 - 退款单号: ${outRefundNo}, 状态: ${refundStatus}`);
+
+    // 根据退款状态处理
+    switch (refundStatus) {
+      case 'SUCCESS':
+        // 退款成功
+        this.logger.log(`[WechatPay] 退款成功 - 退款单号: ${outRefundNo}`);
+        // TODO: 更新本地退款记录状态
+        break;
+      case 'CLOSED':
+        // 退款关闭
+        this.logger.warn(`[WechatPay] 退款关闭 - 退款单号: ${outRefundNo}`);
+        break;
+      case 'ABNORMAL':
+        // 退款异常
+        this.logger.error(`[WechatPay] 退款异常 - 退款单号: ${outRefundNo}`);
+        break;
+      default:
+        this.logger.log(`[WechatPay] 未知退款状态: ${refundStatus}`);
+    }
+
+    return { code: 'SUCCESS', message: '成功' };
   }
 }

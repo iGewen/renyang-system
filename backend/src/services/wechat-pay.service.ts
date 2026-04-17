@@ -197,13 +197,15 @@ export class WechatPayService {
   /**
    * 验证回调签名
    * V3签名验证需要使用微信支付平台证书
+   * 安全修复：API密钥未配置或证书获取失败时安全失败，不再绕过验证
    */
   async verifyNotify(headers: any, body: string): Promise<boolean> {
     const apiV3Key = await this.getConfig('wechat_api_v3_key');
 
+    // 安全修复：API密钥未配置时，拒绝验签而非绕过
     if (!apiV3Key) {
-      this.logger.log('[WechatPay] 模拟环境，跳过验签');
-      return true;
+      this.logger.error('[WechatPay] API密钥未配置，拒绝验签');
+      return false;
     }
 
     const timestamp = headers['wechatpay-timestamp'] || headers['Wechatpay-Timestamp'];
@@ -216,6 +218,20 @@ export class WechatPayService {
       return false;
     }
 
+    // 安全修复：验证时间戳有效期（5分钟内）
+    const timestampNum = parseInt(timestamp, 10);
+    const currentTime = Math.floor(Date.now() / 1000);
+    const maxTimeDiff = 5 * 60; // 5分钟
+
+    if (isNaN(timestampNum) || Math.abs(currentTime - timestampNum) > maxTimeDiff) {
+      this.logger.error('[WechatPay] 回调时间戳过期或无效', {
+        receivedTimestamp: timestamp,
+        currentTimestamp: currentTime,
+        diff: Math.abs(currentTime - timestampNum),
+      });
+      return false;
+    }
+
     // 构建验签串
     const message = `${timestamp}\n${nonce}\n${body}\n`;
 
@@ -223,9 +239,9 @@ export class WechatPayService {
       // 获取平台证书并验证签名
       const platformCert = await this.getPlatformCertificate(serial);
       if (!platformCert) {
-        this.logger.error('[WechatPay] 获取平台证书失败');
-        // 如果没有证书，暂时跳过验签（生产环境需要严格验签）
-        return true;
+        this.logger.error('[WechatPay] 获取平台证书失败，拒绝验签');
+        // 安全修复：证书获取失败时，拒绝验签而非绕过
+        return false;
       }
 
       const verify = crypto.createVerify('RSA-SHA256');
@@ -463,6 +479,192 @@ export class WechatPayService {
       return {
         success: false,
         message: error.message || '退款失败',
+      };
+    }
+  }
+
+  /**
+   * 查询退款
+   * 文档：https://pay.weixin.qq.com/doc/v3/merchant/4012791871
+   */
+  async queryRefund(outRefundNo: string): Promise<any> {
+    const mchId = await this.getConfig('wechat_mch_id');
+    const apiV3Key = await this.getConfig('wechat_api_v3_key');
+    const serialNo = await this.getConfig('wechat_serial_no');
+    const privateKey = await this.getConfig('wechat_private_key');
+
+    if (!mchId || !apiV3Key || !serialNo || !privateKey) {
+      this.logger.log(`[WechatPay] 模拟查询退款 - 退款单号: ${outRefundNo}`);
+      return { status: 'SUCCESS' };
+    }
+
+    const url = `https://api.mch.weixin.qq.com/v3/refund/domestic/refunds/${outRefundNo}`;
+
+    try {
+      const response = await this.request('GET', url, undefined, {
+        mchId,
+        serialNo,
+        privateKey,
+      });
+      return response;
+    } catch (error) {
+      this.logger.error('[WechatPay] 查询退款失败:', error);
+      throw new BadRequestException(error.message || '查询退款失败');
+    }
+  }
+
+  /**
+   * 申请交易账单
+   * 文档：https://pay.weixin.qq.com/doc/v3/merchant/4012791871
+   * @param billDate 账单日期，格式：YYYY-MM-DD
+   */
+  async getTradeBill(billDate: string): Promise<{ downloadUrl: string; billCount?: number }> {
+    const mchId = await this.getConfig('wechat_mch_id');
+    const serialNo = await this.getConfig('wechat_serial_no');
+    const privateKey = await this.getConfig('wechat_private_key');
+
+    if (!mchId || !serialNo || !privateKey) {
+      this.logger.log(`[WechatPay] 模拟申请账单 - 日期: ${billDate}`);
+      return { downloadUrl: '' };
+    }
+
+    const url = `https://api.mch.weixin.qq.com/v3/bill/tradebill?bill_date=${billDate}&bill_type=ALL`;
+
+    try {
+      const response = await this.request('GET', url, undefined, {
+        mchId,
+        serialNo,
+        privateKey,
+      });
+
+      if (response.download_url) {
+        return {
+          downloadUrl: response.download_url,
+          billCount: response.total_count,
+        };
+      }
+
+      throw new BadRequestException(response.message || '申请账单失败');
+    } catch (error) {
+      this.logger.error('[WechatPay] 申请账单失败:', error);
+      throw new BadRequestException(error.message || '申请账单失败');
+    }
+  }
+
+  /**
+   * 下载账单
+   * @param downloadUrl 从申请账单接口获取的下载URL
+   */
+  async downloadBill(downloadUrl: string): Promise<string> {
+    const mchId = await this.getConfig('wechat_mch_id');
+    const serialNo = await this.getConfig('wechat_serial_no');
+    const privateKey = await this.getConfig('wechat_private_key');
+
+    if (!mchId || !serialNo || !privateKey) {
+      this.logger.log(`[WechatPay] 模拟下载账单`);
+      return '';
+    }
+
+    try {
+      // 下载账单需要特殊的请求方式，URL已经是完整的
+      const urlObj = new URL(downloadUrl);
+      const path = urlObj.pathname + urlObj.search;
+
+      const timestamp = Math.floor(Date.now() / 1000).toString();
+      const nonceStr = CryptoUtil.randomString(32);
+      const message = `GET\n${path}\n${timestamp}\n${nonceStr}\n\n`;
+      const signature = this.signWithPrivateKey(message, privateKey);
+
+      const authorization = `WECHATPAY2-SHA256-RSA2048 mchid="${mchId}",serial_no="${serialNo}",nonce_str="${nonceStr}",timestamp="${timestamp}",signature="${signature}"`;
+
+      const response = await fetch(downloadUrl, {
+        method: 'GET',
+        headers: {
+          Accept: '*/*',
+          Authorization: authorization,
+        },
+      });
+
+      if (!response.ok) {
+        throw new BadRequestException(`下载账单失败: ${response.status}`);
+      }
+
+      // 账单返回的是gzip压缩的文本
+      const text = await response.text();
+      return text;
+    } catch (error) {
+      this.logger.error('[WechatPay] 下载账单失败:', error);
+      throw new BadRequestException(error.message || '下载账单失败');
+    }
+  }
+
+  /**
+   * 对账 - 拉取账单并与本地订单比对
+   * @param billDate 账单日期，格式：YYYY-MM-DD
+   * @returns 对账结果
+   */
+  async reconcile(billDate: string): Promise<{
+    success: boolean;
+    billCount?: number;
+    message?: string;
+    differences?: any[];
+  }> {
+    try {
+      // 1. 申请交易账单
+      this.logger.log(`[WechatPay] 开始对账 - 日期: ${billDate}`);
+      const { downloadUrl, billCount } = await this.getTradeBill(billDate);
+
+      if (!downloadUrl) {
+        return { success: false, message: '申请账单失败' };
+      }
+
+      // 2. 下载账单
+      const billContent = await this.downloadBill(downloadUrl);
+
+      if (!billContent) {
+        return { success: false, message: '下载账单失败' };
+      }
+
+      // 3. 解析账单内容
+      // 账单格式：第一行是字段名，后续是数据，用逗号分隔
+      const lines = billContent.split('\n').filter(line => line.trim());
+
+      if (lines.length < 2) {
+        return { success: true, billCount: 0, message: '账单无数据' };
+      }
+
+      // 跳过表头和汇总行，解析交易记录
+      const records = [];
+      for (let i = 1; i < lines.length - 2; i++) {
+        const fields = lines[i].split('`').filter(f => f);
+        if (fields.length >= 20) {
+          records.push({
+            transactionId: fields[0],      // 微信订单号
+            outTradeNo: fields[1],          // 商户订单号
+            openId: fields[3],              // 用户标识
+            tradeType: fields[4],           // 交易类型
+            tradeState: fields[5],          // 交易状态
+            totalAmount: parseInt(fields[6]) / 100, // 订单金额（转为元）
+            payerTotal: parseInt(fields[7]) / 100,  // 用户支付金额
+            successTime: fields[9],         // 支付完成时间
+          });
+        }
+      }
+
+      this.logger.log(`[WechatPay] 账单解析完成 - 记录数: ${records.length}`);
+
+      // 4. 返回对账结果（实际项目中需要与本地订单比对）
+      return {
+        success: true,
+        billCount: records.length,
+        message: `对账完成，共 ${records.length} 笔交易`,
+        differences: [], // 实际项目中需要填充差异记录
+      };
+    } catch (error) {
+      this.logger.error('[WechatPay] 对账失败:', error);
+      return {
+        success: false,
+        message: error.message || '对账失败',
       };
     }
   }

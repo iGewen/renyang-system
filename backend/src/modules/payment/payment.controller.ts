@@ -112,11 +112,36 @@ export class PaymentController {
 
   /**
    * 微信回调
+   * 安全修复：添加签名验证，防止伪造回调
    */
   @Post('wechat/notify')
   @Public()
   @ApiOperation({ summary: '微信支付异步回调' })
-  async wechatNotify(@Body() data: any) {
+  async wechatNotify(@Body() data: any, @Req() req: any) {
+    // 安全修复：验证签名
+    const headers = req.headers;
+    const body = JSON.stringify(data);
+    const isValid = await this.paymentService.verifyWechatNotify(headers, body);
+    if (!isValid) {
+      return { code: 'FAIL', message: '签名验证失败' };
+    }
     return this.paymentService.handleWechatNotify(data);
+  }
+
+  /**
+   * 微信退款回调
+   */
+  @Post('wechat/refund-notify')
+  @Public()
+  @ApiOperation({ summary: '微信退款异步回调' })
+  async wechatRefundNotify(@Body() data: any, @Req() req: any) {
+    // 验证签名
+    const headers = req.headers;
+    const body = JSON.stringify(data);
+    const isValid = await this.paymentService.verifyWechatNotify(headers, body);
+    if (!isValid) {
+      return { code: 'FAIL', message: '签名验证失败' };
+    }
+    return this.paymentService.handleWechatRefundNotify(data);
   }
 }
