@@ -171,13 +171,8 @@ export class OrderService {
       order.paidAmount = order.totalAmount;
       await manager.save(order);
 
-      // 扣减库存
-      try {
-        await this.livestockService.updateStock(order.livestockId, -1);
-      } catch (error) {
-        // 库存扣减失败但订单已支付，记录错误但不回滚
-        console.error('库存扣减失败:', error);
-      }
+      // 扣减库存 - 使用事务管理器，失败会自动回滚
+      await this.livestockService.updateStock(order.livestockId, -1, manager);
 
       // 释放库存锁
       if (order.clientOrderId) {

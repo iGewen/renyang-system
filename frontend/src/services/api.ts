@@ -18,28 +18,90 @@ import type {
 } from '../types';
 
 const API_BASE = '/api';
+const REQUEST_TIMEOUT = 30000; // 30秒超时
+
+// Token 管理工具
+const TokenManager = {
+  get: (): string | null => {
+    const token = localStorage.getItem('token') || localStorage.getItem('admin_token');
+    if (!token) return null;
+
+    // 检查 Token 是否过期
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        // Token 已过期，清除
+        localStorage.removeItem('token');
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('adminInfo');
+        return null;
+      }
+      return token;
+    } catch {
+      // Token 解析失败，仍然返回
+      return token;
+    }
+  },
+
+  set: (token: string, isAdmin: boolean = false): void => {
+    if (isAdmin) {
+      localStorage.setItem('admin_token', token);
+    } else {
+      localStorage.setItem('token', token);
+    }
+  },
+
+  clear: (): void => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('adminInfo');
+  }
+};
 
 // 通用请求方法
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
-  const token = localStorage.getItem('token') || localStorage.getItem('admin_token');
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
+  const token = TokenManager.get();
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...options?.headers,
   };
 
-  const response = await fetch(`${API_BASE}${url}`, {
-    ...options,
-    headers,
-  });
+  try {
+    const response = await fetch(`${API_BASE}${url}`, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    });
 
-  const data = await response.json();
+    const data = await response.json();
 
-  if (!response.ok) {
-    throw new Error(data.message || '请求失败');
+    if (!response.ok) {
+      // 401 错误时清除 Token
+      if (response.status === 401) {
+        TokenManager.clear();
+        // 如果不是登录页面，刷新页面
+        if (!window.location.pathname.includes('login')) {
+          window.location.reload();
+        }
+      }
+      throw new Error(data.message || '请求失败');
+    }
+
+    return data.data || data;
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      throw new Error('请求超时，请稍后重试');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return data.data || data;
 }
 
 // ==================== 认证相关 ====================

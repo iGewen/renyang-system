@@ -15,6 +15,10 @@ export class SendSmsCodeDto {
   type: string;
 }
 
+// 密码强度正则：至少包含大小写字母和数字，8-20位
+const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,20}$/;
+const PASSWORD_MESSAGE = '密码必须包含大小写字母和数字，长度8-20位，可包含特殊字符@$!%*?&';
+
 export class RegisterDto {
   @ApiProperty({ description: '手机号', example: '13800138000' })
   @IsString()
@@ -28,10 +32,10 @@ export class RegisterDto {
   @Length(6, 6, { message: '验证码为6位' })
   code: string;
 
-  @ApiProperty({ description: '密码', example: 'password123' })
+  @ApiProperty({ description: '密码', example: 'Password123' })
   @IsString()
   @IsNotEmpty({ message: '密码不能为空' })
-  @Length(6, 20, { message: '密码长度为6-20位' })
+  @Matches(PASSWORD_PATTERN, { message: PASSWORD_MESSAGE })
   password: string;
 
   @ApiPropertyOptional({ description: '邀请码' })
@@ -46,7 +50,7 @@ export class LoginByPasswordDto {
   @IsNotEmpty({ message: '手机号不能为空' })
   phone: string;
 
-  @ApiProperty({ description: '密码', example: 'password123' })
+  @ApiProperty({ description: '密码', example: 'Password123' })
   @IsString()
   @IsNotEmpty({ message: '密码不能为空' })
   password: string;
@@ -79,10 +83,10 @@ export class ResetPasswordDto {
   @Length(6, 6, { message: '验证码为6位' })
   code: string;
 
-  @ApiProperty({ description: '新密码', example: 'newpassword123' })
+  @ApiProperty({ description: '新密码', example: 'NewPassword123' })
   @IsString()
   @IsNotEmpty({ message: '新密码不能为空' })
-  @Length(6, 20, { message: '密码长度为6-20位' })
+  @Matches(PASSWORD_PATTERN, { message: PASSWORD_MESSAGE })
   newPassword: string;
 }
 

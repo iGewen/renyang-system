@@ -5,6 +5,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SmsCode, SystemConfig } from '@/entities';
 import { CryptoUtil } from '@/common/utils/crypto.util';
+import { Request } from 'express';
+
+// 短信频率限制配置
+const SMS_MAX_COUNT_PER_MINUTE = 5;
+const SMS_BLACKLIST_DURATION = 600; // 10分钟
+const SMS_IP_MAX_COUNT_PER_HOUR = 20; // 每小时每个IP最多20条
 
 /**
  * 阿里云短信服务
@@ -70,10 +76,20 @@ export class SmsService {
   /**
    * 发送验证码
    * 限制规则：
-   * - 60秒内最多发送5次
+   * - 60秒内单个手机号最多发送5次
    * - 超过5次则拉黑10分钟
+   * - 每小时单个IP最多发送20条
    */
-  async sendVerificationCode(phone: string, type: string): Promise<{ success: boolean; code?: string }> {
+  async sendVerificationCode(phone: string, type: string, clientIp?: string): Promise<{ success: boolean; code?: string }> {
+    // 检查IP限制（防刷）
+    if (clientIp) {
+      const ipCountKey = `sms:ip:${clientIp}`;
+      const ipCount = parseInt(await this.redisService.get(ipCountKey) || '0', 10);
+      if (ipCount >= SMS_IP_MAX_COUNT_PER_HOUR) {
+        throw new BadRequestException('发送次数过多，请稍后再试');
+      }
+    }
+
     // 检查是否被拉黑（10分钟内发送超过5次）
     const blacklistKey = `sms:blacklist:${phone}`;
     const isBlacklisted = await this.redisService.exists(blacklistKey);
@@ -88,9 +104,9 @@ export class SmsService {
     const countStr = await this.redisService.get(countKey);
     const count = parseInt(countStr || '0', 10);
 
-    if (count >= 5) {
+    if (count >= SMS_MAX_COUNT_PER_MINUTE) {
       // 超过5次，拉黑10分钟
-      await this.redisService.set(blacklistKey, '1', 600); // 10分钟
+      await this.redisService.set(blacklistKey, '1', SMS_BLACKLIST_DURATION);
       throw new BadRequestException('验证码发送次数过多，请在10分钟后重试');
     }
 
@@ -118,6 +134,17 @@ export class SmsService {
       await this.redisService.incr(countKey);
     }
 
+    // 增加IP发送计数（1小时窗口）
+    if (clientIp) {
+      const ipCountKey = `sms:ip:${clientIp}`;
+      const currentIpCount = await this.redisService.get(ipCountKey);
+      if (!currentIpCount) {
+        await this.redisService.set(ipCountKey, '1', 3600);
+      } else {
+        await this.redisService.incr(ipCountKey);
+      }
+    }
+
     // 发送短信
     try {
       const config = await this.getSmsConfig();
@@ -129,9 +156,9 @@ export class SmsService {
       return { success: true };
     } catch (error) {
       this.logger.error(`[SMS] 发送失败: ${error.message}`);
-      // 开发环境返回验证码
+      // 开发环境返回验证码（安全修复：不在日志中打印完整验证码）
       if (this.configService.get('app.env') === 'development') {
-        this.logger.log(`[SMS] 开发模式 - 验证码: ${code}`);
+        this.logger.log(`[SMS] 开发模式 - 验证码已发送至 ${phone.substring(0, 3)}****${phone.substring(7)}`);
         return { success: true, code };
       }
       throw new BadRequestException('短信发送失败，请稍后重试');

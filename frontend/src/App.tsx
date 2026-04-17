@@ -1,5 +1,5 @@
 import React, { useState, useEffect, createContext, useContext, lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation, Link, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState, useToast } from './components/ui';
 import { cn } from './lib/utils';
@@ -57,6 +57,18 @@ const AuthPage: React.FC = () => {
   const [showAgreement, setShowAgreement] = useState(false);
   const [agreementContent, setAgreementContent] = useState<{ title: string; content: string } | null>(null);
 
+  // 使用 ref 保存定时器引用，用于清理
+  const countdownTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // 组件卸载时清理定时器
+  useEffect(() => {
+    return () => {
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleSendCode = async () => {
     if (!phone || !/^1\d{10}$/.test(phone)) {
       setErrors({ phone: '请输入正确的手机号' });
@@ -67,9 +79,16 @@ const AuthPage: React.FC = () => {
       const type = mode === 'register' ? 'register' : mode === 'forgot' ? 'reset_password' : 'login';
       await authApi.sendSmsCode(phone, type);
       setCountdown(60);
-      const timer = setInterval(() => {
+      // 使用 ref 保存定时器引用
+      countdownTimerRef.current = setInterval(() => {
         setCountdown(prev => {
-          if (prev <= 1) { clearInterval(timer); return 0; }
+          if (prev <= 1) {
+            if (countdownTimerRef.current) {
+              clearInterval(countdownTimerRef.current);
+              countdownTimerRef.current = null;
+            }
+            return 0;
+          }
           return prev - 1;
         });
       }, 1000);
@@ -1241,6 +1260,57 @@ const AdminLoginPageWrapper: React.FC = () => {
   return <LoginPage />;
 };
 
+// ==================== 管理后台路由守卫 ====================
+
+const AdminProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const adminToken = localStorage.getItem('admin_token');
+
+  // 检查 Token 是否有效
+  if (!adminToken) {
+    return <Navigate to="/admin-login" replace />;
+  }
+
+  // 检查 Token 是否过期
+  try {
+    const payload = JSON.parse(atob(adminToken.split('.')[1]));
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('adminInfo');
+      return <Navigate to="/admin-login" replace />;
+    }
+  } catch {
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('adminInfo');
+    return <Navigate to="/admin-login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// ==================== 用户路由守卫 ====================
+
+const UserProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const token = localStorage.getItem('token');
+
+  if (!token) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  // 检查 Token 是否过期
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      return <Navigate to="/auth" replace />;
+    }
+  } catch {
+    // Token 解析失败，继续显示页面
+  }
+
+  return <>{children}</>;
+};
+
 // ==================== 主应用 ====================
 
 export default function App() {
@@ -1293,17 +1363,19 @@ export default function App() {
                 <Route path="/details/:id" element={<DetailsPage />} />
                 <Route path="/payment" element={<PaymentPage />} />
                 <Route path="/success" element={<SuccessPage />} />
-                <Route path="/my-adoptions" element={<MyAdoptionsPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/balance" element={<Suspense fallback={<LoadingSpinner />}><BalancePage /></Suspense>} />
-                <Route path="/notifications" element={<NotificationPage />} />
                 <Route path="/auth" element={<AuthPage />} />
-                <Route path="/orders" element={<Suspense fallback={<LoadingSpinner />}><OrdersPage /></Suspense>} />
-                <Route path="/adoption/:id" element={<Suspense fallback={<LoadingSpinner />}><AdoptionDetailPage /></Suspense>} />
-                <Route path="/adoption/:id/redemption" element={<Suspense fallback={<LoadingSpinner />}><RedemptionPage /></Suspense>} />
-                <Route path="/feed-bill/:id" element={<Suspense fallback={<LoadingSpinner />}><FeedBillDetailPage /></Suspense>} />
                 <Route path="/admin-login" element={<AdminLoginPageWrapper />} />
-                <Route path="/admin/*" element={<Suspense fallback={<LoadingSpinner />}><AdminPage /></Suspense>} />
+                {/* 用户需要登录才能访问的路由 */}
+                <Route path="/my-adoptions" element={<UserProtectedRoute><MyAdoptionsPage /></UserProtectedRoute>} />
+                <Route path="/profile" element={<UserProtectedRoute><ProfilePage /></UserProtectedRoute>} />
+                <Route path="/balance" element={<UserProtectedRoute><Suspense fallback={<LoadingSpinner />}><BalancePage /></Suspense></UserProtectedRoute>} />
+                <Route path="/notifications" element={<UserProtectedRoute><NotificationPage /></UserProtectedRoute>} />
+                <Route path="/orders" element={<UserProtectedRoute><Suspense fallback={<LoadingSpinner />}><OrdersPage /></Suspense></UserProtectedRoute>} />
+                <Route path="/adoption/:id" element={<UserProtectedRoute><Suspense fallback={<LoadingSpinner />}><AdoptionDetailPage /></Suspense></UserProtectedRoute>} />
+                <Route path="/adoption/:id/redemption" element={<UserProtectedRoute><Suspense fallback={<LoadingSpinner />}><RedemptionPage /></Suspense></UserProtectedRoute>} />
+                <Route path="/feed-bill/:id" element={<UserProtectedRoute><Suspense fallback={<LoadingSpinner />}><FeedBillDetailPage /></Suspense></UserProtectedRoute>} />
+                {/* 管理后台需要管理员登录 */}
+                <Route path="/admin/*" element={<AdminProtectedRoute><Suspense fallback={<LoadingSpinner />}><AdminPage /></Suspense></AdminProtectedRoute>} />
               </Routes>
             </AnimatePresence>
             <GlobalTabBar />

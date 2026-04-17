@@ -6,5 +6,6 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const generateId = (prefix: string) => {
-  return `${prefix}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+  // 使用 substring 替代已废弃的 substr
+  return `${prefix}${Math.random().toString(36).substring(2, 11).toUpperCase()}`;
 };

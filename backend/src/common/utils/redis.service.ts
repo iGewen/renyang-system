@@ -163,24 +163,49 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * 分布式锁 - 释放锁
+   * 分布式锁 - 获取锁（带唯一标识）
    */
-  async releaseLock(key: string): Promise<void> {
-    await this.client.del(key);
+  async acquireLockWithValue(key: string, ttl: number = 30000): Promise<string | null> {
+    const value = `${Date.now()}-${Math.random().toString(36).substring(2)}`;
+    const result = await this.client.set(key, value, 'PX', ttl, 'NX');
+    return result === 'OK' ? value : null;
   }
 
   /**
-   * 使用锁执行任务
+   * 分布式锁 - 释放锁（只释放自己持有的锁）
+   * 使用 Lua 脚本确保原子性
+   */
+  async releaseLock(key: string, value?: string): Promise<boolean> {
+    if (!value) {
+      // 兼容旧调用方式，直接删除
+      await this.client.del(key);
+      return true;
+    }
+
+    // Lua 脚本：只有当锁的值匹配时才删除
+    const script = `
+      if redis.call("get", KEYS[1]) == ARGV[1] then
+        return redis.call("del", KEYS[1])
+      else
+        return 0
+      end
+    `;
+    const result = await this.client.eval(script, 1, key, value);
+    return result === 1;
+  }
+
+  /**
+   * 使用锁执行任务（安全版本）
    */
   async withLock<T>(key: string, ttl: number, task: () => Promise<T>): Promise<T> {
-    const acquired = await this.acquireLock(key, ttl);
-    if (!acquired) {
+    const lockValue = await this.acquireLockWithValue(key, ttl);
+    if (!lockValue) {
       throw new Error('获取锁失败，请稍后重试');
     }
     try {
       return await task();
     } finally {
-      await this.releaseLock(key);
+      await this.releaseLock(key, lockValue);
     }
   }
 }

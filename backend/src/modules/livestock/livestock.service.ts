@@ -75,18 +75,39 @@ export class LivestockService {
     return livestock.stock;
   }
 
-  async updateStock(id: string, quantity: number): Promise<boolean> {
+  async updateStock(id: string, quantity: number, manager?: any): Promise<boolean> {
     const stockKey = `livestock:stock:${id}`;
 
-    await this.livestockRepository
-      .createQueryBuilder()
-      .update(Livestock)
-      .set({
-        stock: () => `stock + ${quantity}`,
-        soldCount: quantity > 0 ? () => `soldCount + ${Math.abs(quantity)}` : () => `soldCount`,
-      })
-      .where('id = :id', { id })
-      .execute();
+    // 检查库存是否足够（仅在扣减时检查）
+    if (quantity < 0) {
+      const currentStock = await this.getStock(id);
+      if (currentStock < Math.abs(quantity)) {
+        throw new Error('库存不足');
+      }
+    }
+
+    // 支持事务管理器
+    if (manager) {
+      await manager
+        .createQueryBuilder()
+        .update(Livestock)
+        .set({
+          stock: () => `stock + ${quantity}`,
+          soldCount: quantity > 0 ? () => `soldCount + ${Math.abs(quantity)}` : () => `soldCount`,
+        })
+        .where('id = :id', { id })
+        .execute();
+    } else {
+      await this.livestockRepository
+        .createQueryBuilder()
+        .update(Livestock)
+        .set({
+          stock: () => `stock + ${quantity}`,
+          soldCount: quantity > 0 ? () => `soldCount + ${Math.abs(quantity)}` : () => `soldCount`,
+        })
+        .where('id = :id', { id })
+        .execute();
+    }
 
     // 更新缓存
     const livestock = await this.livestockRepository.findOne({ where: { id } });

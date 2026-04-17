@@ -47,13 +47,34 @@ export class UploadService {
 
   /**
    * 获取文件存储路径
+   * 安全修复：防止路径遍历攻击
    */
   private getFilePath(filename: string, subDir?: string): string {
-    const dir = subDir ? path.join(this.uploadDir, subDir) : this.uploadDir;
+    // 防止路径遍历攻击
+    const sanitizedFilename = path.basename(filename);
+    const sanitizedSubDir = subDir ? subDir.replace(/\.\./g, '').replace(/[\/\\]/g, '') : undefined;
+
+    const dir = sanitizedSubDir ? path.join(this.uploadDir, sanitizedSubDir) : this.uploadDir;
+
+    // 确保目录路径在允许的上传目录内
+    const resolvedDir = path.resolve(dir);
+    if (!resolvedDir.startsWith(path.resolve(this.uploadDir))) {
+      throw new Error('非法的目录路径');
+    }
+
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    return path.join(dir, filename);
+
+    const filePath = path.join(dir, sanitizedFilename);
+    const resolvedPath = path.resolve(filePath);
+
+    // 再次验证最终路径在上传目录内
+    if (!resolvedPath.startsWith(path.resolve(this.uploadDir))) {
+      throw new Error('非法的文件路径');
+    }
+
+    return filePath;
   }
 
   /**

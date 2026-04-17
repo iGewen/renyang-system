@@ -20,6 +20,10 @@ import {
   UpdateUserDto,
 } from './dto/auth.dto';
 
+// 登录失败锁定配置
+const LOGIN_FAIL_MAX_ATTEMPTS = 5; // 最大失败次数
+const LOGIN_FAIL_LOCK_DURATION = 15 * 60; // 锁定时间（秒）
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -101,6 +105,17 @@ export class AuthService {
   async loginByPassword(dto: LoginByPasswordDto) {
     const { phone, password } = dto;
 
+    // 检查是否被锁定
+    const lockKey = `login:lock:${phone}`;
+    const lockData = await this.redisService.get(lockKey);
+    if (lockData) {
+      const lockInfo = JSON.parse(lockData);
+      const remainingTime = Math.ceil((lockInfo.lockUntil - Date.now()) / 1000);
+      if (remainingTime > 0) {
+        throw new UnauthorizedException(`登录失败次数过多，请在 ${remainingTime} 秒后重试`);
+      }
+    }
+
     const user = await this.userRepository
       .createQueryBuilder('user')
       .where('user.phone = :phone', { phone })
@@ -121,8 +136,25 @@ export class AuthService {
 
     const isPasswordValid = await PasswordUtil.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('密码错误');
+      // 记录登录失败
+      const failKey = `login:fail:${phone}`;
+      const failCount = parseInt(await this.redisService.get(failKey) || '0', 10) + 1;
+      await this.redisService.set(failKey, failCount.toString(), 3600); // 1小时内有效
+
+      if (failCount >= LOGIN_FAIL_MAX_ATTEMPTS) {
+        // 锁定账号
+        const lockUntil = Date.now() + LOGIN_FAIL_LOCK_DURATION * 1000;
+        await this.redisService.set(lockKey, JSON.stringify({ lockUntil, attempts: failCount }), LOGIN_FAIL_LOCK_DURATION);
+        await this.redisService.del(failKey);
+        throw new UnauthorizedException(`登录失败次数过多，账号已锁定 ${LOGIN_FAIL_LOCK_DURATION / 60} 分钟`);
+      }
+
+      throw new UnauthorizedException(`密码错误，还剩 ${LOGIN_FAIL_MAX_ATTEMPTS - failCount} 次机会`);
     }
+
+    // 登录成功，清除失败记录
+    const failKey = `login:fail:${phone}`;
+    await this.redisService.del(failKey);
 
     // 更新最后登录时间
     await this.userRepository.update(user.id, {

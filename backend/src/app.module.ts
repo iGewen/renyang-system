@@ -172,16 +172,18 @@ export class AppModule implements NestModule, OnModuleInit {
         );
         console.log('✅ 默认管理员账号已创建');
         console.log('   用户名: admin');
-        if (process.env.NODE_ENV === 'production') {
-          // 生产环境不打印密码，提示查看环境变量
-          if (process.env.ADMIN_DEFAULT_PASSWORD) {
-            console.log('   密码: 请查看 ADMIN_DEFAULT_PASSWORD 环境变量');
-          } else {
-            console.log('   密码: 请查看服务器启动日志（仅显示一次）');
-            console.log('   密码: ' + defaultPassword);
-          }
+        // 安全修复：生产环境和开发环境都不在日志中打印密码
+        // 密码应通过安全渠道（如环境变量、加密配置文件）获取
+        if (process.env.ADMIN_DEFAULT_PASSWORD) {
+          console.log('   密码: 请查看 ADMIN_DEFAULT_PASSWORD 环境变量');
         } else {
-          console.log('   密码: ' + defaultPassword);
+          console.log('   密码: 随机生成，请查看控制台输出');
+          // 仅在开发环境且第一次启动时短暂显示，生产环境应通过环境变量设置
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('   ⚠️  随机密码（仅显示一次）: ' + defaultPassword);
+          } else {
+            console.log('   ⚠️  生产环境未设置 ADMIN_DEFAULT_PASSWORD，请重启服务并设置环境变量');
+          }
         }
         console.log('   ⚠️  首次登录将强制修改密码！');
       } else {
