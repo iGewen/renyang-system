@@ -1015,7 +1015,7 @@ export class AdminService {
         .addSelect('type.name', 'typeName')
         .addSelect('COUNT(*)', 'count')
         .where('adoption.status IN (:...statuses)', {
-          statuses: [AdoptionStatus.ACTIVE, AdoptionStatus.FEED_OVERDUE, AdoptionStatus.CAN_REDEEM, AdoptionStatus.REDEMPTION_PENDING],
+          statuses: [AdoptionStatus.ACTIVE, AdoptionStatus.FEED_OVERDUE, AdoptionStatus.REDEEMABLE, AdoptionStatus.REDEMPTION_PENDING],
         })
         .groupBy('type.id')
         .addGroupBy('type.name')
