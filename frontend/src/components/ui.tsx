@@ -673,6 +673,103 @@ export const PageTransition: React.FC<{ children: React.ReactNode }> = ({ childr
   </motion.div>
 );
 
+// ==================== 骨架屏组件 ====================
+
+interface SkeletonProps {
+  className?: string;
+  variant?: 'text' | 'circular' | 'rectangular' | 'rounded';
+  width?: string | number;
+  height?: string | number;
+  animation?: 'pulse' | 'wave' | 'none';
+}
+
+export const Skeleton: React.FC<SkeletonProps> = ({
+  className,
+  variant = 'text',
+  width,
+  height,
+  animation = 'pulse'
+}) => {
+  const variantClass = {
+    text: 'rounded',
+    circular: 'rounded-full',
+    rectangular: 'rounded-none',
+    rounded: 'rounded-xl'
+  }[variant];
+
+  const animationClass = {
+    pulse: 'animate-pulse',
+    wave: 'skeleton-wave',
+    none: ''
+  }[animation];
+
+  return (
+    <div
+      className={cn(
+        'bg-slate-200',
+        variantClass,
+        animationClass,
+        className
+      )}
+      style={{
+        width: width,
+        height: height || (variant === 'text' ? '1em' : undefined)
+      }}
+    />
+  );
+};
+
+// 骨架屏卡片组件
+export const SkeletonCard: React.FC<{ lines?: number }> = ({ lines = 3 }) => (
+  <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-4">
+    <div className="flex items-center gap-3">
+      <Skeleton variant="circular" width={48} height={48} />
+      <div className="flex-1 space-y-2">
+        <Skeleton width="60%" height={14} />
+        <Skeleton width="40%" height={12} />
+      </div>
+    </div>
+    <div className="space-y-2">
+      {Array.from({ length: lines }).map((_, i) => (
+        <Skeleton key={i} width={i === lines - 1 ? '80%' : '100%'} height={12} />
+      ))}
+    </div>
+  </div>
+);
+
+// 骨架屏列表组件
+export const SkeletonList: React.FC<{ count?: number }> = ({ count = 5 }) => (
+  <div className="space-y-3">
+    {Array.from({ length: count }).map((_, i) => (
+      <div key={i} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100">
+        <Skeleton variant="circular" width={40} height={40} />
+        <div className="flex-1 space-y-2">
+          <Skeleton width="70%" height={14} />
+          <Skeleton width="50%" height={10} />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+// 骨架屏表格组件
+export const SkeletonTable: React.FC<{ rows?: number; cols?: number }> = ({ rows = 5, cols = 4 }) => (
+  <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+    <div className="grid grid-cols-${cols} gap-4 p-4 bg-slate-50 border-b border-slate-100">
+      {Array.from({ length: cols }).map((_, i) => (
+        <Skeleton key={i} height={14} />
+      ))}
+    </div>
+    {Array.from({ length: rows }).map((_, rowIndex) => (
+      <div key={rowIndex} className="grid gap-4 p-4 border-b border-slate-50 last:border-b-0" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+        {Array.from({ length: cols }).map((_, colIndex) => (
+          <Skeleton key={colIndex} height={14} width={colIndex === 0 ? '80%' : '60%'} />
+        ))}
+      </div>
+    ))}
+  </div>
+);
+
 // ==================== 加载状态组件 ====================
 
 export const LoadingSpinner: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = ({ size = 'md' }) => {
@@ -688,6 +785,25 @@ export const LoadingSpinner: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = ({ size =
     </div>
   );
 };
+
+// 页面加载组件
+export const PageLoader: React.FC<{ text?: string }> = ({ text = '加载中...' }) => (
+  <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+    <div className="relative">
+      <div className="w-12 h-12 border-4 border-brand-primary/20 rounded-full" />
+      <div className="w-12 h-12 border-4 border-brand-primary border-t-transparent rounded-full animate-spin absolute top-0 left-0" />
+    </div>
+    {text && <p className="text-sm text-slate-500 font-medium">{text}</p>}
+  </div>
+);
+
+// 内联加载组件
+export const InlineLoader: React.FC<{ text?: string }> = ({ text }) => (
+  <div className="flex items-center justify-center gap-2 py-8">
+    <div className="w-5 h-5 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
+    {text && <span className="text-sm text-slate-500">{text}</span>}
+  </div>
+);
 
 // ==================== 按钮组件 ====================
 
@@ -709,32 +825,40 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const variantClass = {
-    primary: 'bg-brand-primary text-white hover:bg-brand-secondary shadow-lg shadow-brand-primary/20',
-    outline: 'border-2 border-brand-primary text-brand-primary hover:bg-brand-primary/5',
-    danger: 'bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/20',
-    ghost: 'text-slate-600 hover:bg-slate-100'
+    primary: 'bg-brand-primary text-white hover:bg-brand-secondary shadow-lg shadow-brand-primary/20 active:shadow-brand-primary/10',
+    outline: 'border-2 border-brand-primary text-brand-primary hover:bg-brand-primary/5 active:bg-brand-primary/10',
+    danger: 'bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/20 active:shadow-red-500/10',
+    ghost: 'text-slate-600 hover:bg-slate-100 active:bg-slate-200'
   }[variant];
 
   const sizeClass = {
-    sm: 'px-4 py-2 text-sm rounded-xl',
-    md: 'px-6 py-3 text-base rounded-2xl',
-    lg: 'px-8 py-4 text-lg rounded-2xl'
+    sm: 'px-4 py-2 text-sm rounded-xl gap-1.5',
+    md: 'px-6 py-3 text-base rounded-2xl gap-2',
+    lg: 'px-8 py-4 text-lg rounded-2xl gap-2.5'
   }[size];
 
   return (
     <button
       className={cn(
-        'font-semibold transition-all active:scale-95 flex items-center justify-center gap-2',
+        'font-semibold transition-all duration-200 flex items-center justify-center',
         variantClass,
         sizeClass,
+        'focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:ring-offset-2',
         (disabled || loading) && 'opacity-50 cursor-not-allowed',
+        !(disabled || loading) && 'hover:-translate-y-0.5 active:translate-y-0',
         className
       )}
       disabled={disabled || loading}
       {...props}
     >
-      {loading ? <Icons.Loader2 className="w-5 h-5 animate-spin" /> : icon}
-      {children}
+      {loading ? (
+        <span className="relative">
+          <Icons.Loader2 className="w-5 h-5 animate-spin" />
+        </span>
+      ) : icon ? (
+        <span className="flex-shrink-0">{icon}</span>
+      ) : null}
+      <span className={loading ? 'opacity-70' : ''}>{children}</span>
     </button>
   );
 };
@@ -944,21 +1068,47 @@ interface EmptyStateProps {
   title: string;
   description?: string;
   action?: React.ReactNode;
+  variant?: 'default' | 'compact';
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
   icon,
   title,
   description,
-  action
+  action,
+  variant = 'default'
 }) => {
+  if (variant === 'compact') {
+    return (
+      <div className="flex flex-col items-center justify-center py-10 px-6 text-center">
+        {icon && (
+          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
+            {icon}
+          </div>
+        )}
+        <h3 className="text-base font-semibold text-slate-700 mb-1">{title}</h3>
+        {description && <p className="text-sm text-slate-500 mb-4">{description}</p>}
+        {action}
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
-      {icon && <div className="text-slate-300 mb-4">{icon}</div>}
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col items-center justify-center py-16 px-8 text-center"
+    >
+      {icon && (
+        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 flex items-center justify-center text-slate-300 mb-5 shadow-inner">
+          {icon}
+        </div>
+      )}
       <h3 className="text-lg font-bold text-slate-700 mb-2">{title}</h3>
-      {description && <p className="text-sm text-slate-400 mb-6">{description}</p>}
+      {description && <p className="text-sm text-slate-500 mb-6 max-w-xs">{description}</p>}
       {action}
-    </div>
+    </motion.div>
   );
 };
 

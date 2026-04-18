@@ -1,7 +1,7 @@
 import React, { useState, useEffect, createContext, useContext, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation, Link, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState, useToast } from './components/ui';
+import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState, useToast, Skeleton, SkeletonCard, PageLoader, InlineLoader } from './components/ui';
 import { cn } from './lib/utils';
 import type { Livestock, Adoption, FeedBill, User, Order } from './types';
 import { AdoptionStatus, OrderStatus, getAdoptionStatusText, getOrderStatusText } from './types/enums';
@@ -289,6 +289,130 @@ const AuthPage: React.FC = () => {
   );
 };
 
+// ==================== 首页骨架屏组件 ====================
+
+const HomePageSkeleton: React.FC = () => (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+    {Array.from({ length: 6 }).map((_, i) => (
+      <div key={i} className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="relative h-64 bg-slate-200 animate-pulse" />
+        <div className="p-6 space-y-4">
+          <div className="h-4 bg-slate-200 rounded animate-pulse w-3/4" />
+          <div className="h-3 bg-slate-200 rounded animate-pulse w-full" />
+          <div className="h-3 bg-slate-200 rounded animate-pulse w-2/3" />
+          <div className="flex justify-between items-center pt-2">
+            <div className="flex gap-6">
+              <div className="space-y-1">
+                <div className="h-2 w-12 bg-slate-200 rounded animate-pulse" />
+                <div className="h-4 w-16 bg-slate-200 rounded animate-pulse" />
+              </div>
+              <div className="space-y-1">
+                <div className="h-2 w-12 bg-slate-200 rounded animate-pulse" />
+                <div className="h-4 w-14 bg-slate-200 rounded animate-pulse" />
+              </div>
+            </div>
+            <div className="w-12 h-12 rounded-full bg-slate-200 animate-pulse" />
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+// ==================== 活体卡片组件 ====================
+
+interface LivestockCardProps {
+  item: Livestock;
+  index: number;
+  onClick: () => void;
+}
+
+const LivestockCard: React.FC<LivestockCardProps> = ({ item, index, onClick }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.08, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      onClick={onClick}
+      className="group cursor-pointer"
+    >
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1">
+        {/* 图片区域 */}
+        <div className="relative h-64 overflow-hidden">
+          <img
+            src={item.mainImage || item.images?.[0] || '/placeholder.jpg'}
+            alt={item.name}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            referrerPolicy="no-referrer"
+            loading="lazy"
+          />
+          {/* 渐变遮罩 */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+
+          {/* 顶部标签 */}
+          <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
+            {item.type?.name && (
+              <span className="px-3 py-1 bg-white/20 backdrop-blur-md border border-white/30 rounded-full text-white text-[10px] font-bold uppercase tracking-wider">
+                {item.type.name}
+              </span>
+            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                // TODO: 收藏功能
+              }}
+              className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/30 transition-all ml-auto"
+            >
+              <Icons.Heart className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* 底部信息 */}
+          <div className="absolute bottom-4 left-4 right-4">
+            <div className="flex justify-between items-end">
+              <div>
+                <h3 className="text-2xl font-display font-bold text-white mb-1 drop-shadow-md">
+                  {item.name}
+                </h3>
+                <p className="text-white/70 text-sm line-clamp-1 max-w-[180px]">
+                  {item.description}
+                </p>
+              </div>
+              <div className="flex-shrink-0 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl px-4 py-2">
+                <span className="text-white/70 text-xs">¥</span>
+                <span className="text-white text-xl font-bold">{item.price}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 底部详情 */}
+        <div className="p-5">
+          <div className="flex items-center justify-between">
+            <div className="flex gap-6">
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tight">月饲料</span>
+                <span className="text-base font-bold text-brand-primary">¥{item.monthlyFeedFee}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tight">买断期</span>
+                <span className="text-base font-bold text-brand-primary">{item.redemptionMonths}个月</span>
+              </div>
+            </div>
+            <motion.div
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-11 h-11 rounded-full bg-gradient-to-br from-brand-bg to-slate-50 border border-slate-100 flex items-center justify-center group-hover:from-brand-primary group-hover:to-indigo-600 group-hover:border-transparent group-hover:text-white transition-all duration-300"
+            >
+              <Icons.ChevronRight className="w-5 h-5" />
+            </motion.div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 // ==================== 首页 ====================
 
 const HomePage: React.FC = () => {
@@ -315,17 +439,23 @@ const HomePage: React.FC = () => {
   }, []);
 
   const rightContent = (
-    <button
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
       onClick={() => navigate('/notifications')}
       className="relative w-10 h-10 rounded-full bg-white/90 backdrop-blur-md border border-white/30 flex items-center justify-center text-brand-primary shadow-sm"
     >
       <Icons.Bell className="w-5 h-5" />
       {unreadCount > 0 && (
-        <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+        <motion.span
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold"
+        >
           {unreadCount > 9 ? '9+' : unreadCount}
-        </span>
+        </motion.span>
       )}
-    </button>
+    </motion.button>
   );
 
   return (
@@ -333,46 +463,59 @@ const HomePage: React.FC = () => {
       <div className="min-h-screen pb-28">
         <Navbar title="云端牧场" transparent rightContent={rightContent} />
         <div className="max-w-screen-xl mx-auto px-6 pt-2 pb-8">
+          {/* 头部区域 */}
           <header className="mb-10">
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-accent/10 text-brand-accent text-[10px] font-bold uppercase tracking-wider mb-4">
-              <Icons.Zap className="w-3 h-3" /> 智慧农业新体验
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-brand-accent/10 to-emerald-50 text-brand-accent text-[10px] font-bold uppercase tracking-wider mb-4 border border-brand-accent/10"
+            >
+              <Icons.Leaf className="w-3.5 h-3.5" />
+              智慧农业新体验
             </motion.div>
-            <h2 className="text-4xl font-display font-bold text-brand-primary leading-tight mb-4">在云端，<br />拥有属于您的牧场</h2>
-            <p className="text-slate-500 text-sm max-w-[80%] leading-relaxed">连接自然与科技，每一份领养都是对生命的尊重与呵护。</p>
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="text-4xl md:text-5xl font-display font-bold text-brand-primary leading-tight mb-4"
+            >
+              在云端，<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-indigo-600">拥有属于您的牧场</span>
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="text-slate-500 text-base max-w-md leading-relaxed"
+            >
+              连接自然与科技，每一份领养都是对生命的尊重与呵护。
+            </motion.p>
           </header>
-          {loading ? <LoadingSpinner /> : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+          {/* 内容区域 */}
+          {loading ? (
+            <HomePageSkeleton />
+          ) : livestockList.length === 0 ? (
+            <EmptyState
+              icon={<Icons.Sprout className="w-10 h-10" />}
+              title="暂无可领养的活体"
+              description="我们正在为您寻找更多优质活体，请稍后再来查看"
+              action={
+                <Button variant="outline" onClick={() => window.location.reload()}>
+                  刷新页面
+                </Button>
+              }
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
               {livestockList.map((item, index) => (
-                <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} onClick={() => navigate(`/details/${item.id}`)} className="premium-card overflow-hidden group cursor-pointer">
-                  <div className="relative h-64 overflow-hidden">
-                    <img src={item.mainImage || item.images?.[0] || '/placeholder.jpg'} alt={item.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" referrerPolicy="no-referrer" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                    <div className="absolute bottom-6 left-6 right-6 flex justify-between items-end">
-                      <div>
-                        {item.type?.name && <span className="text-white/70 text-[10px] font-bold uppercase tracking-widest mb-1 block">{item.type.name}</span>}
-                        <h3 className="text-2xl font-display font-bold text-white">{item.name}</h3>
-                      </div>
-                      <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl px-4 py-2 text-white">
-                        <span className="text-xs opacity-70">¥</span><span className="text-xl font-bold">{item.price}</span>
-                      </div>
-                    </div>
-                    <button className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white">
-                      <Icons.Heart className="w-5 h-5" />
-                    </button>
-                  </div>
-                  <div className="p-6">
-                    <p className="text-sm text-slate-500 leading-relaxed mb-6">{item.description}</p>
-                    <div className="flex items-center justify-between">
-                      <div className="flex gap-6">
-                        <div className="flex flex-col"><span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">月饲料</span><span className="text-sm font-bold text-brand-primary">¥{item.monthlyFeedFee}</span></div>
-                        <div className="flex flex-col"><span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">买断期</span><span className="text-sm font-bold text-brand-primary">{item.redemptionMonths}个月</span></div>
-                      </div>
-                      <div className="w-12 h-12 rounded-full bg-brand-bg border border-slate-100 flex items-center justify-center group-hover:bg-brand-primary group-hover:text-white transition-colors">
-                        <Icons.ChevronRight className="w-6 h-6" />
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
+                <LivestockCard
+                  key={item.id}
+                  item={item}
+                  index={index}
+                  onClick={() => navigate(`/details/${item.id}`)}
+                />
               ))}
             </div>
           )}
@@ -1077,19 +1220,62 @@ const ProfilePage: React.FC = () => {
     }
   }, [token, isAuthenticated, navigate, logout]);
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-brand-bg pb-24">
+        <div className="relative h-40 bg-brand-primary animate-pulse" />
+        <div className="max-w-screen-xl mx-auto px-6 mt-16 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-8">
+              <div className="bg-white rounded-2xl p-6 h-32 animate-pulse" />
+              <div className="bg-white rounded-2xl p-6 h-48 animate-pulse" />
+            </div>
+            <div className="space-y-8">
+              <div className="bg-white rounded-2xl p-6 h-48 animate-pulse" />
+              <div className="bg-red-50/50 rounded-2xl h-16 animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // 未登录状态显示登录引导
   if (!profile && !isAuthenticated) {
     return (
       <PageTransition>
         <div className="min-h-screen bg-brand-bg flex flex-col items-center justify-center p-8">
-          <div className="w-24 h-24 bg-brand-primary rounded-[32px] flex items-center justify-center mb-6 shadow-lg shadow-brand-primary/30">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            className="w-24 h-24 bg-gradient-to-br from-brand-primary to-indigo-600 rounded-[32px] flex items-center justify-center mb-6 shadow-xl shadow-brand-primary/30"
+          >
             <Icons.User className="w-12 h-12 text-white" />
-          </div>
-          <h2 className="text-2xl font-display font-bold text-brand-primary mb-2">欢迎来到云端牧场</h2>
-          <p className="text-slate-500 mb-8 text-center">登录后即可查看个人信息和领养记录</p>
-          <Button className="px-12" size="lg" onClick={() => navigate('/auth')}>立即登录</Button>
+          </motion.div>
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-2xl font-display font-bold text-brand-primary mb-2"
+          >
+            欢迎来到云端牧场
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-slate-500 mb-8 text-center"
+          >
+            登录后即可查看个人信息和领养记录
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Button className="px-12" size="lg" onClick={() => navigate('/auth')}>立即登录</Button>
+          </motion.div>
         </div>
       </PageTransition>
     );
@@ -1098,131 +1284,201 @@ const ProfilePage: React.FC = () => {
   return (
     <PageTransition>
       <div className="min-h-screen bg-brand-bg pb-24">
-        <div className="relative h-40 bg-brand-primary">
-          <div className="absolute inset-0 overflow-hidden opacity-10 pointer-events-none">
-            <div className="absolute top-0 left-0 w-48 h-48 bg-white rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
-            <div className="absolute bottom-0 right-0 w-64 h-64 bg-brand-accent rounded-full translate-x-1/3 translate-y-1/3 blur-3xl" />
+        {/* 头部区域 */}
+        <div className="relative h-44 bg-gradient-to-br from-brand-primary via-indigo-600 to-brand-primary">
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-0 left-0 w-48 h-48 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
+            <div className="absolute bottom-0 right-0 w-64 h-64 bg-brand-accent/20 rounded-full translate-x-1/3 translate-y-1/3 blur-3xl" />
+            <div className="absolute top-1/2 right-1/4 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
           </div>
           <div className="relative z-10 px-6 pt-10 flex items-center gap-4">
-            <div className="relative">
-              <div className="w-14 h-14 rounded-xl border-2 border-white/20 overflow-hidden bg-white/10 backdrop-blur-md">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="relative"
+            >
+              <div className="w-16 h-16 rounded-2xl border-2 border-white/30 overflow-hidden bg-white/20 backdrop-blur-md shadow-lg">
                 <img src={profile?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               </div>
-              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-brand-primary flex items-center justify-center">
-                <div className="w-1.5 h-1.5 bg-white rounded-full" />
+              <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-green-500 rounded-full border-2 border-brand-primary flex items-center justify-center shadow-lg">
+                <div className="w-2 h-2 bg-white rounded-full" />
               </div>
-            </div>
-            <div className="flex-1">
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="flex-1"
+            >
               <h2 className="text-xl font-display font-bold text-white tracking-tight">{profile?.nickname || '智慧牧场主'}</h2>
-              <p className="text-xs text-white/70 mt-0.5 font-mono">{profile?.phone || '未绑定手机'}</p>
-            </div>
+              <p className="text-sm text-white/70 mt-0.5 font-mono">{profile?.phone || '未绑定手机'}</p>
+            </motion.div>
           </div>
-          <div className="absolute bottom-0 left-0 right-0 px-6 translate-y-1/2">
-            <Card className="p-3 grid grid-cols-3 gap-2 text-center">
-              <Link to="/balance">
-                <p className="text-lg font-display font-bold text-brand-primary">¥{parseFloat(profile?.balance || '0').toFixed(2)}</p>
-                <p className="text-[10px] text-slate-400">余额</p>
+          {/* 统计卡片 */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="absolute bottom-0 left-0 right-0 px-6 translate-y-1/2"
+          >
+            <Card className="p-4 grid grid-cols-3 gap-4 text-center">
+              <Link to="/balance" className="group">
+                <p className="text-xl font-display font-bold text-brand-primary group-hover:scale-105 transition-transform">¥{parseFloat(profile?.balance || '0').toFixed(2)}</p>
+                <p className="text-xs text-slate-400 mt-0.5">余额</p>
               </Link>
               <div className="border-x border-slate-100">
-                <p className="text-lg font-display font-bold text-brand-primary">{profile?.stats?.adoptions || 0}</p>
-                <p className="text-[10px] text-slate-400">领养</p>
+                <p className="text-xl font-display font-bold text-brand-primary">{profile?.stats?.adoptions || 0}</p>
+                <p className="text-xs text-slate-400 mt-0.5">领养</p>
               </div>
               <div>
-                <p className="text-lg font-display font-bold text-brand-primary">{profile?.stats?.days || 0}</p>
-                <p className="text-[10px] text-slate-400">天数</p>
+                <p className="text-xl font-display font-bold text-brand-primary">{profile?.stats?.days || 0}</p>
+                <p className="text-xs text-slate-400 mt-0.5">天数</p>
               </div>
             </Card>
-          </div>
+          </motion.div>
         </div>
+
+        {/* 内容区域 */}
         <div className="max-w-screen-xl mx-auto px-6 mt-16 space-y-6">
+          {/* 桌面端统计卡片 */}
           <div className="hidden lg:grid grid-cols-3 gap-6">
-            <Link to="/balance">
-              <Card className="p-6 flex flex-col items-center hover:shadow-md transition-shadow">
-                <p className="text-3xl font-display font-bold text-brand-primary mb-1">¥{parseFloat(profile?.balance || '0').toFixed(2)}</p>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">账户余额</p>
-              </Card>
-            </Link>
-            <Card className="p-6 flex flex-col items-center">
-              <p className="text-3xl font-display font-bold text-brand-primary">{profile?.stats?.adoptions || 0}</p>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">领养活体</p>
-            </Card>
-            <Card className="p-6 flex flex-col items-center">
-              <p className="text-3xl font-display font-bold text-brand-primary">{profile?.stats?.days || 0}</p>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">领养天数</p>
-            </Card>
+            {[
+              { value: `¥${parseFloat(profile?.balance || '0').toFixed(2)}`, label: '账户余额', to: '/balance' },
+              { value: profile?.stats?.adoptions || 0, label: '领养活体', to: '/my-adoptions' },
+              { value: profile?.stats?.days || 0, label: '领养天数' },
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 + i * 0.05 }}
+              >
+                <Link to={item.to || '#'}>
+                  <Card className="p-6 flex flex-col items-center hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer">
+                    <p className="text-3xl font-display font-bold text-brand-primary mb-1">{item.value}</p>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">{item.label}</p>
+                  </Card>
+                </Link>
+              </motion.div>
+            ))}
           </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="space-y-8">
-              <section>
+            {/* 左侧 */}
+            <div className="space-y-6">
+              {/* 我的订单 */}
+              <motion.section
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
                 <div className="flex justify-between items-end mb-4">
-                  <h3 className="text-xl font-display font-bold text-slate-900">我的订单</h3>
-                  <Link to="/orders" className="text-xs text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1 hover:text-brand-primary transition-colors">全部订单 <Icons.ChevronRight className="w-3 h-3" /></Link>
+                  <h3 className="text-lg font-bold text-slate-900">我的订单</h3>
+                  <Link to="/orders" className="text-xs text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1 hover:text-brand-primary transition-colors">
+                    全部订单 <Icons.ChevronRight className="w-3 h-3" />
+                  </Link>
                 </div>
                 <Card className="p-6 grid grid-cols-3 gap-6">
                   {[
-                    { icon: Icons.Wallet, label: '待付款', to: '/orders?status=pending' },
-                    { icon: Icons.Package, label: '领养中', to: '/orders?status=paid' },
-                    { icon: Icons.History, label: '已完成', to: '/orders?status=completed' }
+                    { icon: Icons.Wallet, label: '待付款', to: '/orders?status=pending', color: 'text-orange-500' },
+                    { icon: Icons.Package, label: '领养中', to: '/orders?status=paid', color: 'text-brand-primary' },
+                    { icon: Icons.CheckCircle2, label: '已完成', to: '/orders?status=completed', color: 'text-green-500' }
                   ].map((item, i) => (
                     <Link key={i} to={item.to} className="flex flex-col items-center gap-3 group cursor-pointer">
-                      <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-brand-primary group-hover:text-white transition-all shadow-sm">
-                        <item.icon className="w-6 h-6" />
-                      </div>
-                      <span className="text-xs font-bold text-slate-600 tracking-tight">{item.label}</span>
+                      <motion.div
+                        whileHover={{ scale: 1.1, y: -2 }}
+                        className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-brand-primary group-hover:text-white transition-all shadow-sm"
+                      >
+                        <item.icon className={cn("w-6 h-6", item.color, "group-hover:text-white")} />
+                      </motion.div>
+                      <span className="text-xs font-bold text-slate-600">{item.label}</span>
                     </Link>
                   ))}
                 </Card>
-              </section>
-              <section>
-                <h3 className="text-xl font-display font-bold text-slate-900 mb-4">智慧牧场服务</h3>
+              </motion.section>
+
+              {/* 智慧牧场服务 */}
+              <motion.section
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <h3 className="text-lg font-bold text-slate-900 mb-4">智慧牧场服务</h3>
                 <Card className="overflow-hidden">
                   <div className="divide-y divide-slate-50">
                     {[
                       { icon: Icons.BookOpen, title: '成长档案', desc: '记录爱宠成长点滴', to: '/growth-records' },
                       { icon: Icons.Headset, title: '专属管家', desc: '1对1贴心养殖指导', to: '/support' }
                     ].map((item, i) => (
-                      <Link key={i} to={item.to} className="p-5 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer">
+                      <Link key={i} to={item.to} className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer group">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-full bg-brand-bg flex items-center justify-center text-brand-primary shadow-sm"><item.icon className="w-6 h-6" /></div>
-                          <div><p className="text-base font-bold text-slate-900">{item.title}</p><p className="text-xs text-slate-400">{item.desc}</p></div>
+                          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-brand-primary/10 to-indigo-50 flex items-center justify-center text-brand-primary group-hover:from-brand-primary group-hover:to-indigo-600 group-hover:text-white transition-all">
+                            <item.icon className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-slate-900">{item.title}</p>
+                            <p className="text-xs text-slate-400">{item.desc}</p>
+                          </div>
                         </div>
-                        <Icons.ChevronRight className="w-5 h-5 text-slate-300" />
+                        <Icons.ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-brand-primary group-hover:translate-x-1 transition-all" />
                       </Link>
                     ))}
                   </div>
                 </Card>
-              </section>
+              </motion.section>
             </div>
-            <div className="space-y-8">
-              <section>
-                <h3 className="text-xl font-display font-bold text-slate-900 mb-4">通用设置</h3>
+
+            {/* 右侧 */}
+            <div className="space-y-6">
+              {/* 通用设置 */}
+              <motion.section
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <h3 className="text-lg font-bold text-slate-900 mb-4">通用设置</h3>
                 <Card className="overflow-hidden">
                   <div className="divide-y divide-slate-50">
-                    <Link to="/notifications" className="p-5 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer">
+                    <Link to="/notifications" className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer group">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-brand-bg flex items-center justify-center text-brand-primary shadow-sm relative">
-                          <Icons.Bell className="w-6 h-6" />
+                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-brand-primary/10 to-indigo-50 flex items-center justify-center text-brand-primary shadow-sm relative">
+                          <Icons.Bell className="w-5 h-5" />
                           <NotificationBadgeInProfile />
                         </div>
-                        <span className="text-base font-bold text-slate-700">消息中心</span>
+                        <span className="text-sm font-bold text-slate-700">消息中心</span>
                       </div>
-                      <Icons.ChevronRight className="w-5 h-5 text-slate-300" />
+                      <Icons.ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-brand-primary group-hover:translate-x-1 transition-all" />
                     </Link>
-                    <Link to="/balance" className="p-5 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer">
+                    <Link to="/balance" className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer group">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-brand-bg flex items-center justify-center text-brand-primary shadow-sm"><Icons.Wallet className="w-6 h-6" /></div>
-                        <span className="text-base font-bold text-slate-700">我的余额</span>
+                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-brand-primary/10 to-indigo-50 flex items-center justify-center text-brand-primary">
+                          <Icons.Wallet className="w-5 h-5" />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700">我的余额</span>
                       </div>
-                      <Icons.ChevronRight className="w-5 h-5 text-slate-300" />
+                      <Icons.ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-brand-primary group-hover:translate-x-1 transition-all" />
                     </Link>
                   </div>
                 </Card>
-              </section>
-              <button onClick={() => { logout(); navigate('/'); }} className="w-full py-5 flex items-center justify-center gap-3 text-red-500 font-bold text-base bg-red-50/50 rounded-2xl hover:bg-red-50 transition-all shadow-sm">
-                <Icons.LogOut className="w-5 h-5" /> 退出当前账号
-              </button>
+              </motion.section>
+
+              {/* 退出按钮 */}
+              <motion.button
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => { logout(); navigate('/'); }}
+                className="w-full py-4 flex items-center justify-center gap-3 text-red-500 font-bold text-sm bg-red-50/50 rounded-2xl hover:bg-red-50 transition-all shadow-sm border border-red-100/50"
+              >
+                <Icons.LogOut className="w-5 h-5" />
+                退出当前账号
+              </motion.button>
             </div>
           </div>
+
           <p className="text-center text-xs text-slate-300 pb-4 mt-4">云端牧场智慧平台 v2.1.0 · 智慧农业领先品牌</p>
         </div>
       </div>
