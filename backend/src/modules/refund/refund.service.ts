@@ -1,14 +1,19 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { RefundOrder, RefundType, RefundStatus, Order, OrderStatus, Adoption, AdoptionStatus } from '@/entities';
+import { RefundOrder, RefundType, RefundStatus, Order, OrderStatus, Adoption, AdoptionStatus, PaymentRecord } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
 import { IdUtil } from '@/common/utils/id.util';
 import { UserService } from '../user/user.service';
 import { NotificationService } from '../notification/notification.service';
+import { WechatPayService } from '@/services/wechat-pay.service';
+import { AlipayService } from '@/services/alipay.service';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class RefundService {
+  private readonly logger = new Logger(RefundService.name);
+
   constructor(
     @InjectRepository(RefundOrder)
     private refundRepository: Repository<RefundOrder>,
@@ -16,10 +21,14 @@ export class RefundService {
     private orderRepository: Repository<Order>,
     @InjectRepository(Adoption)
     private adoptionRepository: Repository<Adoption>,
+    @InjectRepository(PaymentRecord)
+    private paymentRecordRepository: Repository<PaymentRecord>,
     private dataSource: DataSource,
     private redisService: RedisService,
     private userService: UserService,
     private notificationService: NotificationService,
+    private wechatPayService: WechatPayService,
+    private alipayService: AlipayService,
   ) {}
 
   /**
@@ -239,11 +248,85 @@ export class RefundService {
   }
 
   /**
-   * 执行退款
+   * 执行退款 - 原路退回
+   * 根据支付方式选择退款渠道：
+   * - 微信支付 → 退回到微信
+   * - 支付宝支付 → 退回到支付宝
+   * - 余额支付 → 退回到余额
    */
   private async executeRefund(refund: RefundOrder, operatorId: string) {
-    // 退款到用户余额
-    if (refund.refundAmount > 0) {
+    // 获取原支付记录
+    const paymentRecord = await this.paymentRecordRepository.findOne({
+      where: {
+        orderType: refund.orderType,
+        orderId: refund.orderId,
+      },
+      order: { createdAt: 'DESC' },
+    });
+
+    let refundMethod = 'balance';
+    let refundSuccess = true;
+    let refundMessage = '';
+
+    if (paymentRecord && paymentRecord.paymentMethod && paymentRecord.paymentNo) {
+      const paymentMethod = paymentRecord.paymentMethod;
+      const totalAmount = Number(paymentRecord.amount);
+      const refundAmount = Number(refund.refundAmount);
+
+      if (paymentMethod === 'wechat') {
+        // 微信支付退款
+        this.logger.log(`[Refund] 微信支付退款 - 订单号: ${paymentRecord.paymentNo}, 金额: ${refundAmount}`);
+        try {
+          const result = await this.wechatPayService.refund(
+            paymentRecord.paymentNo,
+            totalAmount,
+            refundAmount,
+            refund.reason || '用户申请退款',
+          );
+          if (result.success) {
+            refundMethod = 'wechat';
+            refundMessage = '已退回到微信支付账户';
+            this.logger.log(`[Refund] 微信退款成功 - 退款单号: ${result.refundId}`);
+          } else {
+            // 微信退款失败，退回到余额
+            this.logger.error(`[Refund] 微信退款失败: ${result.message}, 改为退回到余额`);
+            refundMessage = `微信退款失败(${result.message})，已退回到账户余额`;
+          }
+        } catch (error) {
+          this.logger.error(`[Refund] 微信退款异常: ${error.message}, 改为退回到余额`);
+          refundMessage = `微信退款异常，已退回到账户余额`;
+        }
+      } else if (paymentMethod === 'alipay') {
+        // 支付宝退款
+        this.logger.log(`[Refund] 支付宝退款 - 订单号: ${paymentRecord.paymentNo}, 金额: ${refundAmount}`);
+        try {
+          const result = await this.alipayService.refund(
+            paymentRecord.paymentNo,
+            refundAmount,
+            refund.reason || '用户申请退款',
+          );
+          if (result.success) {
+            refundMethod = 'alipay';
+            refundMessage = '已退回到支付宝账户';
+            this.logger.log(`[Refund] 支付宝退款成功 - 退款单号: ${result.refundNo}`);
+          } else {
+            // 支付宝退款失败，退回到余额
+            this.logger.error(`[Refund] 支付宝退款失败: ${result.message}, 改为退回到余额`);
+            refundMessage = `支付宝退款失败(${result.message})，已退回到账户余额`;
+          }
+        } catch (error) {
+          this.logger.error(`[Refund] 支付宝退款异常: ${error.message}, 改为退回到余额`);
+          refundMessage = `支付宝退款异常，已退回到账户余额`;
+        }
+      } else if (paymentMethod === 'balance') {
+        // 余额支付，直接退回到余额
+        refundMethod = 'balance';
+        refundMessage = '已退回到账户余额';
+      }
+    }
+
+    // 如果原路退款失败或余额支付，退回到用户余额
+    if (refundMethod === 'balance' && refund.refundAmount > 0) {
       await this.userService.updateBalance(
         refund.userId,
         refund.refundAmount,
@@ -253,7 +336,7 @@ export class RefundService {
 
     // 更新退款状态
     refund.status = RefundStatus.REFUNDED;
-    refund.refundMethod = 'balance';
+    refund.refundMethod = refundMethod;
     refund.operatorId = operatorId;
     refund.refundAt = new Date();
 
@@ -285,7 +368,7 @@ export class RefundService {
     await this.notificationService.sendBalanceNotification(
       refund.userId,
       '退款成功',
-      `您的退款申请已处理完成，退款金额¥${refund.refundAmount}已返还至账户余额。`,
+      `您的退款申请已处理完成，退款金额¥${refund.refundAmount}${refundMessage}。`,
     );
   }
 
