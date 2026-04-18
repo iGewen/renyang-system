@@ -679,15 +679,16 @@ export const adminApi = {
     return adminRequest(`/admin/refunds/${id}`);
   },
 
-  auditRefund: async (id: string, data: { approved: boolean; remark?: string }): Promise<RefundOrder> => {
-    return adminRequest(`/admin/refunds/${id}/audit`, {
-      method: 'PUT',
+  auditRefund: async (id: string, data: { passed: boolean; refundAmount: number; remark?: string; confirmToken?: string }): Promise<any> => {
+    return adminRequest(`/refunds/admin/${id}/audit`, {
+      method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
-  manualRefund: async (data: { orderType: string; orderId: string; refundAmount: number; refundLivestock: 'yes' | 'no'; reason: string; confirmPassword: string }): Promise<RefundOrder> => {
-    return adminRequest('/admin/refunds/manual', {
+  // 管理员直接退款（无需审核）
+  adminRefund: async (data: { userId: string; amount: number; reason: string; orderType?: string; orderId?: string }): Promise<RefundOrder> => {
+    return adminRequest('/refunds/admin/refund', {
       method: 'POST',
       body: JSON.stringify(data),
     });

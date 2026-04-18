@@ -641,17 +641,20 @@ export const AdminOrders: React.FC = () => {
     }
     setProcessing(true);
     try {
-      await refundApi.apply({
+      // 管理员直接退款
+      await adminApi.adminRefund({
+        userId: selectedOrder.userId,
+        amount: Number(selectedOrder.totalAmount),
+        reason: refundReason,
         orderType: 'adoption',
         orderId: selectedOrder.id,
-        reason: refundReason
       });
-      toast.success('退款申请已提交');
+      toast.success('退款成功');
       setShowRefund(false);
       setRefundReason('');
       fetchOrders();
     } catch (error: any) {
-      toast.error(error.message || '退款申请失败');
+      toast.error(error.message || '退款失败');
     } finally {
       setProcessing(false);
     }

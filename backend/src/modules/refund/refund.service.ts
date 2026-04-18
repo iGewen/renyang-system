@@ -411,6 +411,28 @@ export class RefundService {
       `管理员退款: ${refund.refundNo}`,
     );
 
+    // 更新订单状态
+    if (orderType === 'adoption' && orderId) {
+      const order = await this.orderRepository.findOne({
+        where: { id: orderId },
+      });
+
+      if (order) {
+        order.status = OrderStatus.REFUNDED;
+        await this.orderRepository.save(order);
+
+        // 更新领养状态
+        const adoption = await this.adoptionRepository.findOne({
+          where: { orderId: order.id },
+        });
+
+        if (adoption) {
+          adoption.status = AdoptionStatus.TERMINATED;
+          await this.adoptionRepository.save(adoption);
+        }
+      }
+    }
+
     // 发送通知
     await this.notificationService.sendBalanceNotification(
       userId,
