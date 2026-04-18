@@ -97,12 +97,16 @@ async function request<T>(url: string, options?: RequestInit, isAdminRequest: bo
     const data = await response.json();
 
     if (!response.ok) {
-      // 401 错误时清除 Token
+      // 401 错误时清除过期的 Token，但不刷新页面
+      // 只在登录后 token 过期的情况下才需要重新登录
       if (response.status === 401) {
-        TokenManager.clear();
-        // 如果不是登录页面，刷新页面
-        if (!window.location.pathname.includes('login')) {
-          window.location.reload();
+        // 只清除对应类型的 token
+        if (isAdminRequest) {
+          localStorage.removeItem('admin_token');
+          localStorage.removeItem('admin_info');
+        } else {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
         }
       }
       throw new Error(data.message || '请求失败');
