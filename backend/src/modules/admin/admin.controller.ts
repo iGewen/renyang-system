@@ -5,6 +5,8 @@ import { IsString, IsNumber, IsOptional, IsBoolean, IsIn, IsObject } from 'class
 import { Public } from '@/common/decorators/public.decorator';
 import { AdminGuard } from '@/common/guards/admin.guard';
 import { RequireAdmin, AdminRole } from '@/common/decorators/admin-role.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { Request } from 'express';
 
 // DTOs
 class LoginDto {
