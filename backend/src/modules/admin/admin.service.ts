@@ -1647,13 +1647,14 @@ export class AdminService {
     ip?: string,
   ) {
     let sendCount = 0;
+    const baseId = Date.now();
 
     if (data.userIds && data.userIds.length > 0) {
       // 发送给指定用户
-      for (const userId of data.userIds) {
+      for (let i = 0; i < data.userIds.length; i++) {
         const notification = this.notificationRepository.create({
-          id: `N${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
-          userId,
+          id: `N${baseId}${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+          userId: data.userIds[i],
           title: data.title,
           content: data.content,
           type: data.type,
@@ -1662,15 +1663,26 @@ export class AdminService {
         sendCount++;
       }
     } else {
-      // 发送给所有用户（系统公告）
-      const notification = this.notificationRepository.create({
-        id: `N${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
-        title: data.title,
-        content: data.content,
-        type: 'system',
+      // 发送给所有用户 - 为每个用户创建独立的通知记录
+      const users = await this.userRepository.find({
+        where: { status: 1 }, // 只发送给正常状态的用户
+        select: ['id'],
       });
-      await this.notificationRepository.save(notification);
-      sendCount = 1;
+
+      // 批量创建通知
+      const notifications = users.map((user, index) => {
+        return this.notificationRepository.create({
+          id: `N${baseId}${index.toString().padStart(4, '0')}`,
+          userId: user.id,
+          title: data.title,
+          content: data.content,
+          type: data.type,
+        });
+      });
+
+      // 批量保存
+      await this.notificationRepository.save(notifications);
+      sendCount = users.length;
     }
 
     await this.createAuditLog({
