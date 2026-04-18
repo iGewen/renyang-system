@@ -616,8 +616,7 @@ export const AdminOrders: React.FC = () => {
     try {
       const res = await adminApi.getOrders({
         status: statusFilter || undefined,
-        orderNo: searchKeyword || undefined,
-        userPhone: searchKeyword || undefined,
+        keyword: searchKeyword || undefined,
       });
       setOrders(res.list || []);
     } catch (error) {

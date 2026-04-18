@@ -572,11 +572,10 @@ export const adminApi = {
   },
 
   // ==================== 订单管理 ====================
-  getOrders: async (params?: { status?: string; orderNo?: string; userPhone?: string; startDate?: string; endDate?: string; page?: number; pageSize?: number }): Promise<PaginatedResponse<AdoptionOrder>> => {
+  getOrders: async (params?: { status?: string; keyword?: string; startDate?: string; endDate?: string; page?: number; pageSize?: number }): Promise<PaginatedResponse<AdoptionOrder>> => {
     const query = new URLSearchParams();
     if (params?.status) query.set('status', params.status);
-    if (params?.orderNo) query.set('orderNo', params.orderNo);
-    if (params?.userPhone) query.set('userPhone', params.userPhone);
+    if (params?.keyword) query.set('keyword', params.keyword);
     if (params?.startDate) query.set('startDate', params.startDate);
     if (params?.endDate) query.set('endDate', params.endDate);
     if (params?.page) query.set('page', params.page.toString());
