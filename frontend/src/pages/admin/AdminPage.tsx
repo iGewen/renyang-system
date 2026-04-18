@@ -818,7 +818,7 @@ export const AdminOrders: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-slate-500">支付方式</p>
-                <p>{selectedOrder.paymentMethod === 'alipay' ? '支付宝' : selectedOrder.paymentMethod === 'wechat' ? '微信支付' : selectedOrder.paymentMethod || '-'}</p>
+                <p>{selectedOrder.paymentMethod === 'alipay' ? '支付宝' : selectedOrder.paymentMethod === 'wechat' ? '微信支付' : selectedOrder.paymentMethod === 'balance' ? '余额支付' : selectedOrder.paymentMethod || '-'}</p>
               </div>
               <div>
                 <p className="text-sm text-slate-500">支付时间</p>

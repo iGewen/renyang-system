@@ -95,6 +95,6 @@ export class Order {
   livestock: Livestock;
 
   @OneToOne(() => Adoption, (adoption) => adoption.order)
-  @JoinColumn({ name: 'id' })
+  @JoinColumn({ name: 'id', referencedColumnName: 'orderId' })
   adoption: Adoption;
 }
