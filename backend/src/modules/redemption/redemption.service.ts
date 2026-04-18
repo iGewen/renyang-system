@@ -228,7 +228,7 @@ export class RedemptionService {
   ) {
     const redemption = await this.redemptionRepository.findOne({
       where: { id: redemptionId },
-      relations: ['adoption'],
+      relations: ['adoption', 'livestock'],
     });
 
     if (!redemption) {
@@ -260,7 +260,7 @@ export class RedemptionService {
         await this.redemptionRepository.save(redemption);
 
         // 发送审核通过通知
-        const livestock = redemption.livestockSnapshot as any;
+        const livestock = redemption.livestock;
         await this.notificationService.sendRedemptionAuditResult({
           userId: redemption.userId,
           redemptionId: redemption.id,
@@ -285,7 +285,7 @@ export class RedemptionService {
         await this.adoptionRepository.save(adoption);
 
         // 发送审核拒绝通知
-        const livestock = redemption.livestockSnapshot as any;
+        const livestock = redemption.livestock;
         await this.notificationService.sendRedemptionAuditResult({
           userId: redemption.userId,
           redemptionId: redemption.id,
@@ -467,7 +467,7 @@ export class RedemptionService {
     }
 
     // 发送超时取消通知
-    const livestock = redemption.livestockSnapshot as any;
+    const livestock = redemption.livestock;
     await this.notificationService.sendRedemptionNotification(
       redemption.userId,
       '买断订单已过期取消',
@@ -485,6 +485,7 @@ export class RedemptionService {
     // 查找所有已过期且状态为审核通过的买断订单
     const expiredRedemptions = await this.redemptionRepository
       .createQueryBuilder('redemption')
+      .leftJoinAndSelect('redemption.livestock', 'livestock')
       .where('redemption.status = :status', { status: RedemptionStatus.AUDIT_PASSED })
       .andWhere('redemption.expireAt IS NOT NULL')
       .andWhere('redemption.expireAt < :now', { now })
