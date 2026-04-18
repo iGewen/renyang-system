@@ -1,4 +1,4 @@
-import { Module, MiddlewareConsumer, NestModule, OnModuleInit } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, InjectDataSource } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -116,6 +116,8 @@ import { AppLogger, LoggerMiddleware } from './common/logger';
   ],
 })
 export class AppModule implements NestModule, OnModuleInit {
+  private readonly logger = new Logger(AppModule.name);
+
   constructor(@InjectDataSource() private dataSource: DataSource) {}
 
   configure(consumer: MiddlewareConsumer) {
@@ -142,15 +144,13 @@ export class AppModule implements NestModule, OnModuleInit {
     }
 
     if (missing.length > 0) {
-      console.error('❌ 缺少必要的环境变量:');
-      missing.forEach(v => console.error(`   - ${v}`));
-      console.error('请在 .env 文件中配置这些变量后重新启动');
+      this.logger.error(`缺少必要的环境变量: ${missing.join(', ')}`);
       throw new Error(`缺少必要的环境变量: ${missing.join(', ')}`);
     }
 
     // 检查JWT_SECRET长度
     if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
-      console.warn('⚠️  JWT_SECRET 长度建议至少32位，当前长度: ' + process.env.JWT_SECRET.length);
+      this.logger.warn(`JWT_SECRET 长度建议至少32位，当前长度: ${process.env.JWT_SECRET.length}`);
     }
   }
 
@@ -165,8 +165,7 @@ export class AppModule implements NestModule, OnModuleInit {
       if (count === 0) {
         // 生产环境必须设置环境变量
         if (process.env.NODE_ENV === 'production' && !process.env.ADMIN_DEFAULT_PASSWORD) {
-          console.error('❌ 生产环境必须设置 ADMIN_DEFAULT_PASSWORD 环境变量！');
-          console.error('   请在 .env 文件中配置 ADMIN_DEFAULT_PASSWORD 后重启服务');
+          this.logger.error('生产环境必须设置 ADMIN_DEFAULT_PASSWORD 环境变量');
           throw new Error('生产环境未设置 ADMIN_DEFAULT_PASSWORD');
         }
 
@@ -177,21 +176,20 @@ export class AppModule implements NestModule, OnModuleInit {
           'INSERT INTO admins (id, username, password, name, role, status, force_change_password, created_at, updated_at) VALUES (UUID(), ?, ?, ?, 1, 1, 1, NOW(), NOW())',
           ['admin', hashedPassword, '超级管理员']
         );
-        console.log('✅ 默认管理员账号已创建');
-        console.log('   用户名: admin');
+        this.logger.log('默认管理员账号已创建 (用户名: admin)');
         // 安全修复：不在日志中打印密码
         if (process.env.ADMIN_DEFAULT_PASSWORD) {
-          console.log('   密码: 请查看 ADMIN_DEFAULT_PASSWORD 环境变量');
+          this.logger.log('密码: 请查看 ADMIN_DEFAULT_PASSWORD 环境变量');
         } else {
           // 仅开发环境显示随机密码
-          console.log('   ⚠️  随机密码（仅显示一次）: ' + defaultPassword);
+          this.logger.warn(`随机密码（仅显示一次）: ${defaultPassword}`);
         }
-        console.log('   ⚠️  首次登录将强制修改密码！');
+        this.logger.warn('首次登录将强制修改密码');
       } else {
-        console.log('ℹ️  管理员账号已存在');
+        this.logger.log('管理员账号已存在');
       }
     } catch (error) {
-      console.error('❌ 初始化管理员失败:', error);
+      this.logger.error('初始化管理员失败', error);
       throw error;
     }
   }
@@ -260,9 +258,9 @@ export class AppModule implements NestModule, OnModuleInit {
           );
         }
       }
-      console.log('✅ 系统配置初始化完成');
+      this.logger.log('系统配置初始化完成');
     } catch (error) {
-      console.error('❌ 初始化系统配置失败:', error);
+      this.logger.error('初始化系统配置失败', error);
     }
   }
 }

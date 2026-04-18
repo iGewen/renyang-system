@@ -5,6 +5,7 @@ import {
   HttpException,
   HttpStatus,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { Response } from 'express';
 
@@ -92,6 +93,8 @@ function translateMessage(message: string): string {
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(HttpExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -135,12 +138,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
     } else if (exception instanceof Error) {
       message = translateMessage(exception.message);
-      console.error('Unhandled exception:', exception);
+      this.logger.error('Unhandled exception', exception.stack);
     }
 
     // 记录错误日志
     if (status >= 500) {
-      console.error(`[${new Date().toISOString()}] ${request.method} ${request.url} - ${status}: ${message}`);
+      this.logger.error(`${request.method} ${request.url} - ${status}: ${message}`);
     }
 
     response.status(status).json({

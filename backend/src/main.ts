@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
@@ -8,6 +8,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 
 async function bootstrap() {
+  const logger = new Logger('Bootstrap');
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // 全局前缀
@@ -86,9 +87,9 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3001;
   await app.listen(port);
-  console.log(`🚀 Application is running on: http://localhost:${port}/api`);
+  logger.log(`🚀 Application is running on: http://localhost:${port}/api`);
   if (!isProduction) {
-    console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
+    logger.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
   }
 }
 
