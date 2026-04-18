@@ -1877,8 +1877,7 @@ export const AdminNotifications: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        
+      <div className="flex justify-end items-center mb-6">
         <Button onClick={() => setShowSendModal(true)}>
           <Icons.Send className="w-4 h-4 mr-2" />
           发送通知
@@ -2082,8 +2081,7 @@ export const AdminAgreements: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        
+      <div className="flex justify-end items-center mb-6">
         <Button onClick={() => handleEdit()}>
           <Icons.Plus className="w-4 h-4 mr-2" />
           添加协议
@@ -2579,8 +2577,7 @@ export const AdminAuditLogs: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        
+      <div className="flex justify-end items-center mb-6">
         <div className="flex items-center gap-4">
           <div className="flex flex-wrap gap-2">
             <button
