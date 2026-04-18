@@ -28,6 +28,7 @@ const menuItems: MenuItem[] = [
   { id: 'orders', label: '订单管理', icon: Icons.ShoppingCart },
   { id: 'feed', label: '饲料费管理', icon: Icons.Coins },
   { id: 'redemption', label: '买断管理', icon: Icons.CheckCircle2 },
+  { id: 'refunds', label: '退款管理', icon: Icons.RefreshCw },
   { id: 'users', label: '用户管理', icon: Icons.Users },
   { id: 'notifications', label: '站内信', icon: Icons.Bell },
   { id: 'agreements', label: '协议管理', icon: Icons.FileText },

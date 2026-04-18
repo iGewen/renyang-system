@@ -911,6 +911,11 @@ export class AdminService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // 本月第一天
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    // 本年第一天
+    const yearStart = new Date(today.getFullYear(), 0, 1);
+
     const [
       totalUsers,
       todayUsers,
@@ -922,6 +927,12 @@ export class AdminService {
       pendingRedemptions,
       pendingRefunds,
       todayRevenue,
+      monthRevenue,
+      yearRevenue,
+      pendingOrders,
+      exceptionAdoptions,
+      paidOrders,
+      adoptionByType,
     ] = await Promise.all([
       // 总用户数
       this.userRepository.count(),
@@ -963,6 +974,52 @@ export class AdminService {
         })
         .select('SUM(order.paidAmount)', 'total')
         .getRawOne(),
+      // 本月收入
+      this.orderRepository
+        .createQueryBuilder('order')
+        .where('order.status = :status', { status: OrderStatus.PAID })
+        .andWhere('order.paidAt BETWEEN :start AND :end', {
+          start: monthStart,
+          end: new Date(),
+        })
+        .select('SUM(order.paidAmount)', 'total')
+        .getRawOne(),
+      // 本年收入
+      this.orderRepository
+        .createQueryBuilder('order')
+        .where('order.status = :status', { status: OrderStatus.PAID })
+        .andWhere('order.paidAt BETWEEN :start AND :end', {
+          start: yearStart,
+          end: new Date(),
+        })
+        .select('SUM(order.paidAmount)', 'total')
+        .getRawOne(),
+      // 待支付订单
+      this.orderRepository.count({
+        where: { status: OrderStatus.PENDING_PAYMENT },
+      }),
+      // 异常领养（逾期或异常状态）
+      this.adoptionRepository.count({
+        where: { status: In([AdoptionStatus.FEED_OVERDUE, AdoptionStatus.EXCEPTION]) },
+      }),
+      // 已支付订单数
+      this.orderRepository.count({
+        where: { status: OrderStatus.PAID },
+      }),
+      // 按活体类型统计领养数
+      this.adoptionRepository
+        .createQueryBuilder('adoption')
+        .leftJoin('adoption.livestock', 'livestock')
+        .leftJoin('livestock.type', 'type')
+        .select('type.id', 'typeId')
+        .addSelect('type.name', 'typeName')
+        .addSelect('COUNT(*)', 'count')
+        .where('adoption.status IN (:...statuses)', {
+          statuses: [AdoptionStatus.ACTIVE, AdoptionStatus.FEED_OVERDUE, AdoptionStatus.CAN_REDEEM, AdoptionStatus.REDEMPTION_PENDING],
+        })
+        .groupBy('type.id')
+        .addGroupBy('type.name')
+        .getRawMany(),
     ]);
 
     return {
@@ -975,7 +1032,19 @@ export class AdminService {
       pendingFeedBills,
       pendingRedemptions,
       pendingRefunds,
-      todayRevenue: todayRevenue?.total || 0,
+      todayRevenue: Number(todayRevenue?.total || 0),
+      revenueToday: Number(todayRevenue?.total || 0),
+      revenueMonth: Number(monthRevenue?.total || 0),
+      revenueYear: Number(yearRevenue?.total || 0),
+      pendingOrders,
+      exceptionAdoptions,
+      activeUsers: activeAdoptions,
+      orderPaid: paidOrders,
+      adoptionByType: adoptionByType.map(item => ({
+        typeId: item.typeId,
+        typeName: item.typeName || '未知类型',
+        count: Number(item.count),
+      })),
     };
   }
 

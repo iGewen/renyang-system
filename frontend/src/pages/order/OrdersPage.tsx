@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, EmptyState } from '../../components/ui';
+import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, EmptyState, Modal, Input } from '../../components/ui';
 import { cn } from '../../lib/utils';
-import { orderApi } from '../../services/api';
+import { orderApi, refundApi } from '../../services/api';
 import type { Order } from '../../types';
 import { OrderStatus, getOrderStatusText } from '../../types/enums';
 
@@ -15,6 +15,10 @@ const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<OrderFilterTab>('all');
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [refundOrder, setRefundOrder] = useState<Order | null>(null);
+  const [refundReason, setRefundReason] = useState('');
+  const [refundLoading, setRefundLoading] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -64,6 +68,33 @@ const OrdersPage: React.FC = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const handleApplyRefund = async () => {
+    if (!refundOrder) return;
+    if (!refundReason.trim()) {
+      alert('请填写退款原因');
+      return;
+    }
+    setRefundLoading(true);
+    try {
+      await refundApi.apply({
+        orderType: 'adoption',
+        orderId: refundOrder.id,
+        reason: refundReason.trim()
+      });
+      alert('退款申请已提交，请等待审核');
+      setShowRefundModal(false);
+      setRefundOrder(null);
+      setRefundReason('');
+      // 刷新订单列表
+      const data = await orderApi.getMyOrders({});
+      setOrders(data.list);
+    } catch (error: any) {
+      alert(error.message || '申请退款失败');
+    } finally {
+      setRefundLoading(false);
+    }
   };
 
   const tabs: { key: OrderStatus; label: string }[] = [
@@ -176,12 +207,76 @@ const OrdersPage: React.FC = () => {
                         </Button>
                       </div>
                     )}
+                    {order.status === OrderStatus.PAID && (
+                      <div className="flex gap-3 mt-4 pt-4 border-t border-slate-100">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => navigate(`/adoption/${order.adoption?.id || order.id}`)}
+                        >
+                          查看详情
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-red-500 hover:bg-red-600"
+                          onClick={() => {
+                            setRefundOrder(order);
+                            setRefundReason('');
+                            setShowRefundModal(true);
+                          }}
+                        >
+                          申请退款
+                        </Button>
+                      </div>
+                    )}
                   </Card>
                 );
               })}
             </div>
           )}
         </div>
+
+        {/* 退款申请弹窗 */}
+        <Modal open={showRefundModal} onClose={() => setShowRefundModal(false)} title="申请退款">
+          <div className="space-y-4">
+            {refundOrder && (
+              <div className="p-3 bg-slate-50 rounded-lg">
+                <p className="text-sm text-slate-500">订单编号</p>
+                <p className="font-mono text-slate-900">{refundOrder.orderNo}</p>
+                <p className="text-sm text-slate-500 mt-2">商品名称</p>
+                <p className="text-slate-900">{refundOrder.livestockSnapshot?.name}</p>
+                <p className="text-sm text-slate-500 mt-2">退款金额</p>
+                <p className="text-lg font-bold text-brand-primary">¥{refundOrder.totalAmount}</p>
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">退款原因 *</label>
+              <textarea
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none"
+                rows={3}
+                placeholder="请说明退款原因"
+                value={refundReason}
+                onChange={e => setRefundReason(e.target.value)}
+              />
+            </div>
+            <p className="text-xs text-slate-400">
+              退款申请提交后，管理员将在1-3个工作日内审核。审核通过后，退款将原路返回。
+            </p>
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => setShowRefundModal(false)}>
+                取消
+              </Button>
+              <Button
+                className="flex-1 bg-red-500 hover:bg-red-600"
+                onClick={handleApplyRefund}
+                disabled={refundLoading}
+              >
+                {refundLoading ? '提交中...' : '提交申请'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
       </div>
     </PageTransition>
   );
