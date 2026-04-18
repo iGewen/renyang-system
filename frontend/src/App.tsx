@@ -417,6 +417,7 @@ const Navbar: React.FC<{ title: string; showBack?: boolean; transparent?: boolea
 const NotificationBadge: React.FC = () => {
   const [count, setCount] = useState(0);
   const { token, isAuthenticated } = useAuth();
+  const location = useLocation();
 
   useEffect(() => {
     // 只有登录后才获取未读数
@@ -429,7 +430,7 @@ const NotificationBadge: React.FC = () => {
     }).catch(() => {
       setCount(0);
     });
-  }, [token, isAuthenticated]);
+  }, [token, isAuthenticated, location.pathname]);
 
   if (count === 0) return null;
   return <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold animate-pulse">{count > 9 ? '9+' : count}</span>;
@@ -439,6 +440,7 @@ const NotificationBadge: React.FC = () => {
 const NotificationBadgeInProfile: React.FC = () => {
   const [count, setCount] = useState(0);
   const { token, isAuthenticated } = useAuth();
+  const location = useLocation();
 
   useEffect(() => {
     // 只有登录后才获取未读数
@@ -451,7 +453,7 @@ const NotificationBadgeInProfile: React.FC = () => {
     }).catch(() => {
       setCount(0);
     });
-  }, [token, isAuthenticated]);
+  }, [token, isAuthenticated, location.pathname]);
 
   if (count === 0) return null;
   return <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">{count > 9 ? '9+' : count}</span>;
@@ -464,24 +466,29 @@ const TabBar: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
   const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
-    // 获取未读消息数
+  // 获取未读消息数的函数
+  const fetchUnreadCount = React.useCallback(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
     notificationApi.getUnreadCount().then(res => {
       setUnreadCount(res.count || 0);
     }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetchUnreadCount();
 
     // 每30秒刷新一次
-    const interval = setInterval(() => {
-      notificationApi.getUnreadCount().then(res => {
-        setUnreadCount(res.count || 0);
-      }).catch(() => {});
-    }, 30000);
+    const interval = setInterval(fetchUnreadCount, 30000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchUnreadCount]);
+
+  // 路由变化时刷新未读数
+  useEffect(() => {
+    fetchUnreadCount();
+  }, [location.pathname, fetchUnreadCount]);
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none">

@@ -1515,7 +1515,7 @@ export const AdminUsers: React.FC = () => {
                               </span>
                             </div>
                             <div className="flex items-center justify-between text-sm">
-                              <span className="text-slate-500">余额：¥{log.afterBalance}</span>
+                              <span className="text-slate-500">余额：¥{log.balanceAfter || log.afterBalance || '0.00'}</span>
                               <span className="text-slate-400">{new Date(log.createdAt).toLocaleString()}</span>
                             </div>
                           </div>
