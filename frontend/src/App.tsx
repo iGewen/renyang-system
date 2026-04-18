@@ -6,7 +6,7 @@ import { cn } from './lib/utils';
 import type { Livestock, Adoption, FeedBill, User, Order } from './types';
 import { AdoptionStatus, OrderStatus, getAdoptionStatusText, getOrderStatusText } from './types/enums';
 import { livestockApi, adoptionApi, orderApi, paymentApi, balanceApi, notificationApi, authApi, adminApi, agreementApi, redemptionApi } from './services/api';
-import { SiteConfigProvider, usePaymentConfig } from './contexts/SiteConfigContext';
+import { SiteConfigProvider, usePaymentConfig, useSiteConfig } from './contexts/SiteConfigContext';
 
 // Lazy load pages for better performance
 const OrdersPage = lazy(() => import('./pages/order/OrdersPage'));
