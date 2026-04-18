@@ -19,7 +19,7 @@ const AdoptionDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'alipay' | 'wechat' | 'balance'>('alipay');
+  const [paymentMethod, setPaymentMethod] = useState<'alipay' | 'wechat' | 'balance' | null>(null);
   const [balance, setBalance] = useState(0);
   const paymentConfig = usePaymentConfig();
   const [activeTab, setActiveTab] = useState<'info' | 'bills'>(() => {
@@ -118,6 +118,10 @@ const AdoptionDetailPage: React.FC = () => {
 
   const confirmPayRedemption = async () => {
     if (!redemption) return;
+    if (!paymentMethod) {
+      error('请选择支付方式');
+      return;
+    }
     setPaying(true);
     try {
       const result = await redemptionApi.pay(redemption.id, paymentMethod);
@@ -422,8 +426,9 @@ const AdoptionDetailPage: React.FC = () => {
                 size="lg"
                 onClick={confirmPayRedemption}
                 loading={paying}
+                disabled={!paymentMethod}
               >
-                确认支付
+                {paymentMethod ? '确认支付' : '请选择支付方式'}
               </Button>
             </motion.div>
           </div>

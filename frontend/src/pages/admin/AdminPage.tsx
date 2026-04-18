@@ -109,8 +109,7 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        
+      <div className="flex items-center justify-end">
         <p className="text-sm text-slate-400">
           数据更新时间：{new Date().toLocaleString('zh-CN')}
         </p>
@@ -480,8 +479,7 @@ export const AdminLivestock: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        
+      <div className="flex justify-end items-center mb-6">
         <div className="flex gap-3">
           <Button variant="outline" onClick={() => { setEditingType(null); setTypeForm({ name: '', description: '' }); setShowTypeModal(true); }}>
             添加类型
@@ -915,8 +913,7 @@ export const AdminFeedBills: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        
+      <div className="flex justify-end items-center mb-6">
         <div className="flex gap-2">
           {[0, FeedBillStatus.PENDING, FeedBillStatus.PAID, FeedBillStatus.OVERDUE].map(status => (
             <button key={status} onClick={() => setStatusFilter(status === 0 ? '' : String(status))} className={cn('px-4 py-2 rounded-lg text-sm font-medium transition-colors', statusFilter === (status === 0 ? '' : String(status)) ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}>
@@ -1000,8 +997,7 @@ export const AdminRedemptions: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        
+      <div className="flex justify-end items-center mb-6">
         <div className="flex gap-2">
           {[0, RedemptionStatus.PENDING_AUDIT, RedemptionStatus.AUDIT_PASSED, RedemptionStatus.AUDIT_REJECTED].map(status => (
             <button key={status} onClick={() => setStatusFilter(status === 0 ? '' : String(status))} className={cn('px-4 py-2 rounded-lg text-sm font-medium transition-colors', statusFilter === (status === 0 ? '' : String(status)) ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}>
@@ -1198,8 +1194,7 @@ export const AdminUsers: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        
+      <div className="flex justify-end items-center mb-6">
         <Input placeholder="搜索用户（手机号/昵称）" value={keyword} onChange={e => setKeyword(e.target.value)} icon={<Icons.Search className="w-5 h-5" />} className="w-64" />
       </div>
 

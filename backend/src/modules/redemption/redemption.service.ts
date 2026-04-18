@@ -6,6 +6,7 @@ import { RedisService } from '@/common/utils/redis.service';
 import { IdUtil } from '@/common/utils/id.util';
 import { AdoptionService } from '../adoption/adoption.service';
 import { PaymentService } from '../payment/payment.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class RedemptionService {
@@ -19,6 +20,7 @@ export class RedemptionService {
     private adoptionService: AdoptionService,
     @Inject(forwardRef(() => PaymentService))
     private paymentService: PaymentService,
+    private notificationService: NotificationService,
   ) {}
 
   /**
@@ -245,6 +247,8 @@ export class RedemptionService {
         redemption.auditAdminId = adminId;
         redemption.auditAt = new Date();
         redemption.auditRemark = remark || '';
+        // 设置24小时过期时间
+        redemption.expireAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
         // 如果有调整金额
         if (adjustedAmount !== undefined && adjustedAmount !== null) {
@@ -254,6 +258,18 @@ export class RedemptionService {
         }
 
         await this.redemptionRepository.save(redemption);
+
+        // 发送审核通过通知
+        const livestock = redemption.livestockSnapshot as any;
+        await this.notificationService.sendRedemptionAuditResult({
+          userId: redemption.userId,
+          redemptionId: redemption.id,
+          redemptionNo: redemption.redemptionNo,
+          livestockName: livestock?.name || '活体',
+          approved: true,
+          amount: Number(redemption.finalAmount),
+          remark: remark,
+        });
       } else {
         // 审核拒绝
         redemption.status = RedemptionStatus.AUDIT_REJECTED;
@@ -267,6 +283,17 @@ export class RedemptionService {
         const adoption = redemption.adoption;
         adoption.status = AdoptionStatus.ACTIVE;
         await this.adoptionRepository.save(adoption);
+
+        // 发送审核拒绝通知
+        const livestock = redemption.livestockSnapshot as any;
+        await this.notificationService.sendRedemptionAuditResult({
+          userId: redemption.userId,
+          redemptionId: redemption.id,
+          redemptionNo: redemption.redemptionNo,
+          livestockName: livestock?.name || '活体',
+          approved: false,
+          remark: remark,
+        });
       }
 
       return redemption;
@@ -287,6 +314,13 @@ export class RedemptionService {
 
     if (redemption.status !== RedemptionStatus.AUDIT_PASSED) {
       throw new BadRequestException('买断订单未通过审核或已支付');
+    }
+
+    // 检查是否已过期
+    if (redemption.expireAt && new Date() > redemption.expireAt) {
+      // 自动取消过期订单
+      await this.cancelExpiredRedemption(redemption);
+      throw new BadRequestException('买断订单已过期，请重新申请');
     }
 
     // 确保 finalAmount 是数字类型
@@ -413,5 +447,59 @@ export class RedemptionService {
       pageSize,
       totalPages: Math.ceil(total / pageSize),
     };
+  }
+
+  /**
+   * 取消过期的买断订单
+   */
+  private async cancelExpiredRedemption(redemption: RedemptionOrder) {
+    // 更新买断状态为已取消
+    redemption.status = RedemptionStatus.CANCELLED;
+    await this.redemptionRepository.save(redemption);
+
+    // 恢复领养状态为原来的领养中状态
+    const adoption = await this.adoptionRepository.findOne({
+      where: { id: redemption.adoptionId },
+    });
+    if (adoption) {
+      adoption.status = AdoptionStatus.ACTIVE;
+      await this.adoptionRepository.save(adoption);
+    }
+
+    // 发送超时取消通知
+    const livestock = redemption.livestockSnapshot as any;
+    await this.notificationService.sendRedemptionNotification(
+      redemption.userId,
+      '买断订单已过期取消',
+      `您的买断申请（${livestock?.name || '活体'}）因超过24小时未支付已自动取消，领养状态已恢复。如需买断请重新申请。`,
+      redemption.id,
+    );
+  }
+
+  /**
+   * 定时任务：取消所有过期的买断订单
+   */
+  async cancelExpiredRedemptions() {
+    const now = new Date();
+
+    // 查找所有已过期且状态为审核通过的买断订单
+    const expiredRedemptions = await this.redemptionRepository
+      .createQueryBuilder('redemption')
+      .where('redemption.status = :status', { status: RedemptionStatus.AUDIT_PASSED })
+      .andWhere('redemption.expireAt IS NOT NULL')
+      .andWhere('redemption.expireAt < :now', { now })
+      .getMany();
+
+    if (!expiredRedemptions || expiredRedemptions.length === 0) {
+      return;
+    }
+
+    for (const redemption of expiredRedemptions) {
+      try {
+        await this.cancelExpiredRedemption(redemption);
+      } catch (error) {
+        console.error(`取消过期买断订单失败: ${redemption.id}`, error);
+      }
+    }
   }
 }

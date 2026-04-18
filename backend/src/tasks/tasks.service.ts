@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { FeedService } from '@/modules/feed/feed.service';
 import { OrderService } from '@/modules/order/order.service';
 import { AdoptionService } from '@/modules/adoption/adoption.service';
+import { RedemptionService } from '@/modules/redemption/redemption.service';
 import { RedisService } from '@/common/utils/redis.service';
 
 /**
@@ -16,6 +17,7 @@ export class TasksService {
     private feedService: FeedService,
     private orderService: OrderService,
     private adoptionService: AdoptionService,
+    private redemptionService: RedemptionService,
     private redisService: RedisService,
   ) {}
 
@@ -126,6 +128,21 @@ export class TasksService {
       this.logger.log('过期数据清理完成');
     } catch (error) {
       this.logger.error('清理过期数据失败:', error);
+    }
+  }
+
+  /**
+   * 每5分钟检查并取消过期的买断订单
+   */
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async cancelExpiredRedemptions() {
+    this.logger.debug('开始检查过期买断订单...');
+
+    try {
+      await this.redemptionService.cancelExpiredRedemptions();
+      this.logger.debug('过期买断订单检查完成');
+    } catch (error) {
+      this.logger.error('检查过期买断订单失败:', error);
     }
   }
 }

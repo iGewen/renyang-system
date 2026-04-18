@@ -15,7 +15,7 @@ const FeedBillDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'alipay' | 'wechat' | 'balance'>('alipay');
+  const [paymentMethod, setPaymentMethod] = useState<'alipay' | 'wechat' | 'balance' | null>(null);
   const paymentConfig = usePaymentConfig();
 
   useEffect(() => {
@@ -35,6 +35,10 @@ const FeedBillDetailPage: React.FC = () => {
 
   const handlePay = async () => {
     if (!id) return;
+    if (!paymentMethod) {
+      alert('请选择支付方式');
+      return;
+    }
     setPaying(true);
     try {
       const result = await adoptionApi.payFeedBill(id, paymentMethod);
@@ -204,8 +208,14 @@ const FeedBillDetailPage: React.FC = () => {
                   </button>
                 ))}
               </div>
-              <Button className="w-full mt-6" size="lg" onClick={handlePay} loading={paying}>
-                确认支付
+              <Button
+                className="w-full mt-6"
+                size="lg"
+                onClick={handlePay}
+                loading={paying}
+                disabled={!paymentMethod}
+              >
+                {paymentMethod ? '确认支付' : '请选择支付方式'}
               </Button>
             </motion.div>
           </div>
