@@ -608,6 +608,23 @@ export class AdminController {
     return this.adminService.getOrderDetail(id);
   }
 
+  /**
+   * 删除订单
+   */
+  @Delete('orders/:id')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '删除订单' })
+  @ApiParam({ name: 'id', description: '订单ID' })
+  async deleteOrder(
+    @Param('id') id: string,
+    @CurrentUser('id') adminId: string,
+    @CurrentUser('username') adminName: string,
+    @Req() req: Request,
+  ) {
+    const ip = req.ip || req.connection.remoteAddress || '';
+    return this.adminService.deleteOrder(id, adminId, adminName, ip);
+  }
+
   // =============== 领养管理 ===============
 
   /**

@@ -708,6 +708,53 @@ export class AdminService {
     return order;
   }
 
+  /**
+   * 删除订单
+   */
+  async deleteOrder(orderId: string, adminId: string, adminName: string, ip: string) {
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId },
+      relations: ['adoption'],
+    });
+
+    if (!order) {
+      throw new NotFoundException('订单不存在');
+    }
+
+    // 只有已取消或已退款的订单可以删除
+    if (order.status !== OrderStatus.CANCELLED && order.status !== OrderStatus.REFUNDED) {
+      throw new BadRequestException('只能删除已取消或已退款的订单');
+    }
+
+    // 删除关联的领养记录（如果存在）
+    if (order.adoption) {
+      await this.adoptionRepository.delete(order.adoption.id);
+    }
+
+    // 删除订单
+    await this.orderRepository.delete(orderId);
+
+    // 记录审计日志
+    const auditLog = this.auditLogRepository.create({
+      adminId,
+      adminName,
+      module: 'order',
+      action: 'delete',
+      targetType: 'order',
+      targetId: orderId,
+      beforeData: {
+        orderNo: order.orderNo,
+        status: order.status,
+        totalAmount: order.totalAmount,
+      },
+      remark: `删除订单: ${order.orderNo}`,
+      ip,
+    });
+    await this.auditLogRepository.save(auditLog);
+
+    return { success: true, message: '订单已删除' };
+  }
+
   // =============== 领养管理 ===============
 
   /**

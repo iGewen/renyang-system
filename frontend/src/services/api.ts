@@ -588,6 +588,12 @@ export const adminApi = {
     return adminRequest(`/admin/orders/${id}`);
   },
 
+  deleteOrder: async (id: string): Promise<{ success: boolean; message: string }> => {
+    return adminRequest(`/admin/orders/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   // ==================== 饲料费管理 ====================
   getFeedBills: async (params?: { status?: string; billNo?: string; userPhone?: string; isOverdue?: number; startDate?: string; endDate?: string; page?: number; pageSize?: number }): Promise<PaginatedResponse<FeedBill>> => {
     const query = new URLSearchParams();

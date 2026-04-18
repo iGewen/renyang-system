@@ -110,7 +110,7 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900">控制台</h2>
+        
         <p className="text-sm text-slate-400">
           数据更新时间：{new Date().toLocaleString('zh-CN')}
         </p>
@@ -481,7 +481,7 @@ export const AdminLivestock: React.FC = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">活体管理</h2>
+        
         <div className="flex gap-3">
           <Button variant="outline" onClick={() => { setEditingType(null); setTypeForm({ name: '', description: '' }); setShowTypeModal(true); }}>
             添加类型
@@ -601,16 +601,24 @@ export const AdminOrders: React.FC = () => {
   const [orders, setOrders] = useState<AdoptionOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<AdoptionOrder | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [showRefund, setShowRefund] = useState(false);
   const [refundReason, setRefundReason] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmStep, setDeleteConfirmStep] = useState(1);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const res = await adminApi.getOrders({ status: statusFilter || undefined });
+      const res = await adminApi.getOrders({
+        status: statusFilter || undefined,
+        orderNo: searchKeyword || undefined,
+        userPhone: searchKeyword || undefined,
+      });
       setOrders(res.list || []);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
@@ -622,6 +630,13 @@ export const AdminOrders: React.FC = () => {
   useEffect(() => {
     fetchOrders();
   }, [statusFilter]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchKeyword !== '') fetchOrders();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchKeyword]);
 
   const handleViewDetail = async (orderId: string) => {
     try {
@@ -641,7 +656,6 @@ export const AdminOrders: React.FC = () => {
     }
     setProcessing(true);
     try {
-      // 管理员直接退款
       await adminApi.adminRefund({
         userId: selectedOrder.userId,
         amount: Number(selectedOrder.totalAmount),
@@ -660,7 +674,34 @@ export const AdminOrders: React.FC = () => {
     }
   };
 
-  // 订单状态映射 - 使用数字枚举
+  const handleDelete = async () => {
+    if (!selectedOrder) return;
+    if (deleteConfirmStep === 1) {
+      setDeleteConfirmStep(2);
+      return;
+    }
+    setDeleting(true);
+    try {
+      await adminApi.deleteOrder(selectedOrder.id);
+      toast.success('订单已删除');
+      setShowDeleteConfirm(false);
+      setDeleteConfirmStep(1);
+      setSelectedOrder(null);
+      fetchOrders();
+    } catch (error: any) {
+      toast.error(error.message || '删除失败');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const openDeleteConfirm = (order: AdoptionOrder) => {
+    setSelectedOrder(order);
+    setDeleteConfirmStep(1);
+    setShowDeleteConfirm(true);
+  };
+
+  // 订单状态映射
   const orderStatusMap: Record<number, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
     [OrderStatus.PENDING_PAYMENT]: { label: '待支付', variant: 'warning' },
     [OrderStatus.PAID]: { label: '已支付', variant: 'success' },
@@ -672,8 +713,19 @@ export const AdminOrders: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">订单管理</h2>
+      <div className="flex justify-between items-center mb-6 gap-4">
+        <div className="flex-1 flex gap-2">
+          <div className="relative flex-1 max-w-xs">
+            <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="搜索订单号/用户手机"
+              className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none text-sm"
+              value={searchKeyword}
+              onChange={e => setSearchKeyword(e.target.value)}
+            />
+          </div>
+        </div>
         <div className="flex gap-2">
           {[0, OrderStatus.PENDING_PAYMENT, OrderStatus.PAID, OrderStatus.CANCELLED, OrderStatus.REFUNDED].map(status => (
             <button key={status} onClick={() => setStatusFilter(status === 0 ? '' : String(status))} className={cn('px-4 py-2 rounded-lg text-sm font-medium transition-colors', statusFilter === (status === 0 ? '' : String(status)) ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}>
@@ -689,6 +741,7 @@ export const AdminOrders: React.FC = () => {
             <thead>
               <tr className="border-b border-slate-100">
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">订单号</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">领养编号</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">用户</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">活体</th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">金额</th>
@@ -701,6 +754,7 @@ export const AdminOrders: React.FC = () => {
               {orders.map(order => (
                 <tr key={order.id} className="border-b border-slate-50">
                   <td className="py-3 px-4 font-mono text-sm">{order.orderNo}</td>
+                  <td className="py-3 px-4 font-mono text-sm text-brand-primary">{order.adoption?.adoptionNo || '-'}</td>
                   <td className="py-3 px-4">{order.user?.phone || '-'}</td>
                   <td className="py-3 px-4">{order.livestock?.name || '-'}</td>
                   <td className="py-3 px-4">¥{order.totalAmount}</td>
@@ -713,6 +767,9 @@ export const AdminOrders: React.FC = () => {
                       <Button size="sm" variant="outline" onClick={() => handleViewDetail(order.id)}>详情</Button>
                       {order.status === OrderStatus.PAID && (
                         <Button size="sm" variant="danger" onClick={() => { setSelectedOrder(order); setShowRefund(true); }}>退款</Button>
+                      )}
+                      {(order.status === OrderStatus.CANCELLED || order.status === OrderStatus.REFUNDED) && (
+                        <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50" onClick={() => openDeleteConfirm(order)}>删除</Button>
                       )}
                     </div>
                   </td>
@@ -745,7 +802,7 @@ export const AdminOrders: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-slate-500">领养编号</p>
-                <p className="font-mono">{selectedOrder.adoption?.adoptionNo || selectedOrder.livestockId || '-'}</p>
+                <p className="font-mono text-brand-primary">{selectedOrder.adoption?.adoptionNo || '-'}</p>
               </div>
               <div>
                 <p className="text-sm text-slate-500">用户手机</p>
@@ -808,6 +865,27 @@ export const AdminOrders: React.FC = () => {
           </div>
         </Modal>
       )}
+
+      {/* 删除确认弹窗 */}
+      {showDeleteConfirm && selectedOrder && (
+        <Modal open={showDeleteConfirm} onClose={() => { setShowDeleteConfirm(false); setDeleteConfirmStep(1); }} title="删除订单">
+          <div className="space-y-4">
+            <div className="p-4 bg-red-50 rounded-lg">
+              <p className="text-red-700 font-medium">
+                {deleteConfirmStep === 1 ? '确定要删除此订单吗？' : '⚠️ 再次确认删除订单，此操作不可恢复！'}
+              </p>
+              <p className="text-sm text-red-600 mt-2">订单号: {selectedOrder.orderNo}</p>
+              <p className="text-sm text-red-600">状态: {orderStatusMap[selectedOrder.status as number]?.label}</p>
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmStep(1); }}>取消</Button>
+              <Button variant="danger" onClick={handleDelete} loading={deleting}>
+                {deleteConfirmStep === 1 ? '确认删除' : '再次确认删除'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };
@@ -839,7 +917,7 @@ export const AdminFeedBills: React.FC = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">饲料费管理</h2>
+        
         <div className="flex gap-2">
           {[0, FeedBillStatus.PENDING, FeedBillStatus.PAID, FeedBillStatus.OVERDUE].map(status => (
             <button key={status} onClick={() => setStatusFilter(status === 0 ? '' : String(status))} className={cn('px-4 py-2 rounded-lg text-sm font-medium transition-colors', statusFilter === (status === 0 ? '' : String(status)) ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}>
@@ -924,7 +1002,7 @@ export const AdminRedemptions: React.FC = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">买断管理</h2>
+        
         <div className="flex gap-2">
           {[0, RedemptionStatus.PENDING_AUDIT, RedemptionStatus.AUDIT_PASSED, RedemptionStatus.AUDIT_REJECTED].map(status => (
             <button key={status} onClick={() => setStatusFilter(status === 0 ? '' : String(status))} className={cn('px-4 py-2 rounded-lg text-sm font-medium transition-colors', statusFilter === (status === 0 ? '' : String(status)) ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}>
@@ -1122,7 +1200,7 @@ export const AdminUsers: React.FC = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">用户管理</h2>
+        
         <Input placeholder="搜索用户（手机号/昵称）" value={keyword} onChange={e => setKeyword(e.target.value)} icon={<Icons.Search className="w-5 h-5" />} className="w-64" />
       </div>
 
@@ -1474,7 +1552,7 @@ export const AdminConfig: React.FC = () => {
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold text-slate-900 mb-6">系统配置</h2>
+      
 
       <div className="flex gap-4 mb-6">
         {tabs.map(tab => (
@@ -1806,7 +1884,7 @@ export const AdminNotifications: React.FC = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">站内信管理</h2>
+        
         <Button onClick={() => setShowSendModal(true)}>
           <Icons.Send className="w-4 h-4 mr-2" />
           发送通知
@@ -2011,7 +2089,7 @@ export const AdminAgreements: React.FC = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">协议管理</h2>
+        
         <Button onClick={() => handleEdit()}>
           <Icons.Plus className="w-4 h-4 mr-2" />
           添加协议
@@ -2285,7 +2363,7 @@ export const AdminRefunds: React.FC = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">退款管理</h2>
+        
         <div className="flex gap-2">
           <button
             onClick={() => setStatusFilter(undefined)}
@@ -2508,7 +2586,7 @@ export const AdminAuditLogs: React.FC = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">审计日志</h2>
+        
         <div className="flex items-center gap-4">
           <div className="flex flex-wrap gap-2">
             <button
