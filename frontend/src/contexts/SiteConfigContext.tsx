@@ -8,6 +8,7 @@ interface SiteConfig {
   siteKeywords: string;
   contactPhone: string;
   contactEmail: string;
+  contactWechat: string;
   loaded: boolean;
 }
 
@@ -29,6 +30,7 @@ const defaultSiteConfig: SiteConfig = {
   siteKeywords: '云端牧场,智慧农业,活体领养,云养殖',
   contactPhone: '',
   contactEmail: '',
+  contactWechat: '',
   loaded: false,
 };
 
@@ -72,6 +74,7 @@ export const SiteConfigProvider: React.FC<AppConfigProviderProps> = ({ children 
           siteKeywords: siteData?.site_keywords || defaultSiteConfig.siteKeywords,
           contactPhone: siteData?.contact_phone || '',
           contactEmail: siteData?.contact_email || '',
+          contactWechat: siteData?.contact_wechat || '',
           loaded: true,
         };
 

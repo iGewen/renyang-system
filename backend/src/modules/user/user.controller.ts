@@ -39,6 +39,7 @@ export class UserController {
       'site_keywords',
       'contact_phone',
       'contact_email',
+      'contact_wechat',
     ];
 
     const configs = await this.systemConfigRepository.find({

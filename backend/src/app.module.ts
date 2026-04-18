@@ -212,6 +212,7 @@ export class AppModule implements NestModule, OnModuleInit {
         { key: 'site_keywords', value: '云端牧场,智慧农业,活体领养,云养殖', type: 'basic', description: '网站关键词(SEO)' },
         { key: 'contact_phone', value: '', type: 'basic', description: '联系电话' },
         { key: 'contact_email', value: '', type: 'basic', description: '联系邮箱' },
+        { key: 'contact_wechat', value: '', type: 'basic', description: '客服微信' },
         // 支付宝H5支付配置
         { key: 'alipay_app_id', value: '', type: 'payment', description: '支付宝App ID' },
         { key: 'alipay_private_key', value: '', type: 'payment', description: '支付宝应用私钥' },

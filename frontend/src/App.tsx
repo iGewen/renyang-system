@@ -1623,6 +1623,328 @@ const NotificationPage: React.FC = () => {
   );
 };
 
+// ==================== 成长档案页 ====================
+
+const GrowthRecordsPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { token, isAuthenticated } = useAuth();
+  const [adoptions, setAdoptions] = useState<Adoption[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!token || !isAuthenticated) {
+      navigate('/auth');
+      return;
+    }
+
+    const fetchAdoptions = async () => {
+      try {
+        const data = await adoptionApi.getMyAdoptions();
+        setAdoptions(data || []);
+      } catch (error) {
+        console.error('Failed to fetch adoptions:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAdoptions();
+  }, [token, isAuthenticated, navigate]);
+
+  if (loading) {
+    return (
+      <PageTransition>
+        <div className="min-h-screen bg-brand-bg pb-8">
+          <div className="sticky top-0 z-10 bg-white border-b border-slate-100">
+            <div className="flex items-center px-6 py-4">
+              <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+                <Icons.ArrowLeft className="w-5 h-5" />
+              </button>
+              <h1 className="text-lg font-bold text-slate-900 ml-4">成长档案</h1>
+            </div>
+          </div>
+          <div className="p-6">
+            <LoadingSpinner />
+          </div>
+        </div>
+      </PageTransition>
+    );
+  }
+
+  return (
+    <PageTransition>
+      <div className="min-h-screen bg-brand-bg pb-8">
+        {/* 头部 */}
+        <div className="sticky top-0 z-10 bg-white border-b border-slate-100">
+          <div className="flex items-center px-6 py-4">
+            <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+              <Icons.ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-lg font-bold text-slate-900 ml-4">成长档案</h1>
+          </div>
+        </div>
+
+        <div className="p-6">
+          {adoptions.length === 0 ? (
+            <EmptyState
+              icon={<Icons.BookOpen className="w-12 h-12" />}
+              title="暂无成长档案"
+              description="领养活体后即可查看成长档案"
+              action={
+                <Button variant="outline" onClick={() => navigate('/')}>
+                  去领养
+                </Button>
+              }
+            />
+          ) : (
+            <div className="space-y-4">
+              {adoptions.map((adoption) => {
+                const livestock = adoption.livestockSnapshot as any;
+                const startDate = new Date(adoption.startDate);
+                const now = new Date();
+                const days = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+
+                return (
+                  <motion.div
+                    key={adoption.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    onClick={() => navigate(`/adoption/${adoption.id}`)}
+                    className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                  >
+                    {/* 卡片头部 */}
+                    <div className="flex gap-4 p-4 border-b border-slate-50">
+                      <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">
+                        <img
+                          src={livestock?.mainImage || '/placeholder.jpg'}
+                          alt={livestock?.name}
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-slate-900 truncate">{livestock?.name || '未知活体'}</h3>
+                        <p className="text-xs text-slate-400 font-mono mt-1">{adoption.adoptionNo}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Badge variant={adoption.status === 1 ? 'success' : adoption.status === 6 ? 'default' : 'warning'}>
+                            {getAdoptionStatusText(adoption.status)}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 时间线 */}
+                    <div className="p-4 bg-slate-50/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-medium text-slate-500">领养时间线</span>
+                        <span className="text-sm font-bold text-brand-primary">已领养 {days} 天</span>
+                      </div>
+
+                      {/* 进度条 */}
+                      <div className="relative">
+                        <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-brand-primary to-indigo-500 rounded-full transition-all duration-500"
+                            style={{
+                              width: `${Math.min(100, (adoption.feedMonthsPaid / (adoption.redemptionMonths - 1)) * 100)}%`
+                            }}
+                          />
+                        </div>
+                        <div className="flex justify-between mt-2 text-xs text-slate-400">
+                          <span>已缴 {adoption.feedMonthsPaid} 月</span>
+                          <span>买断需 {adoption.redemptionMonths - 1} 月</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 重要事件 */}
+                    <div className="p-4 border-t border-slate-50">
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <Icons.Calendar className="w-4 h-4" />
+                        <span>领养日期：{startDate.toLocaleDateString('zh-CN')}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-slate-500 mt-2">
+                        <Icons.Coins className="w-4 h-4" />
+                        <span>月饲料费：¥{livestock?.monthlyFeedFee || 0}</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </PageTransition>
+  );
+};
+
+// ==================== 专属管家页 ====================
+
+const SupportPage: React.FC = () => {
+  const navigate = useNavigate();
+  const siteConfig = useSiteConfig();
+
+  return (
+    <PageTransition>
+      <div className="min-h-screen bg-brand-bg pb-8">
+        {/* 头部 */}
+        <div className="sticky top-0 z-10 bg-white border-b border-slate-100">
+          <div className="flex items-center px-6 py-4">
+            <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+              <Icons.ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-lg font-bold text-slate-900 ml-4">专属管家</h1>
+          </div>
+        </div>
+
+        <div className="p-6">
+          {/* 服务介绍 */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-br from-brand-primary to-indigo-600 rounded-2xl p-6 text-white mb-6"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                <Icons.Headset className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="font-bold text-lg">1对1贴心服务</h2>
+                <p className="text-white/70 text-sm">专业养殖指导，全程陪伴</p>
+              </div>
+            </div>
+            <p className="text-sm text-white/80 leading-relaxed">
+              我们的专属管家团队随时为您提供专业的养殖指导和问题解答服务，让您的云养殖之旅更加顺畅。
+            </p>
+          </motion.div>
+
+          {/* 联系方式 */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden"
+          >
+            <div className="p-4 border-b border-slate-50">
+              <h3 className="font-bold text-slate-900">联系方式</h3>
+            </div>
+
+            {/* 电话 */}
+            {siteConfig.contactPhone && (
+              <a
+                href={`tel:${siteConfig.contactPhone}`}
+                className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors cursor-pointer border-b border-slate-50"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-xl bg-green-100 flex items-center justify-center text-green-600">
+                    <Icons.Phone className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900">客服电话</p>
+                    <p className="text-sm text-slate-500">{siteConfig.contactPhone}</p>
+                  </div>
+                </div>
+                <Icons.ChevronRight className="w-5 h-5 text-slate-300" />
+              </a>
+            )}
+
+            {/* 微信 */}
+            {siteConfig.contactWechat && (
+              <div className="flex items-center justify-between p-4 border-b border-slate-50">
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-xl bg-green-100 flex items-center justify-center text-green-600">
+                    <Icons.Wechat className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900">客服微信</p>
+                    <p className="text-sm text-slate-500">{siteConfig.contactWechat}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(siteConfig.contactWechat);
+                    alert('微信号已复制');
+                  }}
+                  className="px-3 py-1.5 bg-brand-primary/10 text-brand-primary rounded-lg text-sm font-medium hover:bg-brand-primary/20 transition-colors"
+                >
+                  复制
+                </button>
+              </div>
+            )}
+
+            {/* 邮箱 */}
+            {siteConfig.contactEmail && (
+              <a
+                href={`mailto:${siteConfig.contactEmail}`}
+                className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
+                    <Icons.Mail className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900">客服邮箱</p>
+                    <p className="text-sm text-slate-500">{siteConfig.contactEmail}</p>
+                  </div>
+                </div>
+                <Icons.ChevronRight className="w-5 h-5 text-slate-300" />
+              </a>
+            )}
+
+            {/* 无联系方式 */}
+            {!siteConfig.contactPhone && !siteConfig.contactWechat && !siteConfig.contactEmail && (
+              <div className="p-8 text-center">
+                <Icons.Headset className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-400">暂无联系方式</p>
+                <p className="text-sm text-slate-300 mt-1">请联系管理员配置</p>
+              </div>
+            )}
+          </motion.div>
+
+          {/* 服务时间 */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mt-6 bg-white rounded-2xl shadow-sm border border-slate-100 p-4"
+          >
+            <div className="flex items-center gap-3">
+              <Icons.Clock className="w-5 h-5 text-slate-400" />
+              <div>
+                <p className="font-medium text-slate-900">服务时间</p>
+                <p className="text-sm text-slate-500">工作日 9:00-18:00，节假日可能延迟回复</p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* 常见问题 */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mt-6"
+          >
+            <h3 className="font-bold text-slate-900 mb-3">常见问题</h3>
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              {[
+                { q: '如何查看我的领养状态？', a: '在「我的牧场」页面可以查看所有领养记录和当前状态' },
+                { q: '饲料费如何缴纳？', a: '进入领养详情页，点击「缴纳饲料费」即可在线支付' },
+                { q: '如何申请买断？', a: '领养期满后，在领养详情页点击「申请买断」提交申请' },
+              ].map((item, i) => (
+                <div key={i} className="p-4 border-b border-slate-50 last:border-b-0">
+                  <p className="font-medium text-slate-900 text-sm">{item.q}</p>
+                  <p className="text-xs text-slate-500 mt-1">{item.a}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    </PageTransition>
+  );
+};
+
 // ==================== 后台管理登录页 ====================
 
 // 使用独立的登录页面组件
@@ -1750,6 +2072,8 @@ export default function App() {
                 <Route path="/profile" element={<UserProtectedRoute><ProfilePage /></UserProtectedRoute>} />
                 <Route path="/balance" element={<UserProtectedRoute><Suspense fallback={<LoadingSpinner />}><BalancePage /></Suspense></UserProtectedRoute>} />
                 <Route path="/notifications" element={<UserProtectedRoute><NotificationPage /></UserProtectedRoute>} />
+                <Route path="/growth-records" element={<UserProtectedRoute><GrowthRecordsPage /></UserProtectedRoute>} />
+                <Route path="/support" element={<UserProtectedRoute><SupportPage /></UserProtectedRoute>} />
                 <Route path="/orders" element={<UserProtectedRoute><Suspense fallback={<LoadingSpinner />}><OrdersPage /></Suspense></UserProtectedRoute>} />
                 <Route path="/adoption/:id" element={<Suspense fallback={<LoadingSpinner />}><UserProtectedRoute><AdoptionDetailPage /></UserProtectedRoute></Suspense>} />
                 <Route path="/adoption/:id/redemption" element={<Suspense fallback={<LoadingSpinner />}><UserProtectedRoute><RedemptionPage /></UserProtectedRoute></Suspense>} />

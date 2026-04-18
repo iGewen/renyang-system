@@ -1672,6 +1672,7 @@ export const AdminConfig: React.FC = () => {
     siteKeywords: '',
     contactPhone: '',
     contactEmail: '',
+    contactWechat: '',
   });
 
   const [paymentConfig, setPaymentConfig] = useState({
@@ -1731,6 +1732,7 @@ export const AdminConfig: React.FC = () => {
         if (config.configKey === 'site_keywords') setBasicConfig(prev => ({ ...prev, siteKeywords: value }));
         if (config.configKey === 'contact_phone') setBasicConfig(prev => ({ ...prev, contactPhone: value }));
         if (config.configKey === 'contact_email') setBasicConfig(prev => ({ ...prev, contactEmail: value }));
+        if (config.configKey === 'contact_wechat') setBasicConfig(prev => ({ ...prev, contactWechat: value }));
 
         // 支付配置
         if (config.configKey === 'payment_alipay_enabled') setPaymentConfig(prev => ({ ...prev, alipayEnabled: value === 'true' }));
@@ -1782,6 +1784,7 @@ export const AdminConfig: React.FC = () => {
         adminApi.updateConfig('site_keywords', basicConfig.siteKeywords),
         adminApi.updateConfig('contact_phone', basicConfig.contactPhone),
         adminApi.updateConfig('contact_email', basicConfig.contactEmail),
+        adminApi.updateConfig('contact_wechat', basicConfig.contactWechat),
       ]);
       toast.success('保存成功');
       // 保存成功后重新加载配置
@@ -1907,6 +1910,7 @@ export const AdminConfig: React.FC = () => {
             <Input label="网站关键词 (SEO)" value={basicConfig.siteKeywords} onChange={e => setBasicConfig({ ...basicConfig, siteKeywords: e.target.value })} placeholder="云端牧场,智慧农业,活体领养" />
             <Input label="联系电话" value={basicConfig.contactPhone} onChange={e => setBasicConfig({ ...basicConfig, contactPhone: e.target.value })} placeholder="400-xxx-xxxx" />
             <Input label="联系邮箱" value={basicConfig.contactEmail} onChange={e => setBasicConfig({ ...basicConfig, contactEmail: e.target.value })} placeholder="contact@example.com" />
+            <Input label="客服微信" value={basicConfig.contactWechat} onChange={e => setBasicConfig({ ...basicConfig, contactWechat: e.target.value })} placeholder="微信号或二维码链接" />
             <div className="pt-4">
               <Button onClick={handleSaveBasic} loading={saving}>保存配置</Button>
             </div>
