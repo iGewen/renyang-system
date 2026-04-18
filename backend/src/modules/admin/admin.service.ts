@@ -268,6 +268,73 @@ export class AdminService {
   }
 
   /**
+   * 获取用户订单列表
+   */
+  async getUserOrders(userId: string, page: number = 1, pageSize: number = 10) {
+    const queryBuilder = this.orderRepository.createQueryBuilder('order')
+      .leftJoinAndSelect('order.livestock', 'livestock')
+      .leftJoinAndSelect('order.adoption', 'adoption')
+      .where('order.userId = :userId', { userId })
+      .orderBy('order.createdAt', 'DESC')
+      .skip((page - 1) * pageSize)
+      .take(pageSize);
+
+    const [list, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      list,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  /**
+   * 获取用户余额明细
+   */
+  async getUserBalanceLogs(userId: string, page: number = 1, pageSize: number = 10) {
+    const queryBuilder = this.dataSource.getRepository('BalanceLog')
+      .createQueryBuilder('log')
+      .where('log.userId = :userId', { userId })
+      .orderBy('log.createdAt', 'DESC')
+      .skip((page - 1) * pageSize)
+      .take(pageSize);
+
+    const [list, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      list,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  /**
+   * 获取用户支付记录
+   */
+  async getUserPayments(userId: string, page: number = 1, pageSize: number = 10) {
+    const queryBuilder = this.dataSource.getRepository('PaymentRecord')
+      .createQueryBuilder('payment')
+      .where('payment.userId = :userId', { userId })
+      .orderBy('payment.createdAt', 'DESC')
+      .skip((page - 1) * pageSize)
+      .take(pageSize);
+
+    const [list, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      list,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  /**
    * 更新用户状态
    */
   async updateUserStatus(userId: string, status: number, adminId: string, adminName: string, ip?: string) {

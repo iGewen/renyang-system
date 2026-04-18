@@ -719,12 +719,25 @@ export const adminApi = {
     return adminRequest(`/admin/users/${id}/adoptions`);
   },
 
-  getUserOrders: async (id: string): Promise<AdoptionOrder[]> => {
-    return adminRequest(`/admin/users/${id}/orders`);
+  getUserOrders: async (id: string, page?: number, pageSize?: number): Promise<PaginatedResponse<AdoptionOrder>> => {
+    const query = new URLSearchParams();
+    if (page) query.set('page', page.toString());
+    if (pageSize) query.set('pageSize', pageSize.toString());
+    return adminRequest(`/admin/users/${id}/orders?${query.toString()}`);
   },
 
-  getUserBalanceLogs: async (id: string): Promise<BalanceLog[]> => {
-    return adminRequest(`/admin/users/${id}/balance-logs`);
+  getUserBalanceLogs: async (id: string, page?: number, pageSize?: number): Promise<PaginatedResponse<BalanceLog>> => {
+    const query = new URLSearchParams();
+    if (page) query.set('page', page.toString());
+    if (pageSize) query.set('pageSize', pageSize.toString());
+    return adminRequest(`/admin/users/${id}/balance-logs?${query.toString()}`);
+  },
+
+  getUserPayments: async (id: string, page?: number, pageSize?: number): Promise<PaginatedResponse<any>> => {
+    const query = new URLSearchParams();
+    if (page) query.set('page', page.toString());
+    if (pageSize) query.set('pageSize', pageSize.toString());
+    return adminRequest(`/admin/users/${id}/payments?${query.toString()}`);
   },
 
   updateUserStatus: async (id: string, status: number): Promise<{ success: boolean }> => {

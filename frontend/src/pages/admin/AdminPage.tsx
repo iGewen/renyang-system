@@ -1061,11 +1061,20 @@ export const AdminUsers: React.FC = () => {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showBalanceModal, setShowBalanceModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [newStatus, setNewStatus] = useState<number>(1);
   const [editForm, setEditForm] = useState({ nickname: '', phone: '' });
   const [balanceForm, setBalanceForm] = useState({ amount: '', reason: '' });
   const [submitting, setSubmitting] = useState(false);
+
+  // 用户详情数据
+  const [detailTab, setDetailTab] = useState<'orders' | 'payments' | 'balance'>('orders');
+  const [detailOrders, setDetailOrders] = useState<any[]>([]);
+  const [detailPayments, setDetailPayments] = useState<any[]>([]);
+  const [detailBalanceLogs, setDetailBalanceLogs] = useState<any[]>([]);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailPagination, setDetailPagination] = useState({ page: 1, totalPages: 1 });
 
   // 搜索防抖
   const debouncedKeyword = useDebounce(keyword, 500);
@@ -1190,6 +1199,55 @@ export const AdminUsers: React.FC = () => {
     setShowBalanceModal(true);
   };
 
+  // 打开用户详情弹窗
+  const openDetailModal = async (user: User) => {
+    setSelectedUser(user);
+    setDetailTab('orders');
+    setDetailPagination({ page: 1, totalPages: 1 });
+    setShowDetailModal(true);
+    await loadUserDetails(user.id, 'orders', 1);
+  };
+
+  // 加载用户详情数据
+  const loadUserDetails = async (userId: string, tab: 'orders' | 'payments' | 'balance', page: number = 1) => {
+    setDetailLoading(true);
+    try {
+      if (tab === 'orders') {
+        const res = await adminApi.getUserOrders(userId, page, 10);
+        setDetailOrders(res.list || []);
+        setDetailPagination({ page, totalPages: res.totalPages || 1 });
+      } else if (tab === 'payments') {
+        const res = await adminApi.getUserPayments(userId, page, 10);
+        setDetailPayments(res.list || []);
+        setDetailPagination({ page, totalPages: res.totalPages || 1 });
+      } else if (tab === 'balance') {
+        const res = await adminApi.getUserBalanceLogs(userId, page, 10);
+        setDetailBalanceLogs(res.list || []);
+        setDetailPagination({ page, totalPages: res.totalPages || 1 });
+      }
+    } catch (error) {
+      console.error('Failed to load user details:', error);
+      toast.error('加载用户详情失败');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  // 切换详情标签
+  const handleDetailTabChange = (tab: 'orders' | 'payments' | 'balance') => {
+    setDetailTab(tab);
+    if (selectedUser) {
+      loadUserDetails(selectedUser.id, tab, 1);
+    }
+  };
+
+  // 详情分页
+  const handleDetailPageChange = (page: number) => {
+    if (selectedUser) {
+      loadUserDetails(selectedUser.id, detailTab, page);
+    }
+  };
+
   if (loading) return <LoadingSpinner />;
 
   return (
@@ -1225,6 +1283,7 @@ export const AdminUsers: React.FC = () => {
                   <td className="py-3 px-4 text-sm text-slate-500">{new Date(user.createdAt).toLocaleDateString()}</td>
                   <td className="py-3 px-4">
                     <div className="flex gap-2">
+                      <button onClick={() => openDetailModal(user)} className="text-purple-600 text-sm hover:underline">详情</button>
                       <button onClick={() => openStatusModal(user)} className="text-blue-600 text-sm hover:underline">状态</button>
                       <button onClick={() => openEditModal(user)} className="text-brand-primary text-sm hover:underline">编辑</button>
                       <button onClick={() => openBalanceModal(user)} className="text-green-600 text-sm hover:underline">调余额</button>
@@ -1319,6 +1378,180 @@ export const AdminUsers: React.FC = () => {
             <Button variant="outline" className="flex-1" onClick={() => setShowBalanceModal(false)}>取消</Button>
             <Button className="flex-1" onClick={handleAdjustBalance} loading={submitting}>确认调整</Button>
           </div>
+        </div>
+      </Modal>
+
+      {/* 用户详情弹窗 */}
+      <Modal open={showDetailModal} onClose={() => setShowDetailModal(false)} title={`用户详情 - ${selectedUser?.phone || ''}`}>
+        <div className="p-6">
+          {/* 用户基本信息 */}
+          <div className="flex items-center gap-4 mb-6 pb-4 border-b border-slate-100">
+            <div className="w-16 h-16 rounded-full bg-brand-50 flex items-center justify-center">
+              <Icons.User className="w-8 h-8 text-brand-primary" />
+            </div>
+            <div className="flex-1">
+              <p className="text-lg font-bold text-slate-900">{selectedUser?.nickname || '未设置昵称'}</p>
+              <p className="text-sm text-slate-500">{selectedUser?.phone}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-slate-500">账户余额</p>
+              <p className="text-xl font-bold text-brand-primary">¥{typeof selectedUser?.balance === 'number' ? selectedUser.balance.toFixed(2) : parseFloat(selectedUser?.balance || '0').toFixed(2)}</p>
+            </div>
+          </div>
+
+          {/* 标签页 */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => handleDetailTabChange('orders')}
+              className={cn(
+                'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                detailTab === 'orders' ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              )}
+            >
+              订单记录
+            </button>
+            <button
+              onClick={() => handleDetailTabChange('payments')}
+              className={cn(
+                'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                detailTab === 'payments' ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              )}
+            >
+              支付记录
+            </button>
+            <button
+              onClick={() => handleDetailTabChange('balance')}
+              className={cn(
+                'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                detailTab === 'balance' ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              )}
+            >
+              余额明细
+            </button>
+          </div>
+
+          {/* 内容区域 */}
+          <div className="min-h-[300px] max-h-[400px] overflow-y-auto">
+            {detailLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <>
+                {/* 订单记录 */}
+                {detailTab === 'orders' && (
+                  <div>
+                    {detailOrders.length > 0 ? (
+                      <div className="space-y-3">
+                        {detailOrders.map((order: any) => (
+                          <div key={order.id} className="p-4 bg-slate-50 rounded-xl">
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <p className="font-medium text-slate-900">{order.livestock?.name || '活体'}</p>
+                                <p className="text-xs text-slate-400 font-mono">{order.orderNo}</p>
+                              </div>
+                              <Badge variant={order.status === 'paid' ? 'success' : order.status === 'pending' ? 'warning' : 'default'}>
+                                {order.status === 'paid' ? '已支付' : order.status === 'pending' ? '待支付' : order.status}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-slate-500">金额：¥{order.totalAmount}</span>
+                              <span className="text-slate-400">{new Date(order.createdAt).toLocaleString()}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState icon={<Icons.ShoppingCart className="w-10 h-10" />} title="暂无订单记录" />
+                    )}
+                  </div>
+                )}
+
+                {/* 支付记录 */}
+                {detailTab === 'payments' && (
+                  <div>
+                    {detailPayments.length > 0 ? (
+                      <div className="space-y-3">
+                        {detailPayments.map((payment: any) => (
+                          <div key={payment.id} className="p-4 bg-slate-50 rounded-xl">
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <p className="font-medium text-slate-900">
+                                  {payment.paymentMethod === 'alipay' ? '支付宝' : payment.paymentMethod === 'wechat' ? '微信' : payment.paymentMethod === 'balance' ? '余额' : payment.paymentMethod}
+                                </p>
+                                <p className="text-xs text-slate-400 font-mono">{payment.paymentNo}</p>
+                              </div>
+                              <Badge variant={payment.status === 'success' ? 'success' : payment.status === 'pending' ? 'warning' : 'default'}>
+                                {payment.status === 'success' ? '成功' : payment.status === 'pending' ? '处理中' : payment.status}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-slate-500">金额：¥{payment.amount}</span>
+                              <span className="text-slate-400">{new Date(payment.createdAt).toLocaleString()}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState icon={<Icons.CreditCard className="w-10 h-10" />} title="暂无支付记录" />
+                    )}
+                  </div>
+                )}
+
+                {/* 余额明细 */}
+                {detailTab === 'balance' && (
+                  <div>
+                    {detailBalanceLogs.length > 0 ? (
+                      <div className="space-y-3">
+                        {detailBalanceLogs.map((log: any) => (
+                          <div key={log.id} className="p-4 bg-slate-50 rounded-xl">
+                            <div className="flex items-start justify-between mb-2">
+                              <p className="font-medium text-slate-900">{log.remark || log.type}</p>
+                              <span className={cn(
+                                'font-bold',
+                                Number(log.amount) > 0 ? 'text-green-600' : 'text-red-600'
+                              )}>
+                                {Number(log.amount) > 0 ? '+' : ''}{Number(log.amount).toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-slate-500">余额：¥{log.afterBalance}</span>
+                              <span className="text-slate-400">{new Date(log.createdAt).toLocaleString()}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState icon={<Icons.Coins className="w-10 h-10" />} title="暂无余额明细" />
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* 分页 */}
+          {detailPagination.totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t border-slate-100">
+              <button
+                onClick={() => handleDetailPageChange(detailPagination.page - 1)}
+                disabled={detailPagination.page <= 1}
+                className="px-3 py-1 text-sm rounded-lg bg-slate-100 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200"
+              >
+                上一页
+              </button>
+              <span className="text-sm text-slate-500">
+                {detailPagination.page} / {detailPagination.totalPages}
+              </span>
+              <button
+                onClick={() => handleDetailPageChange(detailPagination.page + 1)}
+                disabled={detailPagination.page >= detailPagination.totalPages}
+                className="px-3 py-1 text-sm rounded-lg bg-slate-100 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200"
+              >
+                下一页
+              </button>
+            </div>
+          )}
         </div>
       </Modal>
     </div>

@@ -411,6 +411,57 @@ export class AdminController {
     return this.adminService.adjustUserBalance(id, body.amount, body.reason, adminId, adminName, ip);
   }
 
+  /**
+   * 获取用户订单列表
+   */
+  @Get('users/:id/orders')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '获取用户订单列表' })
+  @ApiParam({ name: 'id', description: '用户ID' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
+  async getUserOrders(
+    @Param('id') id: string,
+    @Query('page') page?: number,
+    @Query('pageSize') pageSize?: number,
+  ) {
+    return this.adminService.getUserOrders(id, page || 1, pageSize || 10);
+  }
+
+  /**
+   * 获取用户余额明细
+   */
+  @Get('users/:id/balance-logs')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '获取用户余额明细' })
+  @ApiParam({ name: 'id', description: '用户ID' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
+  async getUserBalanceLogs(
+    @Param('id') id: string,
+    @Query('page') page?: number,
+    @Query('pageSize') pageSize?: number,
+  ) {
+    return this.adminService.getUserBalanceLogs(id, page || 1, pageSize || 10);
+  }
+
+  /**
+   * 获取用户支付记录
+   */
+  @Get('users/:id/payments')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '获取用户支付记录' })
+  @ApiParam({ name: 'id', description: '用户ID' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
+  async getUserPayments(
+    @Param('id') id: string,
+    @Query('page') page?: number,
+    @Query('pageSize') pageSize?: number,
+  ) {
+    return this.adminService.getUserPayments(id, page || 1, pageSize || 10);
+  }
+
   // =============== 活体类型管理 ===============
 
   /**
