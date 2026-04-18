@@ -203,26 +203,27 @@ export class SmsService {
    * 发送短信（调用阿里云API）
    */
   private async sendSms(phone: string, code: string, config: any, templateCode: string): Promise<void> {
-    this.logger.log(`[SMS] 准备发送 - 手机: ${phone}, 验证码: ${code}`);
+    // 安全修复：日志中不打印验证码明文和完整手机号
+    this.logger.log(`[SMS] 准备发送 - 手机: ${phone.substring(0, 3)}****${phone.substring(7)}`);
     this.logger.log(`[SMS] 配置检查 - accessKeyId: ${config.accessKeyId ? '已配置' : '未配置'}, accessKeySecret: ${config.accessKeySecret ? '已配置' : '未配置'}, signName: ${config.signName || '未配置'}, templateCode: ${templateCode || '未配置'}`);
 
     // 如果没有配置阿里云密钥，则跳过实际发送
     if (!config.accessKeyId || !config.accessKeySecret) {
-      this.logger.warn(`[SMS] 阿里云密钥未配置，模拟发送 - 手机: ${phone}, 验证码: ${code}`);
+      this.logger.warn(`[SMS] 阿里云密钥未配置，模拟发送 - 手机: ${phone.substring(0, 3)}****${phone.substring(7)}`);
       return;
     }
 
     if (!config.signName) {
-      this.logger.warn(`[SMS] 短信签名未配置，模拟发送 - 手机: ${phone}`);
+      this.logger.warn(`[SMS] 短信签名未配置，模拟发送 - 手机: ${phone.substring(0, 3)}****${phone.substring(7)}`);
       return;
     }
 
     if (!templateCode) {
-      this.logger.warn(`[SMS] 短信模板未配置，跳过发送 - 手机: ${phone}`);
+      this.logger.warn(`[SMS] 短信模板未配置，跳过发送 - 手机: ${phone.substring(0, 3)}****${phone.substring(7)}`);
       return;
     }
 
-    this.logger.log(`[SMS] 调用阿里云API - 手机: ${phone}, 签名: ${config.signName}, 模板: ${templateCode}`);
+    this.logger.log(`[SMS] 调用阿里云API - 手机: ${phone.substring(0, 3)}****${phone.substring(7)}, 签名: ${config.signName}, 模板: ${templateCode}`);
 
     const params = {
       AccessKeyId: config.accessKeyId,
@@ -268,7 +269,7 @@ export class SmsService {
       throw new Error(result.Message || '短信发送失败');
     }
 
-    this.logger.log(`[SMS] 发送成功 - 手机: ${phone}`);
+    this.logger.log(`[SMS] 发送成功 - 手机: ${phone.substring(0, 3)}****${phone.substring(7)}`);
   }
 
   /**
@@ -298,7 +299,7 @@ export class SmsService {
     const config = await this.getSmsConfig();
 
     if (!config.accessKeyId || !config.accessKeySecret) {
-      this.logger.log(`[SMS] 模拟发送通知 - 手机: ${phone}, 类型: ${templateType}, 参数:`, params);
+      this.logger.log(`[SMS] 模拟发送通知 - 手机: ${phone.substring(0, 3)}****${phone.substring(7)}, 类型: ${templateType}`);
       return;
     }
 
@@ -357,6 +358,6 @@ export class SmsService {
       throw new Error(result.Message || '短信发送失败');
     }
 
-    this.logger.log(`[SMS] 通知发送成功 - 手机: ${phone}, 类型: ${templateType}`);
+    this.logger.log(`[SMS] 通知发送成功 - 手机: ${phone.substring(0, 3)}****${phone.substring(7)}, 类型: ${templateType}`);
   }
 }

@@ -72,11 +72,14 @@ export class CryptoUtil {
   }
 
   /**
-   * 生成随机数字字符串
+   * 生成随机数字字符串（密码学安全）
    */
   static randomDigits(length: number = 6): string {
-    const min = Math.pow(10, length - 1);
-    const max = Math.pow(10, length) - 1;
-    return Math.floor(Math.random() * (max - min + 1) + min).toString();
+    const digits: string[] = [];
+    for (let i = 0; i < length; i++) {
+      // 使用密码学安全的随机数生成器
+      digits.push(crypto.randomInt(0, 10).toString());
+    }
+    return digits.join('');
   }
 }

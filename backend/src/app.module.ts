@@ -163,7 +163,14 @@ export class AppModule implements NestModule, OnModuleInit {
 
       const count = Number(result[0].count);
       if (count === 0) {
-        // 从环境变量获取默认密码，如果未设置则生成随机密码
+        // 生产环境必须设置环境变量
+        if (process.env.NODE_ENV === 'production' && !process.env.ADMIN_DEFAULT_PASSWORD) {
+          console.error('❌ 生产环境必须设置 ADMIN_DEFAULT_PASSWORD 环境变量！');
+          console.error('   请在 .env 文件中配置 ADMIN_DEFAULT_PASSWORD 后重启服务');
+          throw new Error('生产环境未设置 ADMIN_DEFAULT_PASSWORD');
+        }
+
+        // 从环境变量获取默认密码，如果未设置则生成随机密码（仅开发环境）
         const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || this.generateRandomPassword();
         const hashedPassword = await bcrypt.hash(defaultPassword, 10);
         await this.dataSource.query(
@@ -172,18 +179,12 @@ export class AppModule implements NestModule, OnModuleInit {
         );
         console.log('✅ 默认管理员账号已创建');
         console.log('   用户名: admin');
-        // 安全修复：生产环境和开发环境都不在日志中打印密码
-        // 密码应通过安全渠道（如环境变量、加密配置文件）获取
+        // 安全修复：不在日志中打印密码
         if (process.env.ADMIN_DEFAULT_PASSWORD) {
           console.log('   密码: 请查看 ADMIN_DEFAULT_PASSWORD 环境变量');
         } else {
-          console.log('   密码: 随机生成，请查看控制台输出');
-          // 仅在开发环境且第一次启动时短暂显示，生产环境应通过环境变量设置
-          if (process.env.NODE_ENV !== 'production') {
-            console.log('   ⚠️  随机密码（仅显示一次）: ' + defaultPassword);
-          } else {
-            console.log('   ⚠️  生产环境未设置 ADMIN_DEFAULT_PASSWORD，请重启服务并设置环境变量');
-          }
+          // 仅开发环境显示随机密码
+          console.log('   ⚠️  随机密码（仅显示一次）: ' + defaultPassword);
         }
         console.log('   ⚠️  首次登录将强制修改密码！');
       } else {
@@ -191,14 +192,17 @@ export class AppModule implements NestModule, OnModuleInit {
       }
     } catch (error) {
       console.error('❌ 初始化管理员失败:', error);
+      throw error;
     }
   }
 
   private generateRandomPassword(length: number = 12): string {
+    // 使用密码学安全的随机数生成器
+    const crypto = require('crypto');
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
     let password = '';
     for (let i = 0; i < length; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
+      password += chars.charAt(crypto.randomInt(0, chars.length));
     }
     return password;
   }
