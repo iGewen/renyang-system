@@ -665,7 +665,7 @@ export class AdminService {
 
     if (params.keyword) {
       queryBuilder.andWhere(
-        '(order.orderNo LIKE :keyword OR user.phone LIKE :keyword OR user.nickname LIKE :keyword)',
+        '(order.orderNo LIKE :keyword OR user.phone LIKE :keyword OR user.nickname LIKE :keyword OR adoption.adoptionNo LIKE :keyword)',
         { keyword: `%${params.keyword}%` },
       );
     }

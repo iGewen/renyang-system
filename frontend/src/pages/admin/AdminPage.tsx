@@ -611,12 +611,12 @@ export const AdminOrders: React.FC = () => {
   const [deleteConfirmStep, setDeleteConfirmStep] = useState(1);
   const [deleting, setDeleting] = useState(false);
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (keyword?: string) => {
     setLoading(true);
     try {
       const res = await adminApi.getOrders({
         status: statusFilter || undefined,
-        keyword: searchKeyword || undefined,
+        keyword: keyword || searchKeyword || undefined,
       });
       setOrders(res.list || []);
     } catch (error) {
@@ -632,7 +632,7 @@ export const AdminOrders: React.FC = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchKeyword !== '') fetchOrders();
+      fetchOrders();
     }, 500);
     return () => clearTimeout(timer);
   }, [searchKeyword]);
