@@ -1,0 +1,94 @@
+- generic [ref=e3]:
+  - generic [ref=e58]:
+    - generic [ref=e60]:
+      - heading "云端牧场" [level=1] [ref=e62]
+      - button "1" [ref=e63] [cursor=pointer]:
+        - img [ref=e64]
+        - generic [ref=e67]: "1"
+    - generic [ref=e68]:
+      - banner [ref=e69]:
+        - generic [ref=e70]:
+          - img [ref=e71]
+          - text: 智慧农业新体验
+        - heading "在云端， 拥有属于您的牧场" [level=2] [ref=e73]:
+          - text: 在云端，
+          - text: 拥有属于您的牧场
+        - paragraph [ref=e74]: 连接自然与科技，每一份领养都是对生命的尊重与呵护。
+      - generic [ref=e75]:
+        - generic [ref=e76] [cursor=pointer]:
+          - generic [ref=e77]:
+            - img "土鸡" [ref=e78]
+            - generic [ref=e80]:
+              - generic [ref=e81]:
+                - generic [ref=e82]: 鸡
+                - heading "土鸡" [level=3] [ref=e83]
+              - generic [ref=e84]: ¥89.00
+            - button [ref=e85]:
+              - img [ref=e86]
+          - generic [ref=e88]:
+            - paragraph [ref=e89]: 本地土鸡
+            - generic [ref=e90]:
+              - generic [ref=e91]:
+                - generic [ref=e92]:
+                  - generic [ref=e93]: 月饲料
+                  - generic [ref=e94]: ¥29.00
+                - generic [ref=e95]:
+                  - generic [ref=e96]: 买断期
+                  - generic [ref=e97]: 12个月
+              - img [ref=e99]
+        - generic [ref=e101] [cursor=pointer]:
+          - generic [ref=e102]:
+            - img "鸵鸟蛋" [ref=e103]
+            - generic [ref=e105]:
+              - generic [ref=e106]:
+                - generic [ref=e107]: 鸵鸟
+                - heading "鸵鸟蛋" [level=3] [ref=e108]
+              - generic [ref=e109]: ¥59.00
+            - button [ref=e110]:
+              - img [ref=e111]
+          - generic [ref=e113]:
+            - paragraph [ref=e114]: 鸵鸟蛋
+            - generic [ref=e115]:
+              - generic [ref=e116]:
+                - generic [ref=e117]:
+                  - generic [ref=e118]: 月饲料
+                  - generic [ref=e119]: ¥19.00
+                - generic [ref=e120]:
+                  - generic [ref=e121]: 买断期
+                  - generic [ref=e122]: 12个月
+              - img [ref=e124]
+        - generic [ref=e126] [cursor=pointer]:
+          - generic [ref=e127]:
+            - img "山羊" [ref=e128]
+            - generic [ref=e130]:
+              - generic [ref=e131]:
+                - generic [ref=e132]: 羊
+                - heading "山羊" [level=3] [ref=e133]
+              - generic [ref=e134]: ¥199.00
+            - button [ref=e135]:
+              - img [ref=e136]
+          - generic [ref=e138]:
+            - paragraph [ref=e139]: 本地土山羊
+            - generic [ref=e140]:
+              - generic [ref=e141]:
+                - generic [ref=e142]:
+                  - generic [ref=e143]: 月饲料
+                  - generic [ref=e144]: ¥89.00
+                - generic [ref=e145]:
+                  - generic [ref=e146]: 买断期
+                  - generic [ref=e147]: 12个月
+              - img [ref=e149]
+  - generic [ref=e152]:
+    - link "探索" [ref=e153] [cursor=pointer]:
+      - /url: /
+      - img [ref=e154]
+      - generic [ref=e157]: 探索
+    - link "牧场" [ref=e158] [cursor=pointer]:
+      - /url: /my-adoptions
+      - img [ref=e159]
+      - generic [ref=e163]: 牧场
+    - link "我的 1" [ref=e164] [cursor=pointer]:
+      - /url: /profile
+      - img [ref=e165]
+      - generic [ref=e168]: 我的
+      - generic [ref=e169]: "1"

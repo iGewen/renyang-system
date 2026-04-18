@@ -1,0 +1,34 @@
+- generic [ref=e2]:
+  - generic [ref=e423]:
+    - generic [ref=e424]:
+      - img [ref=e426]
+      - heading "领养成功" [level=2] [ref=e429]
+      - paragraph [ref=e430]: 您的智慧牧场生活正式开启
+    - generic [ref=e431]:
+      - generic [ref=e432]:
+        - generic [ref=e433]:
+          - paragraph [ref=e434]: 领养编号
+          - paragraph [ref=e435]: ORDAF1A53DFBB3B
+        - generic [ref=e436]:
+          - paragraph [ref=e437]: 订单状态
+          - paragraph [ref=e438]: 已完成
+      - generic [ref=e439]:
+        - generic [ref=e441]:
+          - img [ref=e443]
+          - generic [ref=e445]:
+            - paragraph [ref=e446]: 订单已转入消息队列
+            - paragraph [ref=e447]: 正在同步牧场管理系统...
+        - generic [ref=e448]:
+          - img [ref=e450]
+          - generic [ref=e452]:
+            - paragraph [ref=e453]: 领养详情短信已发送
+            - paragraph [ref=e454]: 请查收您的手机通知
+        - generic [ref=e455]:
+          - img [ref=e457]
+          - generic [ref=e460]:
+            - paragraph [ref=e461]: 领养流程已全部完成
+            - paragraph [ref=e462]: 您可以前往牧场查看
+    - button "进入我的牧场" [ref=e463] [cursor=pointer]
+  - generic [ref=e465]:
+    - img [ref=e467]
+    - generic [ref=e469]: 支付成功

@@ -1,0 +1,206 @@
+- generic [ref=e3]:
+  - generic [ref=e52]:
+    - complementary [ref=e53]:
+      - generic [ref=e55]:
+        - img [ref=e57]
+        - generic [ref=e62]:
+          - heading "牧场管理后台" [level=1] [ref=e63]
+          - paragraph [ref=e64]: Cloud Ranch Admin
+      - button [ref=e65] [cursor=pointer]:
+        - img [ref=e66]
+      - navigation [ref=e68]:
+        - button "控制台" [ref=e69] [cursor=pointer]:
+          - img [ref=e70]
+          - generic [ref=e75]: 控制台
+        - button "活体管理" [ref=e76] [cursor=pointer]:
+          - img [ref=e77]
+          - generic [ref=e81]: 活体管理
+        - button "订单管理" [ref=e82] [cursor=pointer]:
+          - img [ref=e83]
+          - generic [ref=e87]: 订单管理
+        - button "饲料费管理" [ref=e88] [cursor=pointer]:
+          - img [ref=e89]
+          - generic [ref=e94]: 饲料费管理
+        - button "买断管理" [ref=e95] [cursor=pointer]:
+          - img [ref=e96]
+          - generic [ref=e99]: 买断管理
+        - button "用户管理" [ref=e100] [cursor=pointer]:
+          - img [ref=e101]
+          - generic [ref=e106]: 用户管理
+        - button "站内信" [ref=e107] [cursor=pointer]:
+          - img [ref=e108]
+          - generic [ref=e111]: 站内信
+        - button "协议管理" [ref=e112] [cursor=pointer]:
+          - img [ref=e113]
+          - generic [ref=e116]: 协议管理
+        - button "审计日志" [ref=e117] [cursor=pointer]:
+          - img [ref=e118]
+          - generic [ref=e121]: 审计日志
+        - button "系统配置" [ref=e122] [cursor=pointer]:
+          - img [ref=e123]
+          - generic [ref=e126]: 系统配置
+    - generic [ref=e127]:
+      - banner [ref=e128]:
+        - heading "订单管理" [level=1] [ref=e316]
+        - generic [ref=e131]:
+          - button "站内信" [ref=e132] [cursor=pointer]:
+            - img [ref=e133]
+          - generic [ref=e137]:
+            - generic [ref=e138]:
+              - paragraph [ref=e139]: admin
+              - paragraph [ref=e140]: 超级管理员
+            - generic [ref=e141]: A
+            - button "退出登录" [ref=e142] [cursor=pointer]:
+              - img [ref=e143]
+      - main [ref=e146]:
+        - generic [ref=e497]:
+          - generic [ref=e498]:
+            - heading "订单管理" [level=2] [ref=e499]
+            - generic [ref=e500]:
+              - button "全部" [ref=e501] [cursor=pointer]
+              - button "待支付" [ref=e502] [cursor=pointer]
+              - button "已支付" [ref=e503] [cursor=pointer]
+              - button "已取消" [ref=e504] [cursor=pointer]
+              - button "已退款" [ref=e505] [cursor=pointer]
+          - table [ref=e508]:
+            - rowgroup [ref=e509]:
+              - row "订单号 用户 活体 金额 状态 创建时间 操作" [ref=e510]:
+                - columnheader "订单号" [ref=e511]
+                - columnheader "用户" [ref=e512]
+                - columnheader "活体" [ref=e513]
+                - columnheader "金额" [ref=e514]
+                - columnheader "状态" [ref=e515]
+                - columnheader "创建时间" [ref=e516]
+                - columnheader "操作" [ref=e517]
+            - rowgroup [ref=e518]:
+              - row "ORD260418033205 18946209609 土鸡 ¥89.00 已退款 2026/4/18 19:32:05 详情" [ref=e519]:
+                - cell "ORD260418033205" [ref=e520]
+                - cell "18946209609" [ref=e521]
+                - cell "土鸡" [ref=e522]
+                - cell "¥89.00" [ref=e523]
+                - cell "已退款" [ref=e524]:
+                  - generic [ref=e525]: 已退款
+                - cell "2026/4/18 19:32:05" [ref=e526]
+                - cell "详情" [ref=e527]:
+                  - button "详情" [ref=e529] [cursor=pointer]
+              - row "ORD260418022745 18946209609 土鸡 ¥89.00 已支付 2026/4/18 18:27:45 详情 退款" [ref=e530]:
+                - cell "ORD260418022745" [ref=e531]
+                - cell "18946209609" [ref=e532]
+                - cell "土鸡" [ref=e533]
+                - cell "¥89.00" [ref=e534]
+                - cell "已支付" [ref=e535]:
+                  - generic [ref=e536]: 已支付
+                - cell "2026/4/18 18:27:45" [ref=e537]
+                - cell "详情 退款" [ref=e538]:
+                  - generic [ref=e539]:
+                    - button "详情" [ref=e540] [cursor=pointer]
+                    - button "退款" [ref=e541] [cursor=pointer]
+              - row "ORD260418021615 18946209609 土鸡 ¥89.00 已取消 2026/4/18 18:16:15 详情" [ref=e542]:
+                - cell "ORD260418021615" [ref=e543]
+                - cell "18946209609" [ref=e544]
+                - cell "土鸡" [ref=e545]
+                - cell "¥89.00" [ref=e546]
+                - cell "已取消" [ref=e547]:
+                  - generic [ref=e548]: 已取消
+                - cell "2026/4/18 18:16:15" [ref=e549]
+                - cell "详情" [ref=e550]:
+                  - button "详情" [ref=e552] [cursor=pointer]
+              - row "ORD260417161248 18946209609 土鸡 ¥89.00 已支付 2026/4/18 08:12:48 详情 退款" [ref=e553]:
+                - cell "ORD260417161248" [ref=e554]
+                - cell "18946209609" [ref=e555]
+                - cell "土鸡" [ref=e556]
+                - cell "¥89.00" [ref=e557]
+                - cell "已支付" [ref=e558]:
+                  - generic [ref=e559]: 已支付
+                - cell "2026/4/18 08:12:48" [ref=e560]
+                - cell "详情 退款" [ref=e561]:
+                  - generic [ref=e562]:
+                    - button "详情" [ref=e563] [cursor=pointer]
+                    - button "退款" [ref=e564] [cursor=pointer]
+              - row "ORD260417154348 18946209609 土鸡 ¥89.00 已支付 2026/4/18 07:43:48 详情 退款" [ref=e565]:
+                - cell "ORD260417154348" [ref=e566]
+                - cell "18946209609" [ref=e567]
+                - cell "土鸡" [ref=e568]
+                - cell "¥89.00" [ref=e569]
+                - cell "已支付" [ref=e570]:
+                  - generic [ref=e571]: 已支付
+                - cell "2026/4/18 07:43:48" [ref=e572]
+                - cell "详情 退款" [ref=e573]:
+                  - generic [ref=e574]:
+                    - button "详情" [ref=e575] [cursor=pointer]
+                    - button "退款" [ref=e576] [cursor=pointer]
+              - row "ORD260417153505 18946209609 土鸡 ¥89.00 已取消 2026/4/18 07:35:05 详情" [ref=e577]:
+                - cell "ORD260417153505" [ref=e578]
+                - cell "18946209609" [ref=e579]
+                - cell "土鸡" [ref=e580]
+                - cell "¥89.00" [ref=e581]
+                - cell "已取消" [ref=e582]:
+                  - generic [ref=e583]: 已取消
+                - cell "2026/4/18 07:35:05" [ref=e584]
+                - cell "详情" [ref=e585]:
+                  - button "详情" [ref=e587] [cursor=pointer]
+              - row "ORD260417153434 18946209609 土鸡 ¥89.00 已取消 2026/4/18 07:34:34 详情" [ref=e588]:
+                - cell "ORD260417153434" [ref=e589]
+                - cell "18946209609" [ref=e590]
+                - cell "土鸡" [ref=e591]
+                - cell "¥89.00" [ref=e592]
+                - cell "已取消" [ref=e593]:
+                  - generic [ref=e594]: 已取消
+                - cell "2026/4/18 07:34:34" [ref=e595]
+                - cell "详情" [ref=e596]:
+                  - button "详情" [ref=e598] [cursor=pointer]
+              - row "ORD202604179UB23Z 18946209609 土鸡 ¥89.00 已取消 2026/4/18 07:00:39 详情" [ref=e599]:
+                - cell "ORD202604179UB23Z" [ref=e600]
+                - cell "18946209609" [ref=e601]
+                - cell "土鸡" [ref=e602]
+                - cell "¥89.00" [ref=e603]
+                - cell "已取消" [ref=e604]:
+                  - generic [ref=e605]: 已取消
+                - cell "2026/4/18 07:00:39" [ref=e606]
+                - cell "详情" [ref=e607]:
+                  - button "详情" [ref=e609] [cursor=pointer]
+              - row "ORD202604179P4XO7 18946209609 土鸡 ¥89.00 已取消 2026/4/18 06:55:02 详情" [ref=e610]:
+                - cell "ORD202604179P4XO7" [ref=e611]
+                - cell "18946209609" [ref=e612]
+                - cell "土鸡" [ref=e613]
+                - cell "¥89.00" [ref=e614]
+                - cell "已取消" [ref=e615]:
+                  - generic [ref=e616]: 已取消
+                - cell "2026/4/18 06:55:02" [ref=e617]
+                - cell "详情" [ref=e618]:
+                  - button "详情" [ref=e620] [cursor=pointer]
+              - row "ORD20260417QPZPYF 18946209609 土鸡 ¥89.00 已取消 2026/4/18 06:54:33 详情" [ref=e621]:
+                - cell "ORD20260417QPZPYF" [ref=e622]
+                - cell "18946209609" [ref=e623]
+                - cell "土鸡" [ref=e624]
+                - cell "¥89.00" [ref=e625]
+                - cell "已取消" [ref=e626]:
+                  - generic [ref=e627]: 已取消
+                - cell "2026/4/18 06:54:33" [ref=e628]
+                - cell "详情" [ref=e629]:
+                  - button "详情" [ref=e631] [cursor=pointer]
+              - row "ORD20260417P7369C 18946209609 山羊 ¥199.00 已支付 2026/4/18 06:41:35 详情 退款" [ref=e632]:
+                - cell "ORD20260417P7369C" [ref=e633]
+                - cell "18946209609" [ref=e634]
+                - cell "山羊" [ref=e635]
+                - cell "¥199.00" [ref=e636]
+                - cell "已支付" [ref=e637]:
+                  - generic [ref=e638]: 已支付
+                - cell "2026/4/18 06:41:35" [ref=e639]
+                - cell "详情 退款" [ref=e640]:
+                  - generic [ref=e641]:
+                    - button "详情" [ref=e642] [cursor=pointer]
+                    - button "退款" [ref=e643] [cursor=pointer]
+              - row "ORD202604175KCFL2 18946209609 山羊 ¥0.10 已取消 2026/4/18 06:31:10 详情" [ref=e644]:
+                - cell "ORD202604175KCFL2" [ref=e645]
+                - cell "18946209609" [ref=e646]
+                - cell "山羊" [ref=e647]
+                - cell "¥0.10" [ref=e648]
+                - cell "已取消" [ref=e649]:
+                  - generic [ref=e650]: 已取消
+                - cell "2026/4/18 06:31:10" [ref=e651]
+                - cell "详情" [ref=e652]:
+                  - button "详情" [ref=e654] [cursor=pointer]
+  - generic [ref=e656]:
+    - img [ref=e658]
+    - generic [ref=e660]: 退款成功

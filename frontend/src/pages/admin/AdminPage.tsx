@@ -744,8 +744,8 @@ export const AdminOrders: React.FC = () => {
                 <p>{selectedOrder.livestock?.name || selectedOrder.livestockSnapshot?.name || '-'}</p>
               </div>
               <div>
-                <p className="text-sm text-slate-500">活体编号</p>
-                <p className="font-mono">{selectedOrder.livestockId || '-'}</p>
+                <p className="text-sm text-slate-500">领养编号</p>
+                <p className="font-mono">{selectedOrder.adoption?.adoptionNo || selectedOrder.livestockId || '-'}</p>
               </div>
               <div>
                 <p className="text-sm text-slate-500">用户手机</p>

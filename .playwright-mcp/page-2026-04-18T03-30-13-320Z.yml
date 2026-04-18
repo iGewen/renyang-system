@@ -1,0 +1,31 @@
+- generic [ref=e118]:
+  - button [ref=e120] [cursor=pointer]:
+    - img [ref=e121]
+  - generic [ref=e124]:
+    - generic [ref=e125]:
+      - heading "欢迎回来" [level=1] [ref=e126]
+      - paragraph [ref=e127]: 登录您的云端牧场账号
+    - generic [ref=e128]:
+      - button "验证码登录" [ref=e129] [cursor=pointer]
+      - button "密码登录" [ref=e130] [cursor=pointer]
+    - generic [ref=e131]:
+      - generic [ref=e132]:
+        - generic [ref=e133]: 手机号
+        - generic [ref=e134]:
+          - img [ref=e136]
+          - textbox "请输入手机号" [ref=e138]
+      - generic [ref=e139]:
+        - generic [ref=e140]: 验证码
+        - generic [ref=e141]:
+          - img [ref=e143]
+          - textbox "请输入验证码" [ref=e147]
+          - button "获取验证码" [ref=e149] [cursor=pointer]
+    - generic [ref=e150]:
+      - button "忘记密码？" [ref=e151] [cursor=pointer]
+      - button "注册账号" [ref=e152] [cursor=pointer]
+    - button "登录" [ref=e153] [cursor=pointer]
+    - generic [ref=e154]:
+      - generic [ref=e157]: 其他登录方式
+      - button "微信登录" [ref=e159] [cursor=pointer]:
+        - img [ref=e160]
+        - text: 微信登录

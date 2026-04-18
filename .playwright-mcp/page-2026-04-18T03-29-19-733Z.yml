@@ -1,0 +1,27 @@
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - generic [ref=e7]:
+      - heading "云端牧场" [level=1] [ref=e9]
+      - button [ref=e10] [cursor=pointer]:
+        - img [ref=e11]
+    - banner [ref=e15]:
+      - generic [ref=e16]:
+        - img [ref=e17]
+        - text: 智慧农业新体验
+      - heading "在云端， 拥有属于您的牧场" [level=2] [ref=e19]:
+        - text: 在云端，
+        - text: 拥有属于您的牧场
+      - paragraph [ref=e20]: 连接自然与科技，每一份领养都是对生命的尊重与呵护。
+  - generic [ref=e24]:
+    - link "探索" [ref=e25] [cursor=pointer]:
+      - /url: /
+      - img [ref=e26]
+      - generic [ref=e29]: 探索
+    - link "牧场" [ref=e30] [cursor=pointer]:
+      - /url: /my-adoptions
+      - img [ref=e31]
+      - generic [ref=e35]: 牧场
+    - link "我的" [ref=e36] [cursor=pointer]:
+      - /url: /profile
+      - img [ref=e37]
+      - generic [ref=e40]: 我的

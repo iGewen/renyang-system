@@ -1,0 +1,36 @@
+- generic [ref=e377]:
+  - generic [ref=e379]:
+    - generic [ref=e380]:
+      - button [ref=e381] [cursor=pointer]:
+        - img [ref=e382]
+      - heading "收银台" [level=1] [ref=e384]
+    - generic [ref=e385]:
+      - link [ref=e386] [cursor=pointer]:
+        - /url: /notifications
+        - img [ref=e387]
+      - link [ref=e390] [cursor=pointer]:
+        - /url: /profile
+        - img [ref=e391]
+  - generic [ref=e394]:
+    - img [ref=e396]
+    - paragraph [ref=e398]: 支付金额
+    - generic [ref=e399]:
+      - generic [ref=e400]: ¥
+      - heading "89.00" [level=2] [ref=e401]
+    - generic [ref=e402]:
+      - generic [ref=e403]:
+        - generic [ref=e404]: 收款方
+        - generic [ref=e405]: 云端牧场智慧平台
+      - generic [ref=e406]:
+        - generic [ref=e407]: 订单号
+        - generic [ref=e408]: ORD260418033205
+    - generic [ref=e409]:
+      - button "微信支付" [ref=e410] [cursor=pointer]:
+        - img [ref=e411]
+        - text: 微信支付
+      - button "余额支付" [ref=e413] [cursor=pointer]:
+        - img [ref=e414]
+        - text: 余额支付
+    - paragraph [ref=e417]:
+      - img [ref=e418]
+      - text: 支付安全加密保障

@@ -1,0 +1,84 @@
+- generic [ref=e3]:
+  - generic [ref=e471]:
+    - generic [ref=e473]:
+      - heading "我的牧场" [level=1] [ref=e475]
+      - generic [ref=e476]:
+        - link [ref=e477] [cursor=pointer]:
+          - /url: /notifications
+          - img [ref=e478]
+        - link [ref=e481] [cursor=pointer]:
+          - /url: /profile
+          - img [ref=e482]
+    - generic [ref=e485]:
+      - generic [ref=e486]:
+        - heading "牧场概览" [level=2] [ref=e487]
+        - paragraph [ref=e488]: 您目前有 5 个活体正在茁壮成长
+      - generic [ref=e489]:
+        - generic [ref=e490] [cursor=pointer]:
+          - generic [ref=e493]:
+            - heading "土鸡" [level=3] [ref=e495]
+            - paragraph [ref=e496]: "ID: HT260418033214"
+            - generic [ref=e498]: 领养中
+            - generic [ref=e499]:
+              - generic [ref=e500]: 已领养 0 天
+              - generic [ref=e501]: 已缴 0 月
+          - generic [ref=e502]:
+            - button "饲料费" [ref=e503]
+            - button "申请买断" [ref=e504]
+        - generic [ref=e505] [cursor=pointer]:
+          - generic [ref=e508]:
+            - heading "土鸡" [level=3] [ref=e510]
+            - paragraph [ref=e511]: "ID: HT260418022746"
+            - generic [ref=e513]: 领养中
+            - generic [ref=e514]:
+              - generic [ref=e515]: 已领养 0 天
+              - generic [ref=e516]: 已缴 0 月
+          - generic [ref=e517]:
+            - button "饲料费" [ref=e518]
+            - button "申请买断" [ref=e519]
+        - generic [ref=e520] [cursor=pointer]:
+          - generic [ref=e523]:
+            - heading "土鸡" [level=3] [ref=e525]
+            - paragraph [ref=e526]: "ID: HT260417235101"
+            - generic [ref=e528]: 领养中
+            - generic [ref=e529]:
+              - generic [ref=e530]: 已领养 1 天
+              - generic [ref=e531]: 已缴 0 月
+          - generic [ref=e532]:
+            - button "饲料费" [ref=e533]
+            - button "申请买断" [ref=e534]
+        - generic [ref=e535] [cursor=pointer]:
+          - generic [ref=e538]:
+            - heading "土鸡" [level=3] [ref=e540]
+            - paragraph [ref=e541]: "ID: HT260417154352"
+            - generic [ref=e543]: 领养中
+            - generic [ref=e544]:
+              - generic [ref=e545]: 已领养 1 天
+              - generic [ref=e546]: 已缴 0 月
+          - generic [ref=e547]:
+            - button "饲料费" [ref=e548]
+            - button "申请买断" [ref=e549]
+        - generic [ref=e550] [cursor=pointer]:
+          - generic [ref=e553]:
+            - heading "山羊" [level=3] [ref=e555]
+            - paragraph [ref=e556]: "ID: ADPTFBQ5EH"
+            - generic [ref=e558]: 审核通过待支付
+            - generic [ref=e559]:
+              - generic [ref=e560]: 已领养 1 天
+              - generic [ref=e561]: 已缴 0 月
+          - generic [ref=e562]:
+            - button "饲料费" [ref=e563]
+            - button "去支付" [ref=e564]
+  - generic [ref=e566]:
+    - link "探索" [ref=e567] [cursor=pointer]:
+      - /url: /
+      - img [ref=e568]
+      - generic [ref=e571]: 探索
+    - link "牧场" [ref=e572] [cursor=pointer]:
+      - /url: /my-adoptions
+      - img [ref=e573]
+      - generic [ref=e577]: 牧场
+    - link "我的" [ref=e578] [cursor=pointer]:
+      - /url: /profile
+      - img [ref=e579]
+      - generic [ref=e582]: 我的

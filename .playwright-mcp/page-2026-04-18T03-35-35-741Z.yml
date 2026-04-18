@@ -1,0 +1,95 @@
+- generic [ref=e3]:
+  - generic [ref=e171]:
+    - generic [ref=e172]:
+      - generic [ref=e173]:
+        - img "Avatar" [ref=e176]
+        - generic [ref=e179]:
+          - heading "用户9609" [level=2] [ref=e180]
+          - paragraph [ref=e181]: "18946209609"
+      - generic [ref=e183]:
+        - link "¥256.00 余额" [ref=e184] [cursor=pointer]:
+          - /url: /balance
+          - paragraph [ref=e185]: ¥256.00
+          - paragraph [ref=e186]: 余额
+        - generic [ref=e187]:
+          - paragraph [ref=e188]: "5"
+          - paragraph [ref=e189]: 领养
+        - generic [ref=e190]:
+          - paragraph [ref=e191]: "3"
+          - paragraph [ref=e192]: 天数
+    - generic [ref=e193]:
+      - generic [ref=e194]:
+        - generic [ref=e195]:
+          - generic [ref=e196]:
+            - generic [ref=e197]:
+              - heading "我的订单" [level=3] [ref=e198]
+              - link "全部订单" [ref=e199] [cursor=pointer]:
+                - /url: /orders
+                - text: 全部订单
+                - img [ref=e200]
+            - generic [ref=e202]:
+              - link "待付款" [ref=e203] [cursor=pointer]:
+                - /url: /orders?status=pending
+                - img [ref=e205]
+                - generic [ref=e208]: 待付款
+              - link "领养中" [ref=e209] [cursor=pointer]:
+                - /url: /orders?status=paid
+                - img [ref=e211]
+                - generic [ref=e215]: 领养中
+              - link "已完成" [ref=e216] [cursor=pointer]:
+                - /url: /orders?status=completed
+                - img [ref=e218]
+                - generic [ref=e222]: 已完成
+          - generic [ref=e223]:
+            - heading "智慧牧场服务" [level=3] [ref=e224]
+            - generic [ref=e226]:
+              - link "成长档案 记录爱宠成长点滴" [ref=e227] [cursor=pointer]:
+                - /url: /growth-records
+                - generic [ref=e228]:
+                  - img [ref=e230]
+                  - generic [ref=e233]:
+                    - paragraph [ref=e234]: 成长档案
+                    - paragraph [ref=e235]: 记录爱宠成长点滴
+                - img [ref=e236]
+              - link "专属管家 1对1贴心养殖指导" [ref=e238] [cursor=pointer]:
+                - /url: /support
+                - generic [ref=e239]:
+                  - img [ref=e241]
+                  - generic [ref=e243]:
+                    - paragraph [ref=e244]: 专属管家
+                    - paragraph [ref=e245]: 1对1贴心养殖指导
+                - img [ref=e246]
+        - generic [ref=e248]:
+          - generic [ref=e249]:
+            - heading "通用设置" [level=3] [ref=e250]
+            - generic [ref=e252]:
+              - link "消息中心" [ref=e253] [cursor=pointer]:
+                - /url: /notifications
+                - generic [ref=e254]:
+                  - img [ref=e256]
+                  - generic [ref=e259]: 消息中心
+                - img [ref=e260]
+              - link "我的余额" [ref=e262] [cursor=pointer]:
+                - /url: /balance
+                - generic [ref=e263]:
+                  - img [ref=e265]
+                  - generic [ref=e268]: 我的余额
+                - img [ref=e269]
+          - button "退出当前账号" [ref=e271] [cursor=pointer]:
+            - img [ref=e272]
+            - text: 退出当前账号
+      - paragraph [ref=e275]: 云端牧场智慧平台 v2.1.0 · 智慧农业领先品牌
+  - generic [ref=e152]:
+    - link "探索" [ref=e153] [cursor=pointer]:
+      - /url: /
+      - img [ref=e154]
+      - generic [ref=e157]: 探索
+    - link "牧场" [ref=e158] [cursor=pointer]:
+      - /url: /my-adoptions
+      - img [ref=e159]
+      - generic [ref=e163]: 牧场
+    - link "我的 1" [active] [ref=e164] [cursor=pointer]:
+      - /url: /profile
+      - img [ref=e165]
+      - generic [ref=e168]: 我的
+      - generic [ref=e169]: "1"

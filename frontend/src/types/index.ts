@@ -107,6 +107,9 @@ export interface Order {
   clientOrderId?: string;
   createdAt: string;
   updatedAt?: string;
+  user?: User;
+  livestock?: Livestock;
+  adoption?: Adoption;
 }
 
 // 兼容旧名称
