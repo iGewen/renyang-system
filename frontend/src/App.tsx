@@ -1193,6 +1193,39 @@ const ProfilePage: React.FC = () => {
   const { user, token, logout, isAuthenticated } = useAuth();
   const [profile, setProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showNicknameModal, setShowNicknameModal] = useState(false);
+  const [nicknameForm, setNicknameForm] = useState('');
+  const [savingNickname, setSavingNickname] = useState(false);
+  const { success, error } = useToast();
+
+  const handleSaveNickname = async () => {
+    const trimmedNickname = nicknameForm.trim();
+    if (!trimmedNickname) {
+      error('昵称不能为空');
+      return;
+    }
+    if (trimmedNickname.length > 20) {
+      error('昵称最多20个字符');
+      return;
+    }
+
+    setSavingNickname(true);
+    try {
+      const updatedUser = await authApi.updateCurrentUser({ nickname: trimmedNickname });
+      setProfile(updatedUser);
+      setShowNicknameModal(false);
+      success('昵称修改成功');
+    } catch (err: any) {
+      error(err.message || '修改失败');
+    } finally {
+      setSavingNickname(false);
+    }
+  };
+
+  const openNicknameModal = () => {
+    setNicknameForm(profile?.nickname || '');
+    setShowNicknameModal(true);
+  };
 
   useEffect(() => {
     // 未登录时跳转到登录页
@@ -1285,13 +1318,12 @@ const ProfilePage: React.FC = () => {
     <PageTransition>
       <div className="min-h-screen bg-brand-bg pb-24">
         {/* 头部区域 */}
-        <div className="relative h-52 bg-gradient-to-br from-brand-primary via-indigo-600 to-brand-primary">
+        <div className="bg-gradient-to-br from-brand-primary via-indigo-600 to-brand-primary pt-10 pb-20 px-6">
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute top-0 left-0 w-48 h-48 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
             <div className="absolute bottom-0 right-0 w-64 h-64 bg-brand-accent/20 rounded-full translate-x-1/3 translate-y-1/3 blur-3xl" />
-            <div className="absolute top-1/2 right-1/4 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
           </div>
-          <div className="relative z-10 px-6 pt-10 flex items-center gap-4">
+          <div className="relative z-10 flex items-center gap-4">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -1311,18 +1343,28 @@ const ProfilePage: React.FC = () => {
               transition={{ delay: 0.1 }}
               className="flex-1"
             >
-              <h2 className="text-xl font-display font-bold text-white tracking-tight">{profile?.nickname || '智慧牧场主'}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-display font-bold text-white tracking-tight">{profile?.nickname || '智慧牧场主'}</h2>
+                <button
+                  onClick={openNicknameModal}
+                  className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+                >
+                  <Icons.Edit className="w-4 h-4 text-white/70" />
+                </button>
+              </div>
               <p className="text-sm text-white/70 mt-0.5 font-mono">{profile?.phone || '未绑定手机'}</p>
             </motion.div>
           </div>
-          {/* 统计卡片 */}
+        </div>
+
+        {/* 统计卡片 - 独立区域 */}
+        <div className="px-6 -mt-12 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="absolute bottom-0 left-0 right-0 px-6 translate-y-1/2"
           >
-            <Card className="p-4 grid grid-cols-3 gap-4 text-center">
+            <Card className="p-4 grid grid-cols-3 gap-4 text-center shadow-lg">
               <Link to="/balance" className="group">
                 <p className="text-xl font-display font-bold text-brand-primary group-hover:scale-105 transition-transform">¥{parseFloat(profile?.balance || '0').toFixed(2)}</p>
                 <p className="text-xs text-slate-400 mt-0.5">余额</p>
@@ -1340,7 +1382,7 @@ const ProfilePage: React.FC = () => {
         </div>
 
         {/* 内容区域 */}
-        <div className="max-w-screen-xl mx-auto px-6 mt-20 space-y-6">
+        <div className="max-w-screen-xl mx-auto px-6 mt-6 space-y-6">
           {/* 桌面端统计卡片 */}
           <div className="hidden lg:grid grid-cols-3 gap-6">
             {[
@@ -1481,6 +1523,28 @@ const ProfilePage: React.FC = () => {
 
           <p className="text-center text-xs text-slate-300 pb-4 mt-4">云端牧场智慧平台 v2.1.0 · 智慧农业领先品牌</p>
         </div>
+
+        {/* 昵称修改弹窗 */}
+        <Modal open={showNicknameModal} onClose={() => setShowNicknameModal(false)} title="修改昵称">
+          <div className="p-6">
+            <Input
+              label="昵称"
+              placeholder="请输入昵称"
+              value={nicknameForm}
+              onChange={(e) => setNicknameForm(e.target.value)}
+              maxLength={20}
+            />
+            <p className="text-xs text-slate-400 mt-2">昵称最多20个字符</p>
+            <div className="flex gap-3 mt-6">
+              <Button variant="outline" className="flex-1" onClick={() => setShowNicknameModal(false)}>
+                取消
+              </Button>
+              <Button className="flex-1" onClick={handleSaveNickname} loading={savingNickname}>
+                保存
+              </Button>
+            </div>
+          </div>
+        </Modal>
       </div>
     </PageTransition>
   );

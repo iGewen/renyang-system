@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { User, BalanceLog, Adoption } from '@/entities';
@@ -45,6 +45,30 @@ export class UserService {
 
   async findByPhone(phone: string) {
     return this.userRepository.findOne({ where: { phone } });
+  }
+
+  async updateProfile(userId: string, data: { nickname?: string }) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new BadRequestException('用户不存在');
+    }
+
+    // 验证昵称
+    if (data.nickname !== undefined) {
+      const trimmedNickname = data.nickname.trim();
+      if (trimmedNickname.length === 0) {
+        throw new BadRequestException('昵称不能为空');
+      }
+      if (trimmedNickname.length > 20) {
+        throw new BadRequestException('昵称最多20个字符');
+      }
+      user.nickname = trimmedNickname;
+    }
+
+    await this.userRepository.save(user);
+
+    // 返回更新后的用户信息
+    return this.findOne(userId);
   }
 
   async updateBalance(userId: string, amount: number, remark: string) {

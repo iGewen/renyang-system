@@ -1,4 +1,4 @@
-import { Controller, Get, Param, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Param, NotFoundException, Patch, Body } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { Public } from '@/common/decorators/public.decorator';
@@ -17,6 +17,11 @@ export class UserController {
   @Get('me')
   async getCurrentUser(@CurrentUser('id') userId: string) {
     return this.userService.findOne(userId);
+  }
+
+  @Patch('me')
+  async updateProfile(@CurrentUser('id') userId: string, @Body() body: { nickname?: string }) {
+    return this.userService.updateProfile(userId, body);
   }
 
   @Get('me/balance-logs')

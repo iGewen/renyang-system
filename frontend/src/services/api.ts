@@ -197,7 +197,7 @@ export const authApi = {
   // 更新用户信息
   updateCurrentUser: async (data: { nickname?: string; avatar?: string }): Promise<User> => {
     return request('/users/me', {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify(data),
     });
   }
