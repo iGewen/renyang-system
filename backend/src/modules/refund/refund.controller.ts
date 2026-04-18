@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Query, UseGuards, Req } from '@nestjs/common';
 import { RefundService } from './refund.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { IsIn, IsOptional, IsNumber, IsBoolean, IsString, IsNumberString } from 'class-validator';
+import { Request } from 'express';
 
 class ApplyRefundDto {
   @IsString()
@@ -135,8 +136,11 @@ export class RefundController {
   @Post('admin/refund')
   async adminRefund(
     @CurrentUser('id') adminId: string,
+    @CurrentUser('username') adminName: string,
     @Body() dto: AdminRefundDto,
+    @Req() req: Request,
   ) {
+    const ip = req.ip || req.connection.remoteAddress || '';
     return this.refundService.adminRefund(
       adminId,
       dto.userId,
@@ -144,6 +148,8 @@ export class RefundController {
       dto.reason,
       dto.orderType,
       dto.orderId,
+      adminName,
+      ip,
     );
   }
 

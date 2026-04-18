@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { RefundOrder, RefundType, RefundStatus, Order, OrderStatus, Adoption, AdoptionStatus, PaymentRecord } from '@/entities';
+import { RefundOrder, RefundType, RefundStatus, Order, OrderStatus, Adoption, AdoptionStatus, PaymentRecord, AuditLog } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
 import { IdUtil } from '@/common/utils/id.util';
 import { UserService } from '../user/user.service';
@@ -23,6 +23,8 @@ export class RefundService {
     private adoptionRepository: Repository<Adoption>,
     @InjectRepository(PaymentRecord)
     private paymentRecordRepository: Repository<PaymentRecord>,
+    @InjectRepository(AuditLog)
+    private auditLogRepository: Repository<AuditLog>,
     private dataSource: DataSource,
     private redisService: RedisService,
     private userService: UserService,
@@ -382,6 +384,8 @@ export class RefundService {
     reason: string,
     orderType?: string,
     orderId?: string,
+    adminName?: string,
+    ip?: string,
   ) {
     const refund = this.refundRepository.create({
       id: IdUtil.generate('RFD'),
@@ -432,6 +436,27 @@ export class RefundService {
         }
       }
     }
+
+    // 记录审计日志
+    const auditLog = this.auditLogRepository.create({
+      adminId,
+      adminName: adminName || 'admin',
+      module: 'refund',
+      action: 'refund',
+      targetType: orderType || 'admin',
+      targetId: orderId || refund.id,
+      afterData: {
+        refundNo: refund.refundNo,
+        userId,
+        amount,
+        reason,
+        orderType,
+        orderId,
+      },
+      remark: `管理员退款: ¥${amount}, 原因: ${reason}`,
+      ip,
+    });
+    await this.auditLogRepository.save(auditLog);
 
     // 发送通知
     await this.notificationService.sendBalanceNotification(
