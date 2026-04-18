@@ -1285,7 +1285,7 @@ const ProfilePage: React.FC = () => {
     <PageTransition>
       <div className="min-h-screen bg-brand-bg pb-24">
         {/* 头部区域 */}
-        <div className="relative h-44 bg-gradient-to-br from-brand-primary via-indigo-600 to-brand-primary">
+        <div className="relative h-52 bg-gradient-to-br from-brand-primary via-indigo-600 to-brand-primary">
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute top-0 left-0 w-48 h-48 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
             <div className="absolute bottom-0 right-0 w-64 h-64 bg-brand-accent/20 rounded-full translate-x-1/3 translate-y-1/3 blur-3xl" />
@@ -1340,7 +1340,7 @@ const ProfilePage: React.FC = () => {
         </div>
 
         {/* 内容区域 */}
-        <div className="max-w-screen-xl mx-auto px-6 mt-16 space-y-6">
+        <div className="max-w-screen-xl mx-auto px-6 mt-20 space-y-6">
           {/* 桌面端统计卡片 */}
           <div className="hidden lg:grid grid-cols-3 gap-6">
             {[
