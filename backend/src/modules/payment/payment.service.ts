@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, Inject, forwardRef, Logger } from '@ne
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { PaymentRecord, PaymentStatus } from '@/entities';
+import { PaymentRecord, PaymentStatus, OrderStatus } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
 import { IdUtil } from '@/common/utils/id.util';
 import { OrderService } from '../order/order.service';
@@ -49,6 +49,10 @@ export class PaymentService {
         }
         if (order.userId !== userId) {
           throw new BadRequestException('无权支付此订单');
+        }
+        // 检查订单状态是否为待支付
+        if (order.status !== OrderStatus.PENDING_PAYMENT) {
+          throw new BadRequestException('订单已过期或已支付，请返回订单列表查看');
         }
         expectedAmount = Number(order.totalAmount) - Number(order.paidAmount || 0);
         break;

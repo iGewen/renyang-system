@@ -66,6 +66,7 @@ export interface LivestockType {
 
 export interface Livestock {
   id: string;
+  livestockNo?: string;  // 活体编号 HT + YYMMDDHHmmss
   name: string;
   typeId: string;
   typeName?: string;
