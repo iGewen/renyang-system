@@ -652,7 +652,8 @@ export class AdminService {
   }) {
     const queryBuilder = this.orderRepository.createQueryBuilder('order')
       .leftJoinAndSelect('order.user', 'user')
-      .leftJoinAndSelect('order.livestock', 'livestock');
+      .leftJoinAndSelect('order.livestock', 'livestock')
+      .leftJoinAndSelect('order.adoption', 'adoption');
 
     if (params.status !== undefined) {
       queryBuilder.andWhere('order.status = :status', { status: params.status });
