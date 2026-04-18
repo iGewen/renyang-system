@@ -435,6 +435,28 @@ const NotificationBadge: React.FC = () => {
   return <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold animate-pulse">{count > 9 ? '9+' : count}</span>;
 };
 
+// Profile页面专用的消息角标（绝对定位在图标右上角）
+const NotificationBadgeInProfile: React.FC = () => {
+  const [count, setCount] = useState(0);
+  const { token, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    // 只有登录后才获取未读数
+    if (!token || !isAuthenticated) {
+      setCount(0);
+      return;
+    }
+    notificationApi.getUnreadCount().then(res => {
+      setCount(res.count || 0);
+    }).catch(() => {
+      setCount(0);
+    });
+  }, [token, isAuthenticated]);
+
+  if (count === 0) return null;
+  return <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">{count > 9 ? '9+' : count}</span>;
+};
+
 // ==================== 底部导航 ====================
 
 const TabBar: React.FC = () => {
@@ -1171,7 +1193,10 @@ const ProfilePage: React.FC = () => {
                   <div className="divide-y divide-slate-50">
                     <Link to="/notifications" className="p-5 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-brand-bg flex items-center justify-center text-brand-primary shadow-sm"><Icons.Bell className="w-6 h-6" /></div>
+                        <div className="w-12 h-12 rounded-full bg-brand-bg flex items-center justify-center text-brand-primary shadow-sm relative">
+                          <Icons.Bell className="w-6 h-6" />
+                          <NotificationBadgeInProfile />
+                        </div>
                         <span className="text-base font-bold text-slate-700">消息中心</span>
                       </div>
                       <Icons.ChevronRight className="w-5 h-5 text-slate-300" />
