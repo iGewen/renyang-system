@@ -73,7 +73,8 @@ export class PaymentService {
         if (!feedBill) {
           throw new BadRequestException('饲料账单不存在');
         }
-        expectedAmount = Number(feedBill.amount);
+        // 使用 adjustedAmount 或 originalAmount，而非 amount
+        expectedAmount = Number(feedBill.adjustedAmount || feedBill.originalAmount) + Number(feedBill.lateFeeAmount || 0);
         break;
       }
       case 'recharge': {
@@ -90,7 +91,7 @@ export class PaymentService {
 
     // 验证金额（允许0.01的误差，处理浮点数精度问题）
     if (orderType !== 'recharge' && Math.abs(amount - expectedAmount) > 0.01) {
-      throw new BadRequestException(`支付金额与订单金额不符，期望金额: ${expectedAmount.toFixed(2)}元`);
+      throw new BadRequestException('支付金额与订单金额不符');
     }
 
     // 创建支付记录
@@ -142,7 +143,7 @@ export class PaymentService {
       }
 
       if (userBalance < paymentAmount) {
-        throw new BadRequestException(`余额不足，当前余额: ${userBalance.toFixed(2)}元，需要支付: ${paymentAmount.toFixed(2)}元`);
+        throw new BadRequestException('余额不足，请充值后重试');
       }
 
       // 扣减余额

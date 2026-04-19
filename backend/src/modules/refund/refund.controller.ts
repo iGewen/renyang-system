@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Param, Body, Query, UseGuards, Req } from '@nestjs/common';
 import { RefundService } from './refund.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { AdminGuard } from '@/common/guards/admin.guard';
+import { RequireAdmin } from '@/common/decorators/admin-role.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { IsIn, IsOptional, IsNumber, IsBoolean, IsString, IsNumberString } from 'class-validator';
 import { Request } from 'express';
@@ -115,6 +117,8 @@ export class RefundController {
    * 审核退款申请（管理员）
    */
   @Post('admin/:id/audit')
+  @UseGuards(AdminGuard)
+  @RequireAdmin()
   async auditRefund(
     @Param('id') id: string,
     @Body() dto: AuditRefundDto,
@@ -134,6 +138,8 @@ export class RefundController {
    * 管理员直接退款
    */
   @Post('admin/refund')
+  @UseGuards(AdminGuard)
+  @RequireAdmin()
   async adminRefund(
     @CurrentUser('id') adminId: string,
     @CurrentUser('username') adminName: string,
@@ -157,6 +163,8 @@ export class RefundController {
    * 获取待审核退款列表（管理员）
    */
   @Get('admin/pending')
+  @UseGuards(AdminGuard)
+  @RequireAdmin()
   async getPendingRefunds(
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
@@ -171,6 +179,8 @@ export class RefundController {
    * 获取所有退款列表（管理员）
    */
   @Get('admin/all')
+  @UseGuards(AdminGuard)
+  @RequireAdmin()
   async getAllRefunds(
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,

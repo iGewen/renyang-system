@@ -72,80 +72,83 @@ export class RedemptionService {
    * 申请买断
    */
   async applyRedemption(adoptionId: string, userId: string) {
-    // 获取领养信息
-    const adoption = await this.adoptionRepository.findOne({
-      where: { id: adoptionId, userId },
-      relations: ['livestock'],
-    });
+    // 使用事务确保数据一致性
+    return this.dataSource.transaction(async (manager) => {
+      // 获取领养信息
+      const adoption = await manager.findOne(Adoption, {
+        where: { id: adoptionId, userId },
+        relations: ['livestock'],
+      });
 
-    if (!adoption) {
-      throw new NotFoundException('领养记录不存在');
-    }
+      if (!adoption) {
+        throw new NotFoundException('领养记录不存在');
+      }
 
-    // 检查状态
-    if (adoption.status !== AdoptionStatus.ACTIVE &&
-        adoption.status !== AdoptionStatus.REDEEMABLE &&
-        adoption.status !== AdoptionStatus.FEED_OVERDUE) {
-      throw new BadRequestException('当前状态不允许申请买断');
-    }
+      // 检查状态
+      if (adoption.status !== AdoptionStatus.ACTIVE &&
+          adoption.status !== AdoptionStatus.REDEEMABLE &&
+          adoption.status !== AdoptionStatus.FEED_OVERDUE) {
+        throw new BadRequestException('当前状态不允许申请买断');
+      }
 
-    // 检查是否已有待审核的买断申请
-    const existingRedemption = await this.redemptionRepository.findOne({
-      where: {
+      // 检查是否已有待审核的买断申请
+      const existingRedemption = await manager.findOne(RedemptionOrder, {
+        where: {
+          adoptionId,
+          status: RedemptionStatus.PENDING_AUDIT,
+        },
+      });
+
+      if (existingRedemption) {
+        throw new BadRequestException('已有待审核的买断申请');
+      }
+
+      // 计算买断金额
+      const livestock = adoption.livestockSnapshot as any;
+      const requiredMonths = adoption.redemptionMonths - 1; // 首月免费
+      const remainingMonths = Math.max(0, requiredMonths - adoption.feedMonthsPaid);
+      const monthlyFeedFee = livestock?.monthlyFeedFee || 0;
+
+      // 判断买断类型和金额
+      let type: RedemptionType;
+      let amount: number;
+
+      if (remainingMonths === 0) {
+        // 满期买断，不需要额外支付
+        type = RedemptionType.FULL;
+        amount = 0;
+      } else {
+        // 提前买断，需要支付剩余饲料费
+        type = RedemptionType.EARLY;
+        amount = remainingMonths * monthlyFeedFee;
+      }
+
+      // 创建买断订单
+      const redemption = manager.create(RedemptionOrder, {
+        id: IdUtil.generate('RDM'),
+        redemptionNo: IdUtil.generateRedemptionNo(),
         adoptionId,
+        userId,
+        livestockId: adoption.livestockId,
+        type,
+        originalAmount: amount,
+        finalAmount: amount,
         status: RedemptionStatus.PENDING_AUDIT,
-      },
+      });
+
+      await manager.save(redemption);
+
+      // 更新领养状态为买断审核中
+      adoption.status = AdoptionStatus.REDEMPTION_PENDING;
+      await manager.save(adoption);
+
+      return {
+        redemption,
+        type: type === RedemptionType.FULL ? 'full' : 'early',
+        remainingMonths,
+        monthlyFeedFee,
+      };
     });
-
-    if (existingRedemption) {
-      throw new BadRequestException('已有待审核的买断申请');
-    }
-
-    // 计算买断金额
-    const livestock = adoption.livestockSnapshot as any;
-    const requiredMonths = adoption.redemptionMonths - 1; // 首月免费
-    const remainingMonths = Math.max(0, requiredMonths - adoption.feedMonthsPaid);
-    const monthlyFeedFee = livestock?.monthlyFeedFee || 0;
-
-    // 判断买断类型和金额
-    let type: RedemptionType;
-    let amount: number;
-
-    if (remainingMonths === 0) {
-      // 满期买断，不需要额外支付
-      type = RedemptionType.FULL;
-      amount = 0;
-    } else {
-      // 提前买断，需要支付剩余饲料费
-      type = RedemptionType.EARLY;
-      amount = remainingMonths * monthlyFeedFee;
-    }
-
-    // 创建买断订单
-    const redemption = this.redemptionRepository.create({
-      id: IdUtil.generate('RDM'),
-      redemptionNo: IdUtil.generateRedemptionNo(),
-      adoptionId,
-      userId,
-      livestockId: adoption.livestockId,
-      type,
-      originalAmount: amount,
-      finalAmount: amount,
-      status: RedemptionStatus.PENDING_AUDIT,
-    });
-
-    await this.redemptionRepository.save(redemption);
-
-    // 更新领养状态为买断审核中
-    adoption.status = AdoptionStatus.REDEMPTION_PENDING;
-    await this.adoptionRepository.save(adoption);
-
-    return {
-      redemption,
-      type: type === RedemptionType.FULL ? 'full' : 'early',
-      remainingMonths,
-      monthlyFeedFee,
-    };
   }
 
   /**

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 
@@ -37,11 +37,34 @@ export const useToast = () => {
   return context;
 };
 
-// 用于去重的消息缓存
+// 用于去重的消息缓存（使用模块级别的 Map，但限制大小）
 const recentMessages = new Map<string, number>();
+const MAX_CACHE_SIZE = 100;
+
+// 清理过期缓存的辅助函数
+const cleanupExpiredMessages = () => {
+  const now = Date.now();
+  const keysToDelete: string[] = [];
+  recentMessages.forEach((timestamp, key) => {
+    if (now - timestamp > 3000) {
+      keysToDelete.push(key);
+    }
+  });
+  keysToDelete.forEach(key => recentMessages.delete(key));
+};
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  // 使用 ref 存储所有 timeout ID，以便在组件卸载时清理
+  const timeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  // 组件卸载时清理所有 timeout
+  useEffect(() => {
+    return () => {
+      timeoutRefs.current.forEach(timeout => clearTimeout(timeout));
+      timeoutRefs.current.clear();
+    };
+  }, []);
 
   const showToast = useCallback((type: ToastType, message: string) => {
     // 去重：检查最近3秒内是否已显示过相同消息
@@ -51,22 +74,33 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (lastShown && now - lastShown < 3000) {
       return; // 跳过重复消息
     }
-    recentMessages.set(key, now);
 
-    // 清理过期的缓存
-    setTimeout(() => {
-      if (recentMessages.get(key) === now) {
-        recentMessages.delete(key);
-      }
-    }, 3000);
+    // 清理过期缓存并限制大小
+    cleanupExpiredMessages();
+    if (recentMessages.size >= MAX_CACHE_SIZE) {
+      const firstKey = recentMessages.keys().next().value;
+      if (firstKey) recentMessages.delete(firstKey);
+    }
+    recentMessages.set(key, now);
 
     const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     setToasts(prev => [...prev, { id, type, message }]);
 
-    // 3秒后自动消失
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
+    // 清理缓存的 timeout
+    const cleanupTimeoutId = setTimeout(() => {
+      if (recentMessages.get(key) === now) {
+        recentMessages.delete(key);
+      }
+      timeoutRefs.current.delete(`cleanup-${key}`);
     }, 3000);
+    timeoutRefs.current.set(`cleanup-${key}`, cleanupTimeoutId);
+
+    // 3秒后自动消失的 timeout
+    const dismissTimeoutId = setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+      timeoutRefs.current.delete(`dismiss-${id}`);
+    }, 3000);
+    timeoutRefs.current.set(`dismiss-${id}`, dismissTimeoutId);
   }, []);
 
   const success = useCallback((message: string) => showToast('success', message), [showToast]);

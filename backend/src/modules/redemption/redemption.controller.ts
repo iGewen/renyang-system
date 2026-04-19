@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Param, Body, Query, UseGuards, SetMetadata } from '@nestjs/common';
 import { RedemptionService } from './redemption.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { AdminGuard } from '@/common/guards/admin.guard';
+import { RequireAdmin } from '@/common/decorators/admin-role.decorator';
 import { UserStatusGuard, UserStatus, MIN_STATUS_KEY } from '@/common/guards/user-status.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { IsIn, IsOptional, IsNumber, IsBoolean, IsNumberString } from 'class-validator';
@@ -108,6 +110,8 @@ export class RedemptionController {
    * 审核买断申请（管理员）
    */
   @Post('admin/:id/audit')
+  @UseGuards(AdminGuard)
+  @RequireAdmin()
   async auditRedemption(
     @Param('id') id: string,
     @Body() dto: AuditRedemptionDto,
@@ -126,6 +130,8 @@ export class RedemptionController {
    * 获取待审核买断列表（管理员）
    */
   @Get('admin/pending')
+  @UseGuards(AdminGuard)
+  @RequireAdmin()
   async getPendingRedemptions(
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
@@ -140,6 +146,8 @@ export class RedemptionController {
    * 获取所有买断列表（管理员）
    */
   @Get('admin/all')
+  @UseGuards(AdminGuard)
+  @RequireAdmin()
   async getAllRedemptions(
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
