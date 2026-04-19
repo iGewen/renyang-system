@@ -173,9 +173,12 @@ export class AppModule implements NestModule, OnModuleInit {
         // 从环境变量获取默认密码，如果未设置则生成随机密码（仅开发环境）
         const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || this.generateRandomPassword();
         const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+        // 生成32字符的UUID（不带横线）
+        const crypto = require('crypto');
+        const adminId = crypto.randomUUID().replace(/-/g, '');
         await this.dataSource.query(
-          'INSERT INTO admins (id, username, password, name, role, status, force_change_password, created_at, updated_at) VALUES (UUID(), ?, ?, ?, 1, 1, 1, NOW(), NOW())',
-          ['admin', hashedPassword, '超级管理员']
+          'INSERT INTO admins (id, username, password, name, role, status, force_change_password, created_at, updated_at) VALUES (?, ?, ?, ?, 1, 1, 1, NOW(), NOW())',
+          [adminId, 'admin', hashedPassword, '超级管理员']
         );
         this.logger.log('默认管理员账号已创建 (用户名: admin)');
         // 安全修复：不在日志中打印密码
