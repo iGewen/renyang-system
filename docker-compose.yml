@@ -21,7 +21,6 @@ services:
       - "${MYSQL_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./backend/scripts/init-database.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - ./mysql/charset.cnf:/etc/mysql/conf.d/charset.cnf:ro
     networks:
       - cloud-ranch-network
