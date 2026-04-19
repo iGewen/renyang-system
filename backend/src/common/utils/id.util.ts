@@ -27,8 +27,12 @@ export class IdUtil {
   /**
    * 生成随机后缀（密码学安全）
    * 确保同一秒内生成的 ID 也是唯一的
+   *
+   * 安全修复：随机位数从 4 位增加到 8 位
+   * - 4位随机空间：65536，100单/秒冲突率 7.6%
+   * - 8位随机空间：42.9亿，100单/秒冲突率 0.001%
    */
-  private static getRandomSuffix(length: number = 4): string {
+  private static getRandomSuffix(length: number = 8): string {
     return crypto.randomBytes(length).toString('hex').substring(0, length).toUpperCase();
   }
 
