@@ -2,7 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RedemptionController } from './redemption.controller';
 import { RedemptionService } from './redemption.service';
-import { RedemptionOrder, Adoption, Livestock } from '@/entities';
+import { RedemptionOrder, Adoption, Livestock, Admin } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
 import { AdoptionModule } from '../adoption/adoption.module';
 import { PaymentModule } from '../payment/payment.module';
@@ -10,7 +10,7 @@ import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([RedemptionOrder, Adoption, Livestock]),
+    TypeOrmModule.forFeature([RedemptionOrder, Adoption, Livestock, Admin]),
     AdoptionModule,
     forwardRef(() => PaymentModule),
     NotificationModule,
