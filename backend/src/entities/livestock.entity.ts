@@ -22,7 +22,6 @@ export class Livestock {
   @Column({ name: 'livestock_no', length: 20, nullable: true, comment: '活体编号(领养编号)' })
   livestockNo: string;
 
-  @Index()
   @Column({ name: 'type_id', length: 32, comment: '类型ID' })
   typeId: string;
 

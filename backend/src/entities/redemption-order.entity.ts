@@ -34,15 +34,12 @@ export class RedemptionOrder {
   @Column({ name: 'redemption_no', length: 32, unique: true, comment: '买断编号' })
   redemptionNo: string;
 
-  @Index()
   @Column({ name: 'adoption_id', length: 32, comment: '领养记录ID' })
   adoptionId: string;
 
-  @Index()
   @Column({ name: 'user_id', length: 32, comment: '用户ID' })
   userId: string;
 
-  @Index()
   @Column({ name: 'livestock_id', length: 32, comment: '活体ID' })
   livestockId: string;
 

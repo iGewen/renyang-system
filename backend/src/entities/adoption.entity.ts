@@ -34,15 +34,12 @@ export class Adoption {
   @Column({ name: 'adoption_no', length: 32, unique: true, comment: '领养编号' })
   adoptionNo: string;
 
-  @Index()
   @Column({ name: 'order_id', length: 32, comment: '订单ID' })
   orderId: string;
 
-  @Index()
   @Column({ name: 'user_id', length: 32, comment: '用户ID' })
   userId: string;
 
-  @Index()
   @Column({ name: 'livestock_id', length: 32, comment: '活体ID' })
   livestockId: string;
 

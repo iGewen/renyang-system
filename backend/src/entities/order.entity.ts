@@ -30,11 +30,9 @@ export class Order {
   @Column({ name: 'order_no', length: 32, unique: true, comment: '订单编号' })
   orderNo: string;
 
-  @Index()
   @Column({ name: 'user_id', length: 32, comment: '用户ID' })
   userId: string;
 
-  @Index()
   @Column({ name: 'livestock_id', length: 32, comment: '活体ID' })
   livestockId: string;
 

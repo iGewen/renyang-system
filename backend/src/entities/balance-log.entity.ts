@@ -14,7 +14,6 @@ export class BalanceLog {
   @Column({ length: 32, primary: true, comment: '余额日志ID' })
   id: string;
 
-  @Index()
   @Column({ name: 'user_id', length: 32, comment: '用户ID' })
   userId: string;
 

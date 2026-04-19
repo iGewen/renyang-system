@@ -29,14 +29,12 @@ export class PaymentRecord {
   @Column({ name: 'out_trade_no', length: 32, nullable: true, comment: '商户订单号' })
   outTradeNo: string;
 
-  @Index()
   @Column({ name: 'user_id', length: 32, comment: '用户ID' })
   userId: string;
 
   @Column({ name: 'order_type', length: 20, comment: '订单类型：adoption/feed/redemption/recharge' })
   orderType: string;
 
-  @Index()
   @Column({ name: 'order_id', length: 32, comment: '订单ID' })
   orderId: string;
 
