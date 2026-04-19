@@ -1919,7 +1919,7 @@ const SecurityPage: React.FC = () => {
 
         {/* 修改密码弹窗 */}
         <Modal open={showPasswordModal} onClose={() => setShowPasswordModal(false)} title="修改密码">
-          <div className="p-6 space-y-4">
+          <div className="p-4 space-y-3">
             <Input
               label="原密码"
               type="password"
@@ -1941,11 +1941,11 @@ const SecurityPage: React.FC = () => {
               value={passwordForm.confirmPassword}
               onChange={e => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
             />
-            <div className="flex gap-3 pt-4">
-              <Button variant="outline" className="flex-1" onClick={() => setShowPasswordModal(false)}>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => setShowPasswordModal(false)}>
                 取消
               </Button>
-              <Button className="flex-1" onClick={handleChangePassword} loading={passwordLoading}>
+              <Button size="sm" className="flex-1" onClick={handleChangePassword} loading={passwordLoading}>
                 确认修改
               </Button>
             </div>
@@ -1954,18 +1954,13 @@ const SecurityPage: React.FC = () => {
 
         {/* 修改手机号弹窗 */}
         <Modal open={showPhoneModal} onClose={() => setShowPhoneModal(false)} title="更换手机号">
-          <div className="p-6 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">新手机号</label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="请输入新手机号"
-                  value={phoneForm.newPhone}
-                  onChange={e => setPhoneForm({ ...phoneForm, newPhone: e.target.value })}
-                  className="flex-1"
-                />
-              </div>
-            </div>
+          <div className="p-4 space-y-3">
+            <Input
+              label="新手机号"
+              placeholder="请输入新手机号"
+              value={phoneForm.newPhone}
+              onChange={e => setPhoneForm({ ...phoneForm, newPhone: e.target.value })}
+            />
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">验证码</label>
               <div className="flex gap-2">
@@ -1977,19 +1972,20 @@ const SecurityPage: React.FC = () => {
                 />
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={handleSendCode}
                   disabled={countdown > 0}
-                  className="whitespace-nowrap"
+                  className="whitespace-nowrap px-3"
                 >
                   {countdown > 0 ? `${countdown}s` : '获取验证码'}
                 </Button>
               </div>
             </div>
-            <div className="flex gap-3 pt-4">
-              <Button variant="outline" className="flex-1" onClick={() => setShowPhoneModal(false)}>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => setShowPhoneModal(false)}>
                 取消
               </Button>
-              <Button className="flex-1" onClick={handleChangePhone} loading={phoneLoading}>
+              <Button size="sm" className="flex-1" onClick={handleChangePhone} loading={phoneLoading}>
                 确认修改
               </Button>
             </div>

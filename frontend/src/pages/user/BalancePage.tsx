@@ -93,32 +93,23 @@ export const BalancePage: React.FC = () => {
 
   const getTypeIcon = (log: BalanceLog) => {
     const type = Number(log.type);
-    if (type === 1) {
+    // 收入（充值/退款）- 红色向下箭头
+    if (type === 1 || type === 3) {
       return (
-        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 2v20M17 7l-5-5-5 5" />
-          <rect x="3" y="14" width="18" height="8" rx="2" />
-          <path d="M12 18h.01" />
+        <svg className="w-5 h-5" viewBox="0 0 1024 1024">
+          <path d="M633.2416 284.672l-98.9696 131.9424h66.9184a17.664 17.664 0 1 1 0 35.328h-71.168v36.1472h71.168a17.7152 17.7152 0 1 1 0 35.328h-71.168v53.76h-0.256l0.1024 0.5632a17.8176 17.8176 0 0 1-17.8688 17.92 17.8176 17.8176 0 0 1-17.8688-17.92l0.1024-0.512h-0.3584v-53.76H422.8096a17.664 17.664 0 1 1 0-35.328h71.0656V452.096H422.8096a17.664 17.664 0 1 1 0-35.328h66.9184L390.7584 284.672a17.8176 17.8176 0 1 1 28.5184-21.504L512 386.8672l92.5184-123.6992a18.2272 18.2272 0 0 1 25.1904-3.5328 17.92 17.92 0 0 1 3.584 25.088m235.2128 250.0096a28.672 28.672 0 0 0-26.9312-18.3296h-154.5728V177.0496A23.2448 23.2448 0 0 0 663.296 153.6H361.2672a23.9616 23.9616 0 0 0-24.4736 23.4496v339.3536H182.4768a28.8256 28.8256 0 0 0-27.0336 18.432 28.8768 28.8768 0 0 0 7.7824 31.744l331.4176 296.4992a28.7744 28.7744 0 0 0 38.5536-0.1536l327.68-296.448a28.8768 28.8768 0 0 0 7.5776-31.744" fill="currentColor" />
         </svg>
       );
     }
+    // 支出（消费）- 蓝色向上箭头
     if (type === 2) {
       return (
-        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 22V2M17 17l-5 5-5-5" />
-          <rect x="3" y="2" width="18" height="8" rx="2" />
-          <path d="M12 6h.01" />
+        <svg className="w-5 h-5" viewBox="0 0 1024 1024">
+          <path d="M513.8944 153.6c6.912 0 13.824 2.5088 19.3024 7.4752l327.68 296.448a28.672 28.672 0 1 1-19.3024 50.0736h-154.624v339.3536a23.2448 23.2448 0 0 1-23.552 23.4496H361.216a23.9104 23.9104 0 0 1-24.4736-23.4496V507.5968H182.4768a28.8768 28.8768 0 0 1-26.9824-18.432 28.8768 28.8768 0 0 1 7.7312-31.744l331.4688-296.4992A28.8256 28.8256 0 0 1 513.8944 153.6z m-96.256 250.2656a17.8688 17.8688 0 1 0-28.5184 21.504l98.9696 132.096H421.1712a17.664 17.664 0 1 0 0 35.328h71.1168v36.096H421.1712a17.664 17.664 0 1 0 0 35.328h71.1168v53.76c0.3072 0 0.2048 0.3072 0.2048 0.512a17.8688 17.8688 0 1 0 35.7376 0l-0.0512-0.6144h0.1536v-53.76h71.2192a17.664 17.664 0 1 0 0-35.328H528.384v-36.096h71.2192a17.664 17.664 0 1 0 0-35.328h-66.9184l98.9696-131.9936a17.92 17.92 0 0 0-3.584-25.0368 18.176 18.176 0 0 0-25.1904 3.584l-92.5184 123.648z" fill="currentColor" />
         </svg>
       );
     }
-    if (type === 3) {
-      return (
-        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-          <path d="M3 3v5h5" />
-        </svg>
-      );
-    }
+    // 调整 - 设置图标
     return (
       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="3" />
@@ -129,9 +120,9 @@ export const BalancePage: React.FC = () => {
 
   const getTypeColor = (log: BalanceLog) => {
     const type = Number(log.type);
-    if (type === 1) return 'bg-emerald-100 text-emerald-600';
-    if (type === 2) return 'bg-orange-100 text-orange-600';
-    if (type === 3) return 'bg-blue-100 text-blue-600';
+    if (type === 1) return 'bg-red-100 text-red-500';  // 充值 - 红色
+    if (type === 2) return 'bg-blue-100 text-blue-500';  // 消费 - 蓝色
+    if (type === 3) return 'bg-red-100 text-red-500';  // 退款 - 红色
     return 'bg-slate-100 text-slate-600';
   };
 
@@ -244,19 +235,19 @@ export const BalancePage: React.FC = () => {
                 {filteredLogs.map(log => {
                   const amount = getAmount(log);
                   return (
-                    <Card key={log.id} className="p-4">
+                    <Card key={log.id} className="p-3">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${getTypeColor(log)}`}>
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${getTypeColor(log)}`}>
                             {getTypeIcon(log)}
                           </div>
-                          <div>
-                            <p className="font-medium text-slate-900">{log.remark || getTypeText(log)}</p>
+                          <div className="min-w-0">
+                            <p className="text-sm text-slate-900 truncate">{log.remark || getTypeText(log)}</p>
                             <p className="text-xs text-slate-400">{new Date(log.createdAt).toLocaleString()}</p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className={`font-bold ${amount > 0 ? 'text-green-600' : 'text-slate-900'}`}>
+                        <div className="text-right flex-shrink-0">
+                          <p className={`text-sm font-bold ${amount > 0 ? 'text-green-600' : 'text-slate-900'}`}>
                             {amount > 0 ? '+' : ''}{amount.toFixed(2)}
                           </p>
                           <p className="text-xs text-slate-400">余额: {getBalanceAfter(log).toFixed(2)}</p>

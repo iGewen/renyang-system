@@ -2975,9 +2975,9 @@ export const AdminAuditLogs: React.FC = () => {
               </button>
             ))}
           </div>
-          <Button variant="danger" onClick={openClearConfirm}>
-            <Icons.Trash2 className="w-4 h-4 mr-2" />
-            清空日志
+          <Button variant="danger" size="sm" onClick={openClearConfirm}>
+            <Icons.Trash2 className="w-4 h-4" />
+            <span>清空日志</span>
           </Button>
         </div>
       </div>
