@@ -167,6 +167,7 @@ export class SmsService {
 
   /**
    * 验证验证码
+   * 安全修复：验证成功后立即删除，防止重放攻击
    */
   async verifyCode(phone: string, code: string, type: string): Promise<boolean> {
     // 从Redis获取验证码
@@ -181,18 +182,27 @@ export class SmsService {
       throw new BadRequestException('验证码错误');
     }
 
+    // 安全修复：验证成功后立即删除 Redis 中的验证码，防止重放攻击
+    await this.redisService.del(codeKey);
+
+    // 更新数据库中的验证码状态
+    await this.smsCodeRepository.update(
+      { phone, code, type, isUsed: 0 },
+      { isUsed: 1 },
+    );
+
     return true;
   }
 
   /**
    * 标记验证码已使用
+   * @deprecated 已在 verifyCode 中自动处理
    */
   async markCodeUsed(phone: string, code: string, type: string): Promise<void> {
-    // 删除Redis中的验证码
+    // 兼容旧调用，实际已在 verifyCode 中处理
     const codeKey = `sms:code:${phone}:${type}`;
     await this.redisService.del(codeKey);
 
-    // 更新数据库中的验证码状态
     await this.smsCodeRepository.update(
       { phone, code, type, isUsed: 0 },
       { isUsed: 1 },

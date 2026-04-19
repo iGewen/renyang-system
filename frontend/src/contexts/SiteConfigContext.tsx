@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { siteConfigApi } from '../services/api';
+import logger from '../utils/logger';
 
 interface SiteConfig {
   siteName: string;
@@ -111,7 +112,7 @@ export const SiteConfigProvider: React.FC<AppConfigProviderProps> = ({ children 
           metaKeywords.setAttribute('content', newSiteConfig.siteKeywords);
         }
       } catch (error) {
-        console.error('Failed to load config:', error);
+        logger.error('Failed to load config:', error);
         setConfig(prev => ({
           site: { ...prev.site, loaded: true },
           payment: { ...prev.payment, loaded: true },

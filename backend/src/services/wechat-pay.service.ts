@@ -504,6 +504,7 @@ export class WechatPayService {
   /**
    * 查询退款
    * 文档：https://pay.weixin.qq.com/doc/v3/merchant/4012791871
+   * 安全修复：配置缺失时抛出异常而非返回假成功
    */
   async queryRefund(outRefundNo: string): Promise<any> {
     const mchId = await this.getConfig('wechat_mch_id');
@@ -512,8 +513,8 @@ export class WechatPayService {
     const privateKey = await this.getConfig('wechat_private_key');
 
     if (!mchId || !apiV3Key || !serialNo || !privateKey) {
-      this.logger.log(`[WechatPay] 模拟查询退款 - 退款单号: ${outRefundNo}`);
-      return { status: 'SUCCESS' };
+      this.logger.error(`[WechatPay] 微信支付配置缺失，无法查询退款 - 退款单号: ${outRefundNo}`);
+      throw new BadRequestException('微信支付未配置，无法查询退款状态');
     }
 
     const url = `https://api.mch.weixin.qq.com/v3/refund/domestic/refunds/${outRefundNo}`;
@@ -535,6 +536,7 @@ export class WechatPayService {
    * 申请交易账单
    * 文档：https://pay.weixin.qq.com/doc/v3/merchant/4012791871
    * @param billDate 账单日期，格式：YYYY-MM-DD
+   * 安全修复：配置缺失时抛出异常而非返回空数据
    */
   async getTradeBill(billDate: string): Promise<{ downloadUrl: string; billCount?: number }> {
     const mchId = await this.getConfig('wechat_mch_id');
@@ -542,8 +544,8 @@ export class WechatPayService {
     const privateKey = await this.getConfig('wechat_private_key');
 
     if (!mchId || !serialNo || !privateKey) {
-      this.logger.log(`[WechatPay] 模拟申请账单 - 日期: ${billDate}`);
-      return { downloadUrl: '' };
+      this.logger.error(`[WechatPay] 微信支付配置缺失，无法申请账单 - 日期: ${billDate}`);
+      throw new BadRequestException('微信支付未配置，无法申请账单');
     }
 
     const url = `https://api.mch.weixin.qq.com/v3/bill/tradebill?bill_date=${billDate}&bill_type=ALL`;

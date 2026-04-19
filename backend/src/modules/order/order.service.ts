@@ -146,7 +146,12 @@ export class OrderService {
     });
   }
 
-  async getById(orderId: string, userId?: string) {
+  /**
+   * 根据订单ID获取订单（内部使用）
+   * 安全修复：设为私有方法，不允许外部直接调用
+   * 如需验证用户归属，请使用 getByIdForUser
+   */
+  private async getById(orderId: string, userId?: string) {
     const where: any = { id: orderId };
     if (userId) {
       where.userId = userId;

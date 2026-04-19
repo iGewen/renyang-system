@@ -62,10 +62,26 @@ export class AdminService {
 
   // =============== 管理员认证相关 ===============
 
+  // 登录失败限制常量
+  private readonly ADMIN_LOGIN_FAIL_MAX_ATTEMPTS = 5;
+  private readonly ADMIN_LOGIN_FAIL_LOCK_DURATION = 900; // 15分钟
+
   /**
    * 管理员登录
+   * 安全修复：添加暴力破解防护，记录 userAgent
    */
-  async login(username: string, password: string, ip: string) {
+  async login(username: string, password: string, ip: string, userAgent?: string) {
+    // 检查是否被锁定
+    const lockKey = `admin:login:lock:${username}`;
+    const lockData = await this.redisService.get(lockKey);
+    if (lockData) {
+      const { lockUntil } = JSON.parse(lockData);
+      if (Date.now() < lockUntil) {
+        const remainSeconds = Math.ceil((lockUntil - Date.now()) / 1000);
+        throw new UnauthorizedException(`登录失败次数过多，账号已锁定 ${Math.ceil(remainSeconds / 60)} 分钟`);
+      }
+    }
+
     const admin = await this.adminRepository
       .createQueryBuilder('admin')
       .where('admin.username = :username', { username })
@@ -73,6 +89,8 @@ export class AdminService {
       .getOne();
 
     if (!admin) {
+      // 记录失败次数（使用 IP + username 组合）
+      await this.recordLoginFailure(username, ip);
       throw new UnauthorizedException('用户名或密码错误');
     }
 
@@ -82,8 +100,14 @@ export class AdminService {
 
     const isPasswordValid = await bcrypt.compare(password, admin.password);
     if (!isPasswordValid) {
+      // 记录失败次数
+      await this.recordLoginFailure(username, ip);
       throw new UnauthorizedException('用户名或密码错误');
     }
+
+    // 登录成功，清除失败记录
+    const failKey = `admin:login:fail:${username}`;
+    await this.redisService.del(failKey);
 
     // 更新最后登录信息
     await this.adminRepository.update(admin.id, {
@@ -109,6 +133,7 @@ export class AdminService {
       action: 'login',
       remark: '管理员登录',
       ip,
+      userAgent,
     });
 
     return {
@@ -122,6 +147,26 @@ export class AdminService {
         forceChangePassword: admin.forceChangePassword === 1,
       },
     };
+  }
+
+  /**
+   * 记录登录失败（暴力破解防护）
+   */
+  private async recordLoginFailure(username: string, ip: string): Promise<void> {
+    const failKey = `admin:login:fail:${username}`;
+    const failCount = parseInt(await this.redisService.get(failKey) || '0', 10) + 1;
+    await this.redisService.set(failKey, failCount.toString(), this.ADMIN_LOGIN_FAIL_LOCK_DURATION);
+
+    if (failCount >= this.ADMIN_LOGIN_FAIL_MAX_ATTEMPTS) {
+      // 锁定账号
+      const lockUntil = Date.now() + this.ADMIN_LOGIN_FAIL_LOCK_DURATION * 1000;
+      const lockKey = `admin:login:lock:${username}`;
+      await this.redisService.set(lockKey, JSON.stringify({ lockUntil, attempts: failCount }), this.ADMIN_LOGIN_FAIL_LOCK_DURATION);
+      await this.redisService.del(failKey);
+      throw new UnauthorizedException(`登录失败次数过多，账号已锁定 15 分钟`);
+    }
+
+    throw new UnauthorizedException(`用户名或密码错误，还剩 ${this.ADMIN_LOGIN_FAIL_MAX_ATTEMPTS - failCount} 次机会`);
   }
 
   /**
@@ -143,7 +188,7 @@ export class AdminService {
   /**
    * 修改管理员密码
    */
-  async changePassword(adminId: string, oldPassword: string, newPassword: string, ip?: string) {
+  async changePassword(adminId: string, oldPassword: string, newPassword: string, ip?: string, userAgent?: string) {
     const admin = await this.adminRepository
       .createQueryBuilder('admin')
       .where('admin.id = :id', { id: adminId })
@@ -157,6 +202,17 @@ export class AdminService {
     const isPasswordValid = await bcrypt.compare(oldPassword, admin.password);
     if (!isPasswordValid) {
       throw new BadRequestException('原密码错误');
+    }
+
+    // 安全修复：验证新密码强度
+    const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,20}$/;
+    if (!passwordPattern.test(newPassword)) {
+      throw new BadRequestException('密码必须包含大小写字母和数字，长度8-20位，可包含特殊字符@$!%*?&');
+    }
+
+    // 安全修复：新密码不能与旧密码相同
+    if (oldPassword === newPassword) {
+      throw new BadRequestException('新密码不能与原密码相同');
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -173,6 +229,7 @@ export class AdminService {
       action: 'change_password',
       remark: '修改密码',
       ip,
+      userAgent,
     });
 
     return { success: true };
@@ -339,7 +396,7 @@ export class AdminService {
   /**
    * 更新用户状态
    */
-  async updateUserStatus(userId: string, status: number, adminId: string, adminName: string, ip?: string) {
+  async updateUserStatus(userId: string, status: number, adminId: string, adminName: string, ip?: string, userAgent?: string) {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('用户不存在');
@@ -358,6 +415,7 @@ export class AdminService {
       afterData: { status },
       remark: `更新用户状态为: ${status === 1 ? '正常' : status === 2 ? '受限' : '封禁'}`,
       ip,
+      userAgent,
     });
 
     return { success: true };
@@ -366,7 +424,7 @@ export class AdminService {
   /**
    * 更新用户信息
    */
-  async updateUserInfo(userId: string, data: { nickname?: string; phone?: string }, adminId: string, adminName: string, ip?: string) {
+  async updateUserInfo(userId: string, data: { nickname?: string; phone?: string }, adminId: string, adminName: string, ip?: string, userAgent?: string) {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('用户不存在');
@@ -394,6 +452,7 @@ export class AdminService {
       afterData: data,
       remark: '更新用户信息',
       ip,
+      userAgent,
     });
 
     return { success: true };
@@ -401,38 +460,58 @@ export class AdminService {
 
   /**
    * 调整用户余额
+   * 安全修复：使用原子 SQL 更新避免竞态条件
    */
-  async adjustUserBalance(userId: string, amount: number, reason: string, adminId: string, adminName: string, ip?: string) {
+  async adjustUserBalance(userId: string, amount: number, reason: string, adminId: string, adminName: string, ip?: string, userAgent?: string) {
+    // 先检查用户是否存在
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('用户不存在');
     }
 
-    // 确保余额转换为数字
-    const beforeBalance = Number(user.balance) || 0;
     const changeAmount = Number(amount);
-    const afterBalance = beforeBalance + changeAmount;
 
-    if (afterBalance < 0) {
-      throw new BadRequestException('余额不足');
-    }
+    // 使用事务和原子更新避免竞态条件
+    const result = await this.dataSource.transaction(async (manager) => {
+      // 使用悲观锁读取用户
+      const userWithLock = await manager.findOne('User' as any, {
+        where: { id: userId },
+        lock: { mode: 'pessimistic_write' },
+      }) as any;
 
-    // 更新余额 - 保留两位小数
-    const finalBalance = Math.round(afterBalance * 100) / 100;
-    await this.userRepository.update(userId, { balance: finalBalance });
+      if (!userWithLock) {
+        throw new NotFoundException('用户不存在');
+      }
 
-    // 记录余额变动日志
-    const balanceLog = this.dataSource.getRepository('BalanceLog').create({
-      id: IdUtil.generate('BL'),
-      userId,
-      type: 4, // 调整
-      amount: Math.abs(changeAmount),
-      balanceBefore: beforeBalance,
-      balanceAfter: finalBalance,
-      relatedType: 'admin_adjust',
-      remark: `管理员调整: ${reason}`,
+      const beforeBalance = Number(userWithLock.balance) || 0;
+      const afterBalance = beforeBalance + changeAmount;
+
+      if (afterBalance < 0) {
+        throw new BadRequestException('余额不足');
+      }
+
+      // 保留两位小数
+      const finalBalance = Math.round(afterBalance * 100) / 100;
+
+      // 更新余额
+      userWithLock.balance = finalBalance;
+      await manager.save(userWithLock);
+
+      // 记录余额变动日志
+      const balanceLog = manager.create('BalanceLog' as any, {
+        id: IdUtil.generate('BL'),
+        userId,
+        type: 4, // 调整
+        amount: Math.abs(changeAmount),
+        balanceBefore: beforeBalance,
+        balanceAfter: finalBalance,
+        relatedType: 'admin_adjust',
+        remark: `管理员调整: ${reason}`,
+      });
+      await manager.save(balanceLog);
+
+      return { beforeBalance, finalBalance };
     });
-    await this.dataSource.getRepository('BalanceLog').save(balanceLog);
 
     await this.createAuditLog({
       adminId,
@@ -441,13 +520,14 @@ export class AdminService {
       action: 'adjust',
       targetType: 'user',
       targetId: userId,
-      beforeData: { balance: beforeBalance },
-      afterData: { balance: finalBalance, amount, reason },
+      beforeData: { balance: result.beforeBalance },
+      afterData: { balance: result.finalBalance, amount, reason },
       remark: `调整用户余额: ${changeAmount >= 0 ? '+' : ''}${changeAmount}元, 原因: ${reason}`,
       ip,
+      userAgent,
     });
 
-    return { success: true, balance: finalBalance };
+    return { success: true, balance: result.finalBalance };
   }
 
   // =============== 活体类型管理 ===============
@@ -680,11 +760,24 @@ export class AdminService {
 
   /**
    * 删除活体
+   * 安全修复：删除前检查是否有活跃认养
    */
-  async deleteLivestock(id: string, adminId: string, adminName: string, ip?: string) {
+  async deleteLivestock(id: string, adminId: string, adminName: string, ip?: string, userAgent?: string) {
     const livestock = await this.livestockRepository.findOne({ where: { id } });
     if (!livestock) {
       throw new NotFoundException('活体不存在');
+    }
+
+    // 安全修复：检查是否有进行中的认养
+    const activeAdoptionCount = await this.adoptionRepository.count({
+      where: {
+        livestockId: id,
+        status: In([AdoptionStatus.ACTIVE, AdoptionStatus.FEED_OVERDUE, AdoptionStatus.REDEEMABLE, AdoptionStatus.REDEMPTION_PENDING]),
+      },
+    });
+
+    if (activeAdoptionCount > 0) {
+      throw new BadRequestException(`该活体有 ${activeAdoptionCount} 个进行中的认养，无法删除`);
     }
 
     // 软删除
@@ -700,6 +793,7 @@ export class AdminService {
       beforeData: livestock,
       remark: '删除活体',
       ip,
+      userAgent,
     });
 
     return { success: true };
@@ -709,12 +803,12 @@ export class AdminService {
 
   /**
    * 获取订单列表
+   * 安全修复：移除对不存在字段 orderType 的查询
    */
   async getOrderList(params: {
     page: number;
     pageSize: number;
     status?: OrderStatus;
-    orderType?: string;
     keyword?: string;
     startDate?: string;
     endDate?: string;
@@ -728,9 +822,8 @@ export class AdminService {
       queryBuilder.andWhere('order.status = :status', { status: params.status });
     }
 
-    if (params.orderType) {
-      queryBuilder.andWhere('order.orderType = :orderType', { orderType: params.orderType });
-    }
+    // 安全修复：移除了 orderType 查询，因为 Order 实体没有 orderType 字段
+    // 如需区分订单类型，可通过 adoption 关联是否存在来判断
 
     if (params.keyword) {
       queryBuilder.andWhere(
@@ -780,6 +873,7 @@ export class AdminService {
 
   /**
    * 删除订单
+   * 安全修复：改为软删除，保留数据用于审计和恢复
    */
   async deleteOrder(orderId: string, adminId: string, adminName: string, ip: string) {
     const order = await this.orderRepository.findOne({
@@ -796,13 +890,13 @@ export class AdminService {
       throw new BadRequestException('只能删除已取消或已退款的订单');
     }
 
-    // 删除关联的领养记录（如果存在）
+    // 软删除关联的领养记录（如果存在）
     if (order.adoption) {
-      await this.adoptionRepository.delete(order.adoption.id);
+      await this.adoptionRepository.softDelete(order.adoption.id);
     }
 
-    // 删除订单
-    await this.orderRepository.delete(orderId);
+    // 软删除订单（保留数据用于审计和恢复）
+    await this.orderRepository.softDelete(orderId);
 
     // 记录审计日志
     const auditLog = this.auditLogRepository.create({
@@ -817,7 +911,7 @@ export class AdminService {
         status: order.status,
         totalAmount: order.totalAmount,
       },
-      remark: `删除订单: ${order.orderNo}`,
+      remark: `软删除订单: ${order.orderNo}`,
       ip,
     });
     await this.auditLogRepository.save(auditLog);
@@ -952,10 +1046,34 @@ export class AdminService {
     }));
   }
 
+  // 安全修复：系统配置键白名单
+  private readonly SYSTEM_CONFIG_ALLOWED_KEYS = [
+    // 基础配置
+    'site_name', 'site_logo', 'site_description', 'site_keywords',
+    'contact_phone', 'contact_email', 'contact_address', 'contact_wechat',
+    // 支付配置
+    'alipay_app_id', 'alipay_private_key', 'alipay_public_key', 'alipay_notify_url',
+    'wechat_app_id', 'wechat_mch_id', 'wechat_api_key', 'wechat_notify_url',
+    // 短信配置
+    'aliyun_access_key_id', 'aliyun_access_key_secret', 'aliyun_sign_name', 'aliyun_template_code',
+    'sms_enabled', 'sms_daily_limit',
+    // 功能配置
+    'order_expire_minutes', 'feed_fee_rate', 'late_fee_rate', 'redemption_fee_rate',
+    'max_adoptions_per_user', 'balance_min_recharge', 'balance_max_balance',
+    // 其他配置
+    'user_agreement', 'privacy_policy', 'about_us', 'faq',
+  ];
+
   /**
    * 更新系统配置
+   * 安全修复：添加配置键白名单验证，防止任意键创建
    */
   async updateSystemConfig(configKey: string, configValue: any, adminId: string, adminName: string, ip?: string) {
+    // 安全修复：验证配置键是否在白名单中
+    if (!this.SYSTEM_CONFIG_ALLOWED_KEYS.includes(configKey)) {
+      throw new BadRequestException(`不支持的配置项: ${configKey}。请联系开发人员添加新的配置键。`);
+    }
+
     let config = await this.systemConfigRepository.findOne({
       where: { configKey },
     });
@@ -1333,18 +1451,26 @@ export class AdminService {
 
   /**
    * AES加密敏感配置
+   * 安全修复：使用独立的 ENCRYPTION_KEY，与 JWT_SECRET 分离
    */
   private encrypt(text: string): string {
-    const key = this.configService.get('JWT_SECRET') || 'default-encryption-key-32chars!';
+    const key = this.configService.get('ENCRYPTION_KEY');
+    if (!key || key.length < 32) {
+      throw new Error('ENCRYPTION_KEY 未配置或长度不足32位，请检查环境变量');
+    }
     return CryptoUtil.aesEncrypt(text, key);
   }
 
   /**
    * AES解密敏感配置
+   * 安全修复：使用独立的 ENCRYPTION_KEY，与 JWT_SECRET 分离
    */
   private decrypt(text: string): string {
+    const key = this.configService.get('ENCRYPTION_KEY');
+    if (!key || key.length < 32) {
+      throw new Error('ENCRYPTION_KEY 未配置或长度不足32位，请检查环境变量');
+    }
     try {
-      const key = this.configService.get('JWT_SECRET') || 'default-encryption-key-32chars!';
       return CryptoUtil.aesDecrypt(text, key);
     } catch {
       // 如果解密失败，可能是旧的Base64编码数据，尝试兼容
@@ -1357,7 +1483,7 @@ export class AdminService {
    */
   async sendSystemAnnouncement(title: string, content: string, adminId: string, adminName: string, ip?: string) {
     const notification = this.notificationRepository.create({
-      id: `N${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      id: IdUtil.generate('N'), // 安全修复：使用 IdUtil 替代 Date.now()
       title,
       content,
       type: 'system',
@@ -1641,6 +1767,7 @@ export class AdminService {
 
   /**
    * 发送通知
+   * 安全修复：使用 IdUtil 替代 Date.now() 生成 ID
    */
   async sendNotification(
     data: { userIds?: string[]; title: string; content: string; type: string },
@@ -1649,13 +1776,12 @@ export class AdminService {
     ip?: string,
   ) {
     let sendCount = 0;
-    const baseId = Date.now();
 
     if (data.userIds && data.userIds.length > 0) {
       // 发送给指定用户
       for (let i = 0; i < data.userIds.length; i++) {
         const notification = this.notificationRepository.create({
-          id: `N${baseId}${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+          id: IdUtil.generate('N'), // 安全修复：使用 IdUtil 替代 Date.now()
           userId: data.userIds[i],
           title: data.title,
           content: data.content,
@@ -1671,15 +1797,20 @@ export class AdminService {
         select: ['id'],
       });
 
-      // 批量创建通知
-      const notifications = users.map((user, index) => {
+      // 批量创建通知 - 安全修复：使用 IdUtil 替代 Date.now()
+      const notifications = users.map(() => {
         return this.notificationRepository.create({
-          id: `N${baseId}${index.toString().padStart(4, '0')}`,
-          userId: user.id,
+          id: IdUtil.generate('N'),
+          userId: undefined, // 将在下面设置
           title: data.title,
           content: data.content,
           type: data.type,
         });
+      });
+
+      // 设置用户 ID
+      notifications.forEach((notification, index) => {
+        notification.userId = users[index].id;
       });
 
       // 批量保存
@@ -1831,9 +1962,10 @@ export class AdminService {
 
   /**
    * 清空审计日志
+   * 安全说明：仅超级管理员可操作
    */
-  async clearAuditLogs(adminId: string, adminName: string, ip?: string) {
-    // 记录清空操作日志
+  async clearAuditLogs(adminId: string, adminName: string, ip?: string, userAgent?: string) {
+    // 记录清空操作日志（在清空前记录）
     await this.createAuditLog({
       adminId,
       adminName,
@@ -1843,6 +1975,7 @@ export class AdminService {
       remark: '清空审计日志',
       isSensitive: 1,
       ip,
+      userAgent,
     });
 
     // 清空所有日志

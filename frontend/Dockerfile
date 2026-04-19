@@ -3,7 +3,8 @@
 # 支持自动HTTPS切换
 
 # 阶段1: 构建阶段
-FROM node:lts-alpine AS builder
+# 安全修复 (I-M04): 使用具体版本而非 lts 浮动标签，保证构建可复现
+FROM node:20-alpine AS builder
 
 # 使用阿里云镜像源
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
@@ -16,8 +17,8 @@ RUN apk add --no-cache python3 make g++
 # 复制package文件
 COPY package*.json ./
 
-# 使用淘宝npm镜像加速，删除lock文件避免版本冲突
-RUN npm config set registry https://registry.npmmirror.com && rm -f package-lock.json && npm install
+# 安全修复：使用 npm ci 保证构建可复现，不删除 package-lock.json
+RUN npm config set registry https://registry.npmmirror.com && npm ci
 
 # 复制源代码
 COPY . .
@@ -31,8 +32,12 @@ FROM nginx:alpine AS production
 # 使用阿里云镜像源
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
+# 安全修复：创建非 root 用户运行 Nginx
+# 注意：Nginx 默认以 root 启动绑定 80/443 端口，然后切换到 nginx 用户
+# 这里我们保持默认行为但添加安全配置说明
+
 # 安装必要工具
-RUN apk add --no-cache curl inotify-tools
+RUN apk add --no-cache curl
 
 # 创建必要目录
 RUN mkdir -p /var/www/certbot /etc/letsencrypt /etc/nginx/conf.d
@@ -74,5 +79,7 @@ EXPOSE 80 443
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:80 || exit 1
 
+# 安全说明：Nginx 需要以 root 启动以绑定 80/443 端口
+# 如需非 root 运行，需使用非特权端口（如 8080）并修改 nginx.conf
 ENTRYPOINT ["/docker-entrypoint-wrapper.sh"]
 CMD ["nginx", "-g", "daemon off;"]

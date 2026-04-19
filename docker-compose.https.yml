@@ -3,32 +3,67 @@
 # ===========================================
 # 使用方式：
 #   1. 复制 .env.docker 为 .env 并配置 DOMAIN 和 EMAIL
-#   2. docker compose up -d
+#   2. docker compose -f docker-compose.https.yml up -d
 #   3. 系统自动申请SSL证书并配置HTTPS
+#   4. 证书每12小时自动检查续期
 # ===========================================
-version: '3.8'
 
 services:
+  # Secrets 自动初始化服务
+  secrets-init:
+    image: alpine:3.19
+    container_name: cloud-ranch-secrets-init
+    volumes:
+      - ./secrets:/secrets
+    command: |
+      sh -c "
+        mkdir -p /secrets
+        cd /secrets
+        for secret in jwt_secret db_password redis_password encryption_key; do
+          if [ ! -f $${secret}.txt ]; then
+            echo \"Creating $${secret}.txt...\"
+            head -c 48 /dev/urandom | hexdump -C | awk '{print $$2$$3$$4$$5}' | head -c 48 > $${secret}.txt
+            chmod 600 $${secret}.txt
+          fi
+        done
+        if [ ! -f .gitignore ]; then
+          echo '# 敏感信息' > .gitignore
+          echo '*' >> .gitignore
+          echo '!.gitignore' >> .gitignore
+        fi
+        echo 'Secrets initialized'
+      "
+    restart: "no"
+
   # MySQL 数据库
   mysql:
     image: crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/mysql:8.0
     container_name: cloud-ranch-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123456}
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_password
       MYSQL_DATABASE: cloud_ranch
       MYSQL_CHARACTER_SET_SERVER: utf8mb4
       MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
       TZ: Asia/Shanghai
+    secrets:
+      - db_password
+    # 安全修复：仅绑定本地
     ports:
-      - "${MYSQL_PORT:-3306}:3306"
+      - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./backend/scripts/init-database.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./mysql/charset.cnf:/etc/mysql/conf.d/charset.cnf:ro
     networks:
       - cloud-ranch-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root123456}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -39,15 +74,23 @@ services:
     image: crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/redis:latest
     container_name: cloud-ranch-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123456}
+    command: redis-server --appendonly yes --requirepass_file /run/secrets/redis_password
+    secrets:
+      - redis_password
+    # 安全修复：仅绑定本地
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     networks:
       - cloud-ranch-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis123456}", "ping"]
+      test: ["CMD", "sh", "-c", "REDISCLI_AUTH=$$(cat /run/secrets/redis_password) redis-cli ping | grep PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -62,32 +105,48 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
-      # 数据库配置
       DB_HOST: mysql
       DB_PORT: 3306
       DB_USERNAME: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123456}
+      DB_PASSWORD_FILE: /run/secrets/db_password
       DB_DATABASE: cloud_ranch
-      # Redis配置
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123456}
-      # JWT配置
-      JWT_SECRET: ${JWT_SECRET}
+      REDIS_PASSWORD_FILE: /run/secrets/redis_password
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
       JWT_EXPIRES_IN: 7d
-      # 管理员默认密码
+      ENCRYPTION_KEY_FILE: /run/secrets/encryption_key
       ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD:-}
-      # CORS配置
       CORS_ORIGIN: ${CORS_ORIGIN:-}
-    ports:
-      - "${BACKEND_PORT:-3001}:3001"
+    secrets:
+      - jwt_secret
+      - db_password
+      - redis_password
+      - encryption_key
+    # 安全修复：不暴露端口，通过 nginx 代理
+    expose:
+      - "3001"
     depends_on:
       mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
+      secrets-init:
+        condition: service_completed_successfully
     networks:
       - cloud-ranch-network
+    volumes:
+      - uploads_data:/app/uploads
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/api/"]
       interval: 30s
@@ -109,27 +168,34 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      # SSL证书持久化
       - certbot_letsencrypt:/etc/letsencrypt
       - certbot_www:/var/www/certbot
-      # Nginx配置（允许certbot写入HTTPS配置）
       - nginx_conf:/etc/nginx/conf.d
     depends_on:
       backend:
         condition: service_healthy
     networks:
       - cloud-ranch-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 0"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Certbot SSL证书管理
-  certbot:
+  # Certbot SSL证书管理 - 初始化
+  certbot-init:
     image: certbot/certbot:latest
-    container_name: cloud-ranch-certbot
+    container_name: cloud-ranch-certbot-init
     restart: "no"
     environment:
       DOMAIN: ${DOMAIN:-}
@@ -147,13 +213,70 @@ services:
       - cloud-ranch-network
     entrypoint: "/bin/sh -c 'cp /init-letsencrypt.sh /tmp/init.sh && chmod +x /tmp/init.sh && /tmp/init.sh'"
 
+  # Certbot 证书自动续期服务 - 每12小时检查一次
+  certbot-renew:
+    image: certbot/certbot:latest
+    container_name: cloud-ranch-certbot-renew
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:-}
+    volumes:
+      - certbot_letsencrypt:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    networks:
+      - cloud-ranch-network
+    # 每12小时检查证书续期，Let's Encrypt 证书有效期90天，提前30天续期
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done'"
+
+  # MySQL 自动备份服务
+  mysql-backup:
+    image: databack/mysql-backup:latest
+    container_name: cloud-ranch-mysql-backup
+    restart: unless-stopped
+    environment:
+      DB_SERVER: mysql
+      DB_USER: root
+      DB_PASS_FILE: /run/secrets/db_password
+      DB_NAMES: cloud_ranch
+      DB_DUMP_FREQ: 1440
+      DB_DUMP_BEGIN: 0300
+      COMPRESSION: gzip
+      DB_DUMP_KEEP: 7
+      MD5: "true"
+    secrets:
+      - db_password
+    volumes:
+      - mysql_backups:/backups
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - cloud-ranch-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 networks:
   cloud-ranch-network:
     driver: bridge
 
+secrets:
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt
+  db_password:
+    file: ./secrets/db_password.txt
+  redis_password:
+    file: ./secrets/redis_password.txt
+  encryption_key:
+    file: ./secrets/encryption_key.txt
+
 volumes:
   mysql_data:
   redis_data:
+  uploads_data:
+  mysql_backups:
   certbot_letsencrypt:
   certbot_www:
   nginx_conf:

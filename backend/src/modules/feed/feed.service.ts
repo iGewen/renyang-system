@@ -133,7 +133,8 @@ export class FeedService {
       // 更新账单
       bill.lateFeeDays = lateFeeDays;
       bill.lateFeeAmount = lateFeeAmount;
-      bill.totalLateFee = lateFeeAmount;
+      // 修复：累加滞纳金而非覆盖
+      bill.totalLateFee = (bill.totalLateFee || 0) + lateFeeAmount;
       bill.status = FeedBillStatus.OVERDUE;
       bill.lateFeeStartDate = lateFeeStartDate;
 

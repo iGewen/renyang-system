@@ -6,6 +6,18 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SystemConfig, SmsCode } from '@/entities';
 import * as bcrypt from 'bcryptjs';
+import { IsString, IsOptional, IsUrl } from 'class-validator';
+
+// DTO for profile update with URL validation for avatar
+class UpdateProfileDto {
+  @IsString()
+  @IsOptional()
+  nickname?: string;
+
+  @IsUrl({}, { message: '头像必须是有效的URL格式' })
+  @IsOptional()
+  avatar?: string;
+}
 
 @Controller('users')
 export class UserController {
@@ -23,7 +35,7 @@ export class UserController {
   }
 
   @Patch('me')
-  async updateProfile(@CurrentUser('id') userId: string, @Body() body: { nickname?: string }) {
+  async updateProfile(@CurrentUser('id') userId: string, @Body() body: UpdateProfileDto) {
     return this.userService.updateProfile(userId, body);
   }
 

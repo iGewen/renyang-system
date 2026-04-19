@@ -14,14 +14,29 @@ async function bootstrap() {
   // 全局前缀
   app.setGlobalPrefix('api');
 
-  // 跨域配置 - 生产环境应限制具体域名
+  // 跨域配置 - 安全修复：未配置时拒绝跨域请求
   const corsOrigin = process.env.CORS_ORIGIN;
-  app.enableCors({
-    origin: corsOrigin ? corsOrigin.split(',').map(s => s.trim()) : true,
-    credentials: true,
-  });
+  if (corsOrigin) {
+    app.enableCors({
+      origin: corsOrigin.split(',').map(s => s.trim()),
+      credentials: true,
+    });
+  } else if (process.env.NODE_ENV !== 'production') {
+    // 仅开发环境允许所有来源
+    app.enableCors({
+      origin: true,
+      credentials: true,
+    });
+  }
+  // 生产环境未配置 CORS_ORIGIN 时不启用 CORS
 
   // 静态文件服务（用于访问上传的文件）
+  // 安全提示：此静态文件服务全局开放，无需认证即可访问
+  // 风险：任何人都可以通过 URL 直接访问上传的文件
+  // 建议：
+  //   1. 敏感文件应使用独立存储服务并通过 API 返回签名 URL
+  //   2. 可添加中间件进行访问控制（如检查 Referer 或实现基于用户权限的文件访问）
+  //   3. 考虑将上传文件存储到对象存储服务（如阿里云 OSS、AWS S3）并配置访问控制
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
     prefix: '/uploads/',
   });

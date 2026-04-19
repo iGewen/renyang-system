@@ -10,9 +10,24 @@ import {
   OneToMany,
   JoinColumn,
 } from 'typeorm';
+import { Min } from 'class-validator';
 import { LivestockType } from './livestock-type.entity';
 import { Order } from './order.entity';
 
+/**
+ * 精度说明：
+ * price 和 monthlyFeedFee 字段使用 decimal(10,2) 存储金额。
+ *
+ * 业务约束：
+ * - price: 领养价格，建议范围 0.01 ~ 1,000,000.00 元
+ * - monthlyFeedFee: 月饲料费，建议范围 0.01 ~ 100,000.00 元
+ * - stock: 库存数量，必须非负（@Min(0) 验证）
+ *
+ * 注意事项：
+ * - 金额字段在 JavaScript 中以 string 形式返回
+ * - 前端显示时需要格式化
+ * - 计算时使用后端提供的计算方法
+ */
 @Entity('livestock')
 export class Livestock {
   @Column({ length: 32, primary: true, comment: '活体ID' })
@@ -46,6 +61,7 @@ export class Livestock {
   @Column({ name: 'main_image', length: 500, nullable: true, comment: '主图' })
   mainImage: string;
 
+  @Min(0)
   @Column({ type: 'int', default: 0, comment: '库存数量' })
   stock: number;
 

@@ -1,21 +1,10 @@
 import { Controller, Get, Post, Param, Body, Query, UseGuards, SetMetadata } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth, ApiProperty } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { OrderService } from './order.service';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { UserStatusGuard, UserStatus, MIN_STATUS_KEY } from '@/common/guards/user-status.guard';
-import { IsString, IsNotEmpty } from 'class-validator';
-
-class CreateOrderDto {
-  @ApiProperty({ description: '活体ID' })
-  @IsString()
-  @IsNotEmpty({ message: '活体ID不能为空' })
-  livestockId: string;
-
-  @ApiProperty({ description: '客户端幂等键（防止重复下单）' })
-  @IsString()
-  @IsNotEmpty({ message: '客户端幂等键不能为空' })
-  clientOrderId: string;
-}
+// DTO 从独立文件导入
+import { CreateOrderDto } from './dto';
 
 @ApiTags('订单')
 @Controller('orders')
@@ -68,7 +57,8 @@ export class OrderController {
     @Param('orderId') orderId: string,
     @CurrentUser('id') userId: string,
   ) {
-    return this.orderService.getById(orderId, userId);
+    // 安全修复：使用 getByIdForUser 强制验证用户归属
+    return this.orderService.getByIdForUser(orderId, userId);
   }
 
   /**

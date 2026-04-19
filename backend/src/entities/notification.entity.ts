@@ -7,6 +7,8 @@ import {
 } from 'typeorm';
 
 @Entity('notifications')
+@Index(['userId', 'isRead']) // 复合索引：优化用户未读通知查询
+@Index(['userId', 'createdAt']) // 复合索引：优化用户通知列表按时间排序
 export class Notification {
   @Column({ length: 32, primary: true, comment: '通知ID' })
   id: string;

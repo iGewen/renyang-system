@@ -228,6 +228,14 @@ export class RefundService {
     const lockKey = `refund:audit:${refundId}`;
     return this.redisService.withLock(lockKey, 30000, async () => {
       if (passed) {
+        // 安全修复：校验退款金额不能超过原订单金额
+        if (refundAmount > refund.originalAmount) {
+          throw new BadRequestException('退款金额不能超过原订单金额');
+        }
+        if (refundAmount <= 0) {
+          throw new BadRequestException('退款金额必须大于0');
+        }
+
         // 审核通过
         refund.status = RefundStatus.AUDIT_PASSED;
         refund.auditAdminId = adminId;
@@ -343,11 +351,33 @@ export class RefundService {
     await this.dataSource.transaction(async (manager) => {
       // 如果原路退款失败或余额支付，退回到用户余额
       if (refundMethod === 'balance' && refund.refundAmount > 0) {
-        // 在事务内更新余额
-        const user = await manager.findOne('User' as any, { where: { id: refund.userId } }) as any;
+        // 安全修复：使用悲观锁避免竞态条件
+        const user = await manager.findOne('User' as any, {
+          where: { id: refund.userId },
+          lock: { mode: 'pessimistic_write' },
+        }) as any;
+
         if (user) {
-          user.balance = Number(user.balance) + Number(refund.refundAmount);
+          const beforeBalance = Number(user.balance) || 0;
+          const refundAmountNum = Number(refund.refundAmount);
+          const afterBalance = Math.round((beforeBalance + refundAmountNum) * 100) / 100;
+
+          user.balance = afterBalance;
           await manager.save(user);
+
+          // 记录余额变动日志
+          const balanceLog = manager.create('BalanceLog' as any, {
+            id: IdUtil.generate('BL'),
+            userId: refund.userId,
+            type: 3, // 退款
+            amount: refundAmountNum,
+            balanceBefore: beforeBalance,
+            balanceAfter: afterBalance,
+            relatedType: 'refund',
+            relatedId: refund.id,
+            remark: `退款: ${refund.refundNo}`,
+          });
+          await manager.save(balanceLog);
         }
       }
 
@@ -392,6 +422,7 @@ export class RefundService {
 
   /**
    * 管理员直接退款
+   * 安全修复：所有数据库操作移入事务内确保原子性
    */
   async adminRefund(
     adminId: string,
@@ -403,83 +434,107 @@ export class RefundService {
     adminName?: string,
     ip?: string,
   ) {
-    const refund = this.refundRepository.create({
-      id: IdUtil.generate('RFD'),
-      refundNo: IdUtil.generateRefundNo(),
-      userId,
-      orderType: orderType || 'admin',
-      orderId: orderId || '',
-      originalAmount: amount,
-      refundAmount: amount,
-      refundLivestock: 2, // 管理员操作不涉及活体
-      reason,
-      type: RefundType.ADMIN_OPERATE,
-      status: RefundStatus.REFUNDED,
-      auditAdminId: adminId,
-      auditAt: new Date(),
-      operatorId: adminId,
-      refundMethod: 'balance',
-      refundAt: new Date(),
-    });
-
-    await this.refundRepository.save(refund);
-
-    // 退款到用户余额
-    await this.userService.updateBalance(
-      userId,
-      amount,
-      `管理员退款: ${refund.refundNo}`,
-    );
-
-    // 更新订单状态
-    if (orderType === 'adoption' && orderId) {
-      const order = await this.orderRepository.findOne({
-        where: { id: orderId },
+    // 使用事务确保所有数据库操作的原子性
+    const refund = await this.dataSource.transaction(async (manager) => {
+      const refundEntity = manager.create(RefundOrder, {
+        id: IdUtil.generate('RFD'),
+        refundNo: IdUtil.generateRefundNo(),
+        userId,
+        orderType: orderType || 'admin',
+        orderId: orderId || '',
+        originalAmount: amount,
+        refundAmount: amount,
+        refundLivestock: 2, // 管理员操作不涉及活体
+        reason,
+        type: RefundType.ADMIN_OPERATE,
+        status: RefundStatus.REFUNDED,
+        auditAdminId: adminId,
+        auditAt: new Date(),
+        operatorId: adminId,
+        refundMethod: 'balance',
+        refundAt: new Date(),
       });
 
-      if (order) {
-        order.status = OrderStatus.REFUNDED;
-        await this.orderRepository.save(order);
+      await manager.save(refundEntity);
 
-        // 更新领养状态
-        const adoption = await this.adoptionRepository.findOne({
-          where: { orderId: order.id },
+      // 退款到用户余额（在事务内）
+      const user = await manager.findOne('User' as any, {
+        where: { id: userId },
+        lock: { mode: 'pessimistic_write' },
+      }) as any;
+      if (user) {
+        const beforeBalance = Number(user.balance) || 0;
+        const afterBalance = Math.round((beforeBalance + amount) * 100) / 100;
+        user.balance = afterBalance;
+        await manager.save(user);
+
+        // 记录余额变动日志
+        const balanceLog = manager.create('BalanceLog' as any, {
+          id: IdUtil.generate('BL'),
+          userId,
+          type: 3, // 退款
+          amount,
+          balanceBefore: beforeBalance,
+          balanceAfter: afterBalance,
+          relatedType: 'admin_refund',
+          relatedId: refundEntity.id,
+          remark: `管理员退款: ${refundEntity.refundNo}`,
+        });
+        await manager.save(balanceLog);
+      }
+
+      // 更新订单状态（在事务内）
+      if (orderType === 'adoption' && orderId) {
+        const order = await manager.findOne(Order, {
+          where: { id: orderId },
         });
 
-        if (adoption) {
-          adoption.status = AdoptionStatus.TERMINATED;
-          await this.adoptionRepository.save(adoption);
+        if (order) {
+          order.status = OrderStatus.REFUNDED;
+          await manager.save(Order, order);
+
+          // 更新领养状态
+          const adoption = await manager.findOne(Adoption, {
+            where: { orderId: order.id },
+          });
+
+          if (adoption) {
+            adoption.status = AdoptionStatus.TERMINATED;
+            await manager.save(Adoption, adoption);
+          }
         }
       }
-    }
 
-    // 记录审计日志
-    const auditLog = this.auditLogRepository.create({
-      adminId,
-      adminName: adminName || 'admin',
-      module: 'refund',
-      action: 'refund',
-      targetType: orderType || 'admin',
-      targetId: orderId || refund.id,
-      afterData: {
-        refundNo: refund.refundNo,
-        userId,
-        amount,
-        reason,
-        orderType,
-        orderId,
-      },
-      remark: `管理员退款: ¥${amount}, 原因: ${reason}`,
-      ip,
+      // 记录审计日志（在事务内）
+      const auditLog = manager.create(AuditLog, {
+        adminId,
+        adminName: adminName || 'admin',
+        module: 'refund',
+        action: 'refund',
+        targetType: orderType || 'admin',
+        targetId: orderId || refundEntity.id,
+        afterData: {
+          refundNo: refundEntity.refundNo,
+          userId,
+          amount,
+          reason,
+          orderType,
+          orderId,
+        },
+        remark: `管理员退款: ¥${amount}, 原因: ${reason}`,
+        ip,
+      });
+      await manager.save(auditLog);
+
+      return refundEntity;
     });
-    await this.auditLogRepository.save(auditLog);
 
-    // 发送通知
-    await this.notificationService.sendBalanceNotification(
+    // 发送通知（在事务外执行，不影响事务）
+    this.notificationService.sendBalanceNotification(
       userId,
       '退款通知',
       `您已收到一笔退款¥${amount}，原因：${reason}`,
-    );
+    ).catch(err => this.logger.error('发送退款通知失败:', err));
 
     return refund;
   }

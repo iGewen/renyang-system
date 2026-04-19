@@ -14,6 +14,25 @@ import { User } from './user.entity';
 import { Livestock } from './livestock.entity';
 import { Adoption } from './adoption.entity';
 
+/**
+ * 精度说明：
+ * 本实体中使用 decimal(10,2) 类型存储金额字段。
+ * TypeORM 的 decimal 类型在 JavaScript 中会被转换为 string 或 number。
+ *
+ * 风险评估：
+ * 1. decimal(10,2) 可以精确存储 -99,999,999.99 到 99,999,999.99 范围内的金额
+ * 2. 对于人民币金额，这个精度足够（支持近亿元级别）
+ * 3. TypeORM 在查询时返回 string 类型，避免了 JavaScript number 的浮点精度问题
+ *
+ * 最佳实践：
+ * - 在 Service 层处理金额计算时，使用 decimal.js 或类似库进行精确计算
+ * - 前端显示时使用 toLocaleString() 或类似方法格式化
+ * - 不要直接对金额字段进行加减运算，应使用专门的计算方法
+ *
+ * 如果需要更高精度或更大金额范围，建议：
+ * - 使用 decimal(19,4) 或更高精度
+ * - 或将金额以分为单位存储为 bigint
+ */
 export enum OrderStatus {
   PENDING_PAYMENT = 1, // 待支付
   PAID = 2, // 已支付

@@ -70,7 +70,7 @@ export interface Livestock {
   name: string;
   typeId: string;
   typeName?: string;
-  type?: 'sheep' | 'chicken' | 'ostrich';  // 前端兼容字段
+  type?: LivestockTypeCode;  // 使用常量类型，避免硬编码
   price: number;
   monthlyFeedFee: number;
   redemptionMonths: number;
@@ -343,5 +343,7 @@ export interface Agreement {
   updatedAt: string;
 }
 
-// 导出枚举和工具函数
+// 导出枚举和工具函数（包括 LivestockTypeCode 类型）
 export * from './enums';
+// 重新导出 LivestockTypeCode 以便直接使用
+export type { LivestockTypeCode } from './enums';

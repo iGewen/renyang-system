@@ -10,6 +10,50 @@ DOMAIN="${DOMAIN:-}"
 EMAIL="${EMAIL:-}"
 STAGING="${STAGING:-0}"
 
+# 安全修复 (I-M09): 域名格式验证，防止注入攻击
+validate_domain() {
+    local domain="$1"
+    # 域名正则：允许字母、数字、连字符和点，最多253字符
+    # 不允许特殊字符如 ; | & $ ` 等
+    if [ -z "$domain" ]; then
+        return 0  # 空域名允许，使用HTTP模式
+    fi
+
+    # 检查长度
+    if [ ${#domain} -gt 253 ]; then
+        echo "错误: 域名长度超过253字符"
+        return 1
+    fi
+
+    # 检查格式：只允许合法的域名字符
+    # 域名格式：字母数字开头，可包含连字符和点，以字母数字结尾
+    # 每个标签最多63字符
+    if ! echo "$domain" | grep -qE '^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$'; then
+        echo "错误: 域名格式无效 '$domain'"
+        echo "域名只能包含字母、数字、连字符和点"
+        return 1
+    fi
+
+    # 检查每个标签长度不超过63字符
+    local IFS='.'
+    for label in $domain; do
+        if [ ${#label} -gt 63 ]; then
+            echo "错误: 域名标签 '$label' 超过63字符"
+            return 1
+        fi
+    done
+
+    return 0
+}
+
+# 验证域名格式
+if [ -n "$DOMAIN" ]; then
+    if ! validate_domain "$DOMAIN"; then
+        echo "域名验证失败，使用HTTP模式"
+        exit 0
+    fi
+fi
+
 # 配置HTTPS函数
 configure_https() {
     echo "切换到HTTPS配置..."
@@ -45,6 +89,13 @@ server {
     ssl_session_cache shared:SSL:10m;
     ssl_session_timeout 1d;
     ssl_session_tickets off;
+
+    # 安全修复 (I-M11): OCSP Stapling 提升SSL握手性能和隐私
+    ssl_stapling on;
+    ssl_stapling_verify on;
+    ssl_stapling_responder http://r3.o.lencr.org;
+    resolver 8.8.8.8 8.8.4.4 valid=300s;
+    resolver_timeout 5s;
 
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
     add_header X-Frame-Options "SAMEORIGIN" always;

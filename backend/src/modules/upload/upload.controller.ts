@@ -5,10 +5,14 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   UseInterceptors,
   UploadedFile,
   UploadedFiles,
   UseGuards,
+  Req,
+  Res,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import {
@@ -20,8 +24,12 @@ import {
   ApiProperty,
   ApiPropertyOptional,
 } from '@nestjs/swagger';
+import { Request, Response } from 'express';
 import { UploadService } from './upload.service';
 import { IsString, IsOptional, IsIn } from 'class-validator';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { join, resolve } from 'path';
 
 class DeleteFileDto {
   @ApiProperty({ description: '文件名' })
@@ -37,7 +45,11 @@ class DeleteFileDto {
 @ApiTags('文件上传')
 @Controller('upload')
 export class UploadController {
-  constructor(private readonly uploadService: UploadService) {}
+  constructor(
+    private readonly uploadService: UploadService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) {}
 
   /**
    * 上传单个图片
@@ -140,5 +152,94 @@ export class UploadController {
   ) {
     const info = this.uploadService.getFileInfo(filename, subDir);
     return info || { message: '文件不存在' };
+  }
+
+  // ==================== 安全修复 (B-H11): 上传文件签名 URL ====================
+
+  /**
+   * 获取签名文件 URL
+   * 生成一个 5 分钟有效的签名 URL，用于安全访问上传的文件
+   */
+  @Get('signed-url')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '获取签名文件 URL' })
+  @ApiResponse({ status: 200, description: '返回签名 URL' })
+  async getSignedUrl(
+    @Query('file') filename: string,
+    @Req() req: Request,
+  ) {
+    // 安全检查：防止路径遍历攻击
+    if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      throw new BadRequestException('无效的文件名');
+    }
+
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      throw new BadRequestException('用户未登录');
+    }
+
+    // 生成 5 分钟有效的签名 token
+    const secret = this.configService.get<string>('jwt.secret');
+    if (!secret) {
+      throw new BadRequestException('服务配置错误');
+    }
+
+    const token = this.jwtService.sign(
+      { file: filename, userId, iat: Date.now() },
+      { secret, expiresIn: '5m' }
+    );
+
+    return { url: `/upload/verify?token=${token}` };
+  }
+
+  /**
+   * 验证签名并返回文件
+   * 通过签名 URL 安全访问上传的文件
+   */
+  @Get('verify')
+  @ApiOperation({ summary: '验证签名并返回文件' })
+  @ApiResponse({ status: 200, description: '返回文件内容' })
+  @ApiResponse({ status: 403, description: '签名无效或已过期' })
+  async verifyAndServe(
+    @Query('token') token: string,
+    @Res() res: Response,
+  ) {
+    if (!token) {
+      return res.status(403).json({ message: '缺少访问令牌' });
+    }
+
+    try {
+      const secret = this.configService.get<string>('jwt.secret');
+      if (!secret) {
+        return res.status(500).json({ message: '服务配置错误' });
+      }
+
+      const payload = this.jwtService.verify(token, { secret });
+
+      // 安全检查：确保文件名有效
+      const filename = payload.file;
+      if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+        return res.status(403).json({ message: '无效的文件名' });
+      }
+
+      // 构建文件路径
+      const uploadsDir = join(process.cwd(), 'uploads');
+      const filePath = join(uploadsDir, filename);
+
+      // 安全检查：确保路径在 uploads 目录内
+      const resolvedPath = resolve(filePath);
+      if (!resolvedPath.startsWith(resolve(uploadsDir))) {
+        return res.status(403).json({ message: '非法路径' });
+      }
+
+      // 发送文件
+      return res.sendFile(resolvedPath, (err) => {
+        if (err) {
+          return res.status(404).json({ message: '文件不存在' });
+        }
+      });
+    } catch (error) {
+      return res.status(403).json({ message: '链接已过期或无效' });
+    }
   }
 }

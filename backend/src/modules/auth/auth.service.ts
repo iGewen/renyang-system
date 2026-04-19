@@ -39,9 +39,10 @@ export class AuthService {
 
   /**
    * 发送短信验证码
+   * 安全修复：传递客户端IP用于安全审计和防刷限制
    */
   async sendSmsCode(dto: SendSmsCodeDto): Promise<{ success: boolean }> {
-    const { phone, type } = dto;
+    const { phone, type, clientIp } = dto;
 
     // 检查用户是否存在
     if (type === 'register') {
@@ -57,7 +58,8 @@ export class AuthService {
     }
 
     // 调用短信服务发送验证码（频率限制在SmsService中统一处理）
-    return this.smsService.sendVerificationCode(phone, type);
+    // 安全修复：传递clientIp用于IP级别的防刷限制
+    return this.smsService.sendVerificationCode(phone, type, clientIp);
   }
 
   /**
@@ -107,6 +109,8 @@ export class AuthService {
 
     // 检查是否被锁定
     const lockKey = `login:lock:${phone}`;
+    // 安全修复 (B-H03): 将 failKey 声明移到 if 块之前，避免变量遮蔽
+    const failKey = `login:fail:${phone}`;
     const lockData = await this.redisService.get(lockKey);
     if (lockData) {
       const lockInfo = JSON.parse(lockData);
@@ -137,7 +141,6 @@ export class AuthService {
     const isPasswordValid = await PasswordUtil.compare(password, user.password);
     if (!isPasswordValid) {
       // 记录登录失败
-      const failKey = `login:fail:${phone}`;
       const failCount = parseInt(await this.redisService.get(failKey) || '0', 10) + 1;
       await this.redisService.set(failKey, failCount.toString(), 3600); // 1小时内有效
 
@@ -152,8 +155,7 @@ export class AuthService {
       throw new UnauthorizedException(`密码错误，还剩 ${LOGIN_FAIL_MAX_ATTEMPTS - failCount} 次机会`);
     }
 
-    // 登录成功，清除失败记录
-    const failKey = `login:fail:${phone}`;
+    // 登录成功，清除失败记录（failKey 已在方法开头声明）
     await this.redisService.del(failKey);
 
     // 更新最后登录时间

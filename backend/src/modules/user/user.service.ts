@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { User, BalanceLog, Adoption } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
+import { IdUtil } from '@/common/utils/id.util';
 
 @Injectable()
 export class UserService {
@@ -98,7 +99,7 @@ export class UserService {
 
         // 记录流水
         const log = manager.create(BalanceLog, {
-          id: `BL${Date.now()}`,
+          id: IdUtil.generate('BL'), // 安全修复：使用 IdUtil 替代 Date.now()
           userId,
           type: amount > 0 ? 1 : 2, // 1充值 2消费
           amount: Math.abs(changeAmount),
@@ -108,7 +109,13 @@ export class UserService {
         });
         await manager.save(log);
 
-        // 更新缓存（在事务外执行，失败不影响事务）
+        // 安全说明：缓存更新在事务外执行
+        // 风险：如果缓存更新成功但事务后续回滚，会导致缓存与数据库不一致
+        // 缓解措施：
+        // 1. 缓存设置较短的过期时间（默认300秒）
+        // 2. 读取余额时优先从数据库获取，缓存仅作为性能优化
+        // 3. 关键操作（支付、退款）使用分布式锁确保一致性
+        // 4. 缓存更新失败不影响事务结果（catch 忽略错误）
         this.redisService.set(`user:balance:${userId}`, finalBalance.toString()).catch(() => {});
 
         return { balanceBefore, balanceAfter: finalBalance };

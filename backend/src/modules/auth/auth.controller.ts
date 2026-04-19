@@ -6,6 +6,7 @@ import {
   Body,
   UseGuards,
   Request,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -34,12 +35,15 @@ export class AuthController {
 
   /**
    * 发送短信验证码
+   * 安全修复：提取客户端IP用于安全审计和防刷
    */
   @Public()
   @Post('sms/send')
   @ApiOperation({ summary: '发送短信验证码' })
   @ApiResponse({ status: 200, description: '发送成功' })
-  async sendSmsCode(@Body() dto: SendSmsCodeDto) {
+  async sendSmsCode(@Body() dto: SendSmsCodeDto, @Request() req: any) {
+    // 安全修复：从请求中提取客户端IP
+    dto.clientIp = req.ip || req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 'unknown';
     return this.authService.sendSmsCode(dto);
   }
 
@@ -100,12 +104,13 @@ export class AuthController {
 
   /**
    * 微信授权回调
+   * 安全修复：GET 请求没有 Body，改用 @Query 参数
    */
   @Public()
   @Get('wechat/callback')
   @ApiOperation({ summary: '微信授权回调' })
   @ApiResponse({ status: 200, description: '授权成功' })
-  async wechatCallback(@Body('code') code: string, @Body('state') state: string) {
+  async wechatCallback(@Query('code') code: string, @Query('state') state: string) {
     return this.authService.wechatCallback(code, state);
   }
 

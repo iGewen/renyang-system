@@ -1,108 +1,16 @@
 import { Controller, Get, Post, Body, Param, Query, Req, UseGuards, SetMetadata, BadRequestException } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth, ApiProperty } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { PaymentService } from './payment.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { UserStatusGuard, UserStatus, MIN_STATUS_KEY } from '@/common/guards/user-status.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { Public } from '@/common/decorators/public.decorator';
-import { IsIn, IsNumber, IsOptional, IsString, IsNotEmpty, IsObject, ValidateNested, Min, Max } from 'class-validator';
-import { Type } from 'class-transformer';
-
-class CreatePaymentDto {
-  @ApiProperty({ description: '订单类型', enum: ['adoption', 'feed', 'redemption', 'recharge'] })
-  @IsString()
-  @IsNotEmpty()
-  orderType: string;
-
-  @ApiProperty({ description: '订单ID' })
-  @IsString()
-  @IsNotEmpty()
-  orderId: string;
-
-  @ApiProperty({ description: '支付金额' })
-  @IsNumber()
-  @Min(0.01, { message: '支付金额必须大于0' })
-  @Max(1000000, { message: '支付金额不能超过100万' })
-  amount: number;
-
-  @ApiProperty({ description: '支付方式', enum: ['balance', 'alipay', 'wechat'] })
-  @IsIn(['balance', 'alipay', 'wechat'])
-  paymentMethod: string;
-}
-
-// 支付宝回调验证 DTO
-class AlipayNotifyDto {
-  @IsString()
-  @IsNotEmpty()
-  notify_time: string;
-
-  @IsString()
-  @IsNotEmpty()
-  notify_type: string;
-
-  @IsString()
-  @IsNotEmpty()
-  notify_id: string;
-
-  @IsString()
-  @IsNotEmpty()
-  app_id: string;
-
-  @IsString()
-  @IsNotEmpty()
-  out_trade_no: string;
-
-  @IsString()
-  @IsNotEmpty()
-  trade_status: string;
-
-  @IsString()
-  trade_no: string;
-
-  @IsOptional()
-  @IsString()
-  total_amount?: string;
-
-  @IsOptional()
-  @IsString()
-  buyer_id?: string;
-
-  @IsOptional()
-  @IsString()
-  gmt_payment?: string;
-}
-
-// 微信支付回调验证 DTO
-class WechatNotifyDto {
-  @IsString()
-  @IsNotEmpty()
-  id: string;
-
-  @IsString()
-  @IsNotEmpty()
-  create_time: string;
-
-  @IsString()
-  @IsNotEmpty()
-  resource_type: string;
-
-  @IsString()
-  @IsNotEmpty()
-  event_type: string;
-
-  @IsString()
-  @IsNotEmpty()
-  summary: string;
-
-  @IsObject()
-  resource: {
-    original_type: string;
-    algorithm: string;
-    ciphertext: string;
-    associated_data: string;
-    nonce: string;
-  };
-}
+// DTO 从独立文件导入
+import {
+  CreatePaymentDto,
+  CreateRechargeDto,
+  AlipayNotifyDto,
+} from './dto';
 
 @ApiTags('支付')
 @Controller('payments')
@@ -122,10 +30,45 @@ export class PaymentController {
     @CurrentUser('id') userId: string,
     @Body() dto: CreatePaymentDto,
   ) {
+    // 充值类型时，后端生成 orderId
+    const orderId = dto.orderType === 'recharge'
+      ? `recharge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      : dto.orderId;
+
+    if (!orderId) {
+      throw new BadRequestException('订单ID不能为空');
+    }
+
     return this.paymentService.createPayment(
       userId,
       dto.orderType,
-      dto.orderId,
+      orderId,
+      dto.amount,
+      dto.paymentMethod,
+    );
+  }
+
+  /**
+   * 余额充值（专用接口）
+   * 订单ID由后端生成，更安全
+   */
+  @Post('recharge')
+  @UseGuards(JwtAuthGuard, UserStatusGuard)
+  @SetMetadata(MIN_STATUS_KEY, UserStatus.NORMAL)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '余额充值' })
+  @ApiResponse({ status: 201, description: '充值订单创建成功' })
+  async createRecharge(
+    @CurrentUser('id') userId: string,
+    @Body() dto: CreateRechargeDto,
+  ) {
+    // 后端生成订单ID，防止客户端伪造
+    const orderId = `recharge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    return this.paymentService.createPayment(
+      userId,
+      'recharge',
+      orderId,
       dto.amount,
       dto.paymentMethod,
     );
@@ -133,6 +76,7 @@ export class PaymentController {
 
   /**
    * 查询支付状态
+   * 安全修复：添加 userId 校验，确保用户只能查询自己的支付记录
    */
   @Get(':paymentNo')
   @UseGuards(JwtAuthGuard)
@@ -140,8 +84,11 @@ export class PaymentController {
   @ApiOperation({ summary: '查询支付状态' })
   @ApiParam({ name: 'paymentNo', description: '支付单号' })
   @ApiResponse({ status: 200, description: '返回支付状态' })
-  async getPaymentStatus(@Param('paymentNo') paymentNo: string) {
-    return this.paymentService.getPaymentStatus(paymentNo);
+  async getPaymentStatus(
+    @Param('paymentNo') paymentNo: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.paymentService.getPaymentStatus(paymentNo, userId);
   }
 
   /**
@@ -157,22 +104,18 @@ export class PaymentController {
 
   /**
    * 支付宝回调
-   * 安全修复：添加输入验证
+   * 使用 DTO 进行输入验证
    */
   @Post('alipay/notify')
   @Public()
   @ApiOperation({ summary: '支付宝异步回调' })
-  async alipayNotify(@Body() data: Record<string, any>) {
-    // 基础验证：检查必要字段
-    if (!data.out_trade_no || !data.trade_status) {
-      throw new BadRequestException('缺少必要参数');
-    }
-    // 验证 trade_status 为已知值
+  async alipayNotify(@Body() data: AlipayNotifyDto) {
+    // DTO 已验证必要字段，验证 trade_status 为已知值
     const validStatuses = ['TRADE_SUCCESS', 'TRADE_FINISHED', 'TRADE_CLOSED', 'WAIT_BUYER_PAY'];
     if (!validStatuses.includes(data.trade_status)) {
       throw new BadRequestException('无效的交易状态');
     }
-    return this.paymentService.handleAlipayNotify(data);
+    return this.paymentService.handleAlipayNotify(data as Record<string, any>);
   }
 
   /**

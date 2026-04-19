@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
@@ -165,9 +166,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * 分布式锁 - 获取锁（带唯一标识）
+   * 使用密码学安全的随机数生成器
    */
   async acquireLockWithValue(key: string, ttl: number = 30000): Promise<string | null> {
-    const value = `${Date.now()}-${Math.random().toString(36).substring(2)}`;
+    const value = `${Date.now()}-${crypto.randomBytes(16).toString('hex')}`;
     const result = await this.client.set(key, value, 'PX', ttl, 'NX');
     return result === 'OK' ? value : null;
   }

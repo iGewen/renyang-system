@@ -25,6 +25,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     }),
   ],
   providers: [SmsService, WechatService, AlipayService, WechatPayService, RedisService],
-  exports: [SmsService, WechatService, AlipayService, WechatPayService],
+  exports: [SmsService, WechatService, AlipayService, WechatPayService, RedisService],
 })
 export class ServicesModule {}

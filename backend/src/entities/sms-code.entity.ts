@@ -3,9 +3,12 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 
 @Entity('sms_codes')
+@Index(['phone', 'code']) // 复合索引：优化验证码查询
+@Index(['phone', 'type', 'isUsed']) // 复合索引：优化发送频率检查和验证查询
 export class SmsCode {
   @PrimaryGeneratedColumn('uuid')
   id: string;

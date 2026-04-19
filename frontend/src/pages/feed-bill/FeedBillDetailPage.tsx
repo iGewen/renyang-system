@@ -3,10 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Icons, PageTransition, LoadingSpinner, Button, Card, Modal, useToast } from '../../components/ui';
 import { cn } from '../../lib/utils';
-import { adoptionApi } from '../../services/api';
+import { adoptionApi, balanceApi } from '../../services/api';
 import { FeedBillStatus } from '../../types/enums';
 import type { FeedBill } from '../../types';
 import { usePaymentConfig } from '../../contexts/SiteConfigContext';
+import logger from '../../utils/logger';
 
 const FeedBillDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +18,7 @@ const FeedBillDetailPage: React.FC = () => {
   const [paying, setPaying] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'alipay' | 'wechat' | 'balance' | null>(null);
+  const [userBalance, setUserBalance] = useState<number | null>(null);
   const paymentConfig = usePaymentConfig();
 
   useEffect(() => {
@@ -26,13 +28,27 @@ const FeedBillDetailPage: React.FC = () => {
         const data = await adoptionApi.getFeedBillById(id);
         setBill(data);
       } catch (error) {
-        console.error('Failed to fetch feed bill:', error);
+        logger.error('Failed to fetch feed bill:', error);
       } finally {
         setLoading(false);
       }
     };
     fetchBill();
   }, [id]);
+
+  // 当打开支付弹窗时，获取用户余额
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (!showPaymentModal) return;
+      try {
+        const data = await balanceApi.get();
+        setUserBalance(data.balance);
+      } catch {
+        setUserBalance(null);
+      }
+    };
+    fetchBalance();
+  }, [showPaymentModal]);
 
   const handlePay = async () => {
     if (!id) return;
@@ -193,7 +209,6 @@ const FeedBillDetailPage: React.FC = () => {
                 {[
                   ...(paymentConfig.alipayEnabled ? [{ key: 'alipay', icon: Icons.Alipay, label: '支付宝', color: 'text-blue-500' }] : []),
                   ...(paymentConfig.wechatEnabled ? [{ key: 'wechat', icon: Icons.Wechat, label: '微信支付', color: 'text-green-500' }] : []),
-                  { key: 'balance', icon: Icons.Wallet, label: '余额支付', color: 'text-brand-primary' }
                 ].map(item => (
                   <button
                     key={item.key}
@@ -208,6 +223,34 @@ const FeedBillDetailPage: React.FC = () => {
                     {paymentMethod === item.key && <Icons.Check className="w-5 h-5 text-brand-primary ml-auto" />}
                   </button>
                 ))}
+                {/* 余额支付选项 - 检查余额是否充足 */}
+                <button
+                  onClick={() => {
+                    if (userBalance !== null && userBalance >= totalAmount) {
+                      setPaymentMethod('balance');
+                    }
+                  }}
+                  disabled={userBalance !== null && userBalance < totalAmount}
+                  className={cn(
+                    'w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-colors',
+                    paymentMethod === 'balance' ? 'border-brand-primary bg-brand-primary/5' : 'border-slate-100',
+                    userBalance !== null && userBalance < totalAmount && 'opacity-50 cursor-not-allowed'
+                  )}
+                >
+                  <Icons.Wallet className={cn('w-6 h-6', 'text-brand-primary')} />
+                  <div className="flex-1">
+                    <span className="font-medium">余额支付</span>
+                    {userBalance !== null && (
+                      <span className="text-sm text-slate-500 ml-2">
+                        (余额: ¥{userBalance.toFixed(2)})
+                      </span>
+                    )}
+                  </div>
+                  {userBalance !== null && userBalance < totalAmount && (
+                    <span className="text-xs text-red-500">余额不足</span>
+                  )}
+                  {paymentMethod === 'balance' && <Icons.Check className="w-5 h-5 text-brand-primary" />}
+                </button>
               </div>
               <Button
                 className="w-full mt-6"

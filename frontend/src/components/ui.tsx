@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
+import logger from '../utils/logger';
 
 // ==================== Toast 通知系统 ====================
 
@@ -29,9 +30,9 @@ export const useToast = () => {
     return {
       showToast: () => {},
       success: () => {},
-      error: () => console.error,
-      warning: () => console.warn,
-      info: () => console.info,
+      error: () => logger.error,
+      warning: () => logger.warn,
+      info: () => logger.info,
     };
   }
   return context;
@@ -56,7 +57,7 @@ const cleanupExpiredMessages = () => {
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
   // 使用 ref 存储所有 timeout ID，以便在组件卸载时清理
-  const timeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const timeoutRefs = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   // 组件卸载时清理所有 timeout
   useEffect(() => {
@@ -83,7 +84,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     recentMessages.set(key, now);
 
-    const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     setToasts(prev => [...prev, { id, type, message }]);
 
     // 清理缓存的 timeout
@@ -789,13 +790,14 @@ export const SkeletonList: React.FC<{ count?: number }> = ({ count = 5 }) => (
 // 骨架屏表格组件
 export const SkeletonTable: React.FC<{ rows?: number; cols?: number }> = ({ rows = 5, cols = 4 }) => (
   <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-    <div className="grid grid-cols-${cols} gap-4 p-4 bg-slate-50 border-b border-slate-100">
+    {/* 使用内联 style 替代动态 Tailwind 类名，避免 PurgeCSS 问题 */}
+    <div className="gap-4 p-4 bg-slate-50 border-b border-slate-100" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
       {Array.from({ length: cols }).map((_, i) => (
         <Skeleton key={i} height={14} />
       ))}
     </div>
     {Array.from({ length: rows }).map((_, rowIndex) => (
-      <div key={rowIndex} className="grid gap-4 p-4 border-b border-slate-50 last:border-b-0" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+      <div key={rowIndex} className="gap-4 p-4 border-b border-slate-50 last:border-b-0" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
         {Array.from({ length: cols }).map((_, colIndex) => (
           <Skeleton key={colIndex} height={14} width={colIndex === 0 ? '80%' : '60%'} />
         ))}
@@ -990,8 +992,8 @@ export const Modal: React.FC<ModalProps> = ({
         {title && (
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
             <h3 className="text-lg font-bold text-slate-900">{title}</h3>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
-              <Icons.X className="w-5 h-5" />
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors" aria-label="关闭对话框">
+              <Icons.X className="w-5 h-5" aria-hidden="true" />
             </button>
           </div>
         )}

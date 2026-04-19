@@ -1,3 +1,50 @@
+/**
+ * App.tsx - 主应用入口
+ *
+ * ============================================================================
+ * TODO: F-H01 上帝组件重构计划 (约 2700 行，建议拆分)
+ * ============================================================================
+ *
+ * 当前文件包含过多组件，建议逐步拆分到独立文件：
+ *
+ * 1. 页面组件 (建议移至 pages/ 目录):
+ *    - AuthPage -> pages/auth/AuthPage.tsx (约 300 行)
+ *    - HomePage -> pages/home/HomePage.tsx (约 100 行)
+ *    - NotificationPage -> pages/notification/NotificationPage.tsx (约 130 行)
+ *    - GrowthRecordsPage -> pages/growth/GrowthRecordsPage.tsx (约 150 行)
+ *    - SupportPage -> pages/support/SupportPage.tsx (约 160 行)
+ *    - ProfilePage -> pages/profile/ProfilePage.tsx (约 500 行)
+ *    - SecurityPage -> pages/security/SecurityPage.tsx (约 300 行)
+ *
+ * 2. 共享组件 (建议移至 components/ 目录):
+ *    - Navbar -> components/layout/Navbar.tsx
+ *    - TabBar, GlobalTabBar -> components/layout/TabBar.tsx
+ *    - NotificationBadge -> components/common/NotificationBadge.tsx
+ *    - LivestockCard -> components/livestock/LivestockCard.tsx
+ *    - HomePageSkeleton -> components/skeleton/HomePageSkeleton.tsx
+ *
+ * 3. 上下文和 Hooks (建议移至 contexts/ 和 hooks/ 目录):
+ *    - AuthContext -> contexts/AuthContext.tsx
+ *    - useAuth -> hooks/useAuth.ts
+ *
+ * 4. 路由守卫 (建议移至 routes/ 目录):
+ *    - AdminProtectedRoute -> routes/AdminProtectedRoute.tsx
+ *    - UserProtectedRoute -> routes/UserProtectedRoute.tsx
+ *
+ * 重构优先级:
+ * - P0: ProfilePage (最大，约 500 行)
+ * - P1: AuthPage + SecurityPage (认证相关，约 600 行)
+ * - P2: 其他页面组件 (约 500 行)
+ * - P3: 布局组件 (约 200 行)
+ *
+ * 注意: 每次拆分后需确保:
+ * - 路由配置正确
+ * - Context 依赖正确
+ * - 样式一致
+ * - 功能测试通过
+ * ============================================================================
+ */
+
 import React, { useState, useEffect, createContext, useContext, lazy, Suspense, useMemo, useCallback, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation, Link, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,6 +55,7 @@ import type { Livestock, Adoption, FeedBill, User, Order } from './types';
 import { AdoptionStatus, OrderStatus, getAdoptionStatusText, getOrderStatusText } from './types/enums';
 import { livestockApi, adoptionApi, orderApi, paymentApi, balanceApi, notificationApi, authApi, adminApi, agreementApi, redemptionApi } from './services/api';
 import { SiteConfigProvider, usePaymentConfig, useSiteConfig } from './contexts/SiteConfigContext';
+import logger from './utils/logger';
 
 // Lazy load pages for better performance
 const OrdersPage = lazy(() => import('./pages/order/OrdersPage'));
@@ -16,6 +64,9 @@ const FeedBillDetailPage = lazy(() => import('./pages/feed-bill/FeedBillDetailPa
 const RedemptionPage = lazy(() => import('./pages/redemption/RedemptionPage'));
 const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
 const BalancePage = lazy(() => import('./pages/user/BalancePage'));
+
+// SMS 冷却存储 Key
+const SMS_COOLDOWN_KEY = 'sms_cooldown_end';
 
 // ==================== 认证上下文 ====================
 
@@ -29,12 +80,19 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// 默认认证值 - 使用稳定对象避免每次渲染创建新对象
+const DEFAULT_AUTH_VALUE: AuthContextType = {
+  user: null,
+  token: null,
+  isAuthenticated: false,
+  login: () => {},
+  logout: () => {},
+};
+
 const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    return { user: null, token: null, isAuthenticated: false, login: () => {}, logout: () => {} };
-  }
-  return context;
+  // 返回稳定的默认值，而不是每次创建新对象
+  return context ?? DEFAULT_AUTH_VALUE;
 };
 
 // ==================== 认证页面 ====================
@@ -51,7 +109,18 @@ const AuthPage: React.FC = () => {
   const [code, setCode] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [countdown, setCountdown] = useState(0);
+  const [countdown, setCountdown] = useState(() => {
+    // 从 localStorage 恢复冷却时间
+    const storedEndTime = localStorage.getItem(SMS_COOLDOWN_KEY);
+    if (storedEndTime) {
+      const remaining = Math.ceil((parseInt(storedEndTime, 10) - Date.now()) / 1000);
+      if (remaining > 0) {
+        return remaining;
+      }
+      localStorage.removeItem(SMS_COOLDOWN_KEY);
+    }
+    return 0;
+  });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [agreed, setAgreed] = useState(false);
@@ -59,7 +128,7 @@ const AuthPage: React.FC = () => {
   const [agreementContent, setAgreementContent] = useState<{ title: string; content: string } | null>(null);
 
   // 使用 ref 保存定时器引用，用于清理
-  const countdownTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const countdownTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
   // 组件卸载时清理定时器
   useEffect(() => {
@@ -70,6 +139,25 @@ const AuthPage: React.FC = () => {
     };
   }, []);
 
+  // 恢复冷却倒计时（如果页面刷新后还有剩余时间）
+  useEffect(() => {
+    if (countdown > 0 && !countdownTimerRef.current) {
+      countdownTimerRef.current = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            if (countdownTimerRef.current) {
+              clearInterval(countdownTimerRef.current);
+              countdownTimerRef.current = null;
+            }
+            localStorage.removeItem(SMS_COOLDOWN_KEY);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+  }, []); // 只在组件挂载时执行一次
+
   const handleSendCode = async () => {
     if (!phone || !/^1\d{10}$/.test(phone)) {
       setErrors({ phone: '请输入正确的手机号' });
@@ -79,7 +167,11 @@ const AuthPage: React.FC = () => {
     try {
       const type = mode === 'register' ? 'register' : mode === 'forgot' ? 'reset_password' : 'login';
       await authApi.sendSmsCode(phone, type);
-      setCountdown(60);
+      const cooldownSeconds = 60;
+      const endTime = Date.now() + cooldownSeconds * 1000;
+      // 存储冷却结束时间到 localStorage
+      localStorage.setItem(SMS_COOLDOWN_KEY, endTime.toString());
+      setCountdown(cooldownSeconds);
       // 使用 ref 保存定时器引用
       countdownTimerRef.current = setInterval(() => {
         setCountdown(prev => {
@@ -88,6 +180,7 @@ const AuthPage: React.FC = () => {
               clearInterval(countdownTimerRef.current);
               countdownTimerRef.current = null;
             }
+            localStorage.removeItem(SMS_COOLDOWN_KEY);
             return 0;
           }
           return prev - 1;
@@ -534,20 +627,20 @@ const Navbar: React.FC<{ title: string; showBack?: boolean; transparent?: boolea
       <div className="max-w-screen-xl mx-auto px-6 py-5 flex items-center justify-between">
         <div className="flex items-center gap-4">
           {showBack && (
-            <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center active:scale-90 transition-transform">
-              <Icons.ArrowLeft className="w-5 h-5 text-brand-primary" />
+            <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center active:scale-90 transition-transform" aria-label="返回上一页">
+              <Icons.ArrowLeft className="w-5 h-5 text-brand-primary" aria-hidden="true" />
             </button>
           )}
           <h1 className="text-xl md:text-2xl font-bold text-brand-primary tracking-tight">{title}</h1>
         </div>
         {rightContent || (
           <div className="flex gap-3">
-            <Link to="/notifications" className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-600 hover:text-brand-primary transition-colors relative">
-              <Icons.Bell className="w-5 h-5" />
+            <Link to="/notifications" className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-600 hover:text-brand-primary transition-colors relative" aria-label="通知消息">
+              <Icons.Bell className="w-5 h-5" aria-hidden="true" />
               <NotificationBadge />
             </Link>
-            <Link to={isAuthenticated ? "/profile" : "/auth"} className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-brand-primary shadow-lg shadow-brand-primary/20 flex items-center justify-center text-white hover:scale-105 transition-transform">
-              <Icons.User className="w-5 h-5" />
+            <Link to={isAuthenticated ? "/profile" : "/auth"} className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-brand-primary shadow-lg shadow-brand-primary/20 flex items-center justify-center text-white hover:scale-105 transition-transform" aria-label={isAuthenticated ? "个人中心" : "登录"}>
+              <Icons.User className="w-5 h-5" aria-hidden="true" />
             </Link>
           </div>
         )}
@@ -556,7 +649,14 @@ const Navbar: React.FC<{ title: string; showBack?: boolean; transparent?: boolea
   );
 };
 
-const NotificationBadge: React.FC = () => {
+// 统一的消息角标组件，通过 variant 区分样式
+// - default: 带动画脉冲效果，用于首页导航栏
+// - compact: 无动画，用于 Profile 页面等紧凑位置
+interface NotificationBadgeProps {
+  variant?: 'default' | 'compact';
+}
+
+const NotificationBadge: React.FC<NotificationBadgeProps> = ({ variant = 'default' }) => {
   const [count, setCount] = useState(0);
   const { token, isAuthenticated } = useAuth();
   const location = useLocation();
@@ -575,30 +675,13 @@ const NotificationBadge: React.FC = () => {
   }, [token, isAuthenticated, location.pathname]);
 
   if (count === 0) return null;
+
+  // 根据变体返回不同样式
+  if (variant === 'compact') {
+    return <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">{count > 9 ? '9+' : count}</span>;
+  }
+
   return <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold animate-pulse">{count > 9 ? '9+' : count}</span>;
-};
-
-// Profile页面专用的消息角标（绝对定位在图标右上角）
-const NotificationBadgeInProfile: React.FC = () => {
-  const [count, setCount] = useState(0);
-  const { token, isAuthenticated } = useAuth();
-  const location = useLocation();
-
-  useEffect(() => {
-    // 只有登录后才获取未读数
-    if (!token || !isAuthenticated) {
-      setCount(0);
-      return;
-    }
-    notificationApi.getUnreadCount().then(res => {
-      setCount(res.count || 0);
-    }).catch(() => {
-      setCount(0);
-    });
-  }, [token, isAuthenticated, location.pathname]);
-
-  if (count === 0) return null;
-  return <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">{count > 9 ? '9+' : count}</span>;
 };
 
 // ==================== 底部导航 ====================
@@ -621,8 +704,8 @@ const TabBar: React.FC = () => {
   useEffect(() => {
     fetchUnreadCount();
 
-    // 每30秒刷新一次
-    const interval = setInterval(fetchUnreadCount, 30000);
+    // 每60秒刷新一次（优化：减少轮询频率）
+    const interval = setInterval(fetchUnreadCount, 60000);
 
     return () => clearInterval(interval);
   }, [fetchUnreadCount]);
@@ -636,16 +719,16 @@ const TabBar: React.FC = () => {
     <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
       <div className="max-w-md md:max-w-lg mx-auto px-6 pb-6 pointer-events-auto">
         <div className="bg-brand-primary/95 backdrop-blur-md rounded-[32px] flex justify-around items-center py-3 px-4 safe-area-bottom shadow-2xl shadow-brand-primary/40 border border-white/10">
-          <Link to="/" className={cn("flex flex-col items-center justify-center gap-1 transition-colors duration-200 min-w-[60px]", isActive('/') ? "text-white" : "text-white/40 hover:text-white/60")}>
-            <Icons.Home className="w-6 h-6" />
+          <Link to="/" className={cn("flex flex-col items-center justify-center gap-1 transition-colors duration-200 min-w-[60px]", isActive('/') ? "text-white" : "text-white/40 hover:text-white/60")} aria-label="探索首页" aria-current={isActive('/') ? 'page' : undefined}>
+            <Icons.Home className="w-6 h-6" aria-hidden="true" />
             <span className="text-[10px] font-bold tracking-wider uppercase">探索</span>
           </Link>
-          <Link to="/my-adoptions" className={cn("flex flex-col items-center justify-center gap-1 transition-colors duration-200 min-w-[60px]", isActive('/my-adoptions') ? "text-white" : "text-white/40 hover:text-white/60")}>
-            <Icons.Package className="w-6 h-6" />
+          <Link to="/my-adoptions" className={cn("flex flex-col items-center justify-center gap-1 transition-colors duration-200 min-w-[60px]", isActive('/my-adoptions') ? "text-white" : "text-white/40 hover:text-white/60")} aria-label="我的牧场" aria-current={isActive('/my-adoptions') ? 'page' : undefined}>
+            <Icons.Package className="w-6 h-6" aria-hidden="true" />
             <span className="text-[10px] font-bold tracking-wider uppercase">牧场</span>
           </Link>
-          <Link to="/profile" className={cn("flex flex-col items-center justify-center gap-1 transition-colors duration-200 min-w-[60px] relative", isActive('/profile') ? "text-white" : "text-white/40 hover:text-white/60")}>
-            <Icons.User className="w-6 h-6" />
+          <Link to="/profile" className={cn("flex flex-col items-center justify-center gap-1 transition-colors duration-200 min-w-[60px] relative", isActive('/profile') ? "text-white" : "text-white/40 hover:text-white/60")} aria-label="个人中心" aria-current={isActive('/profile') ? 'page' : undefined}>
+            <Icons.User className="w-6 h-6" aria-hidden="true" />
             <span className="text-[10px] font-bold tracking-wider uppercase">我的</span>
             {unreadCount > 0 && (
               <span className="absolute -top-1 right-2 w-4 h-4 bg-red-500 text-white text-[8px] rounded-full flex items-center justify-center font-bold">
@@ -722,7 +805,8 @@ const DetailsPage: React.FC = () => {
     try {
       const order = await orderApi.create({ livestockId: id, clientOrderId: `CLIENT-${Date.now()}` });
       // 后端返回完整的 order 对象，ID 字段是 id
-      navigate('/payment', { state: { orderId: order.id, orderNo: order.orderNo, livestock } });
+      // 使用 URL 参数传递 orderId，避免刷新后 state 丢失
+      navigate(`/payment?orderId=${order.id}`);
     } catch (error) {
       console.error('Failed to create order:', error);
     } finally {
@@ -863,28 +947,39 @@ const PaymentPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { error, success } = useToast();
-  const orderData = location.state as any;
   const [isPaying, setIsPaying] = useState(false);
   const [checkingOrder, setCheckingOrder] = useState(true);
   const [orderExpired, setOrderExpired] = useState(false);
+  const [orderData, setOrderData] = useState<any>(null);
   const paymentConfig = usePaymentConfig();
 
-  // 检查订单状态
+  // 从 URL 参数获取 orderId
+  const searchParams = new URLSearchParams(location.search);
+  const orderId = searchParams.get('orderId');
+
+  // 检查订单状态并获取订单数据
   useEffect(() => {
-    const checkOrderStatus = async () => {
-      if (!orderData?.orderId) {
-        console.error('PaymentPage: 没有订单数据', orderData);
+    const fetchOrderData = async () => {
+      if (!orderId) {
+        console.error('PaymentPage: 没有 orderId 参数');
         error('订单数据不存在，请重新下单');
         navigate('/');
         return;
       }
 
       try {
-        // 获取订单详情检查状态
-        const order = await orderApi.getById(orderData.orderId);
+        // 获取订单详情
+        const order = await orderApi.getById(orderId);
         if (order.status !== OrderStatus.PENDING_PAYMENT) {
           setOrderExpired(true);
           error('订单已过期或已支付，请返回订单列表查看');
+        } else {
+          // 设置订单数据
+          setOrderData({
+            orderId: order.id,
+            orderNo: order.orderNo,
+            livestock: order.livestock,
+          });
         }
       } catch (err: any) {
         console.error('检查订单状态失败:', err);
@@ -895,8 +990,8 @@ const PaymentPage: React.FC = () => {
       }
     };
 
-    checkOrderStatus();
-  }, [orderData, navigate, error]);
+    fetchOrderData();
+  }, [orderId, navigate, error]);
 
   const handlePay = async (method: 'alipay' | 'wechat' | 'balance') => {
     if (!orderData?.orderId) {
@@ -930,9 +1025,9 @@ const PaymentPage: React.FC = () => {
         // 跳转到支付页面
         window.location.href = result.payUrl;
       } else {
-        // 余额支付成功，跳转到成功页
+        // 余额支付成功，跳转到成功页，使用 replace 避免返回到支付页
         success('支付成功');
-        navigate('/success', { state: orderData });
+        navigate(`/success?orderId=${orderData.orderId}`, { replace: true });
       }
     } catch (err: any) {
       console.error('支付失败:', err);
@@ -1026,7 +1121,7 @@ const PaymentResultPage: React.FC = () => {
   const [orderInfo, setOrderInfo] = useState<any>(null);
 
   // 使用 ref 保存轮询定时器引用，确保组件卸载时能正确清理
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // 从URL参数获取支付信息
   const searchParams = new URLSearchParams(location.search);
@@ -1217,8 +1312,41 @@ const PaymentResultPage: React.FC = () => {
 const SuccessPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const orderData = location.state as any;
   const [step, setStep] = useState(0);
+  const [orderData, setOrderData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // 从 URL 参数获取 orderId
+  const searchParams = new URLSearchParams(location.search);
+  const orderId = searchParams.get('orderId');
+
+  // 从后端获取订单数据
+  useEffect(() => {
+    const fetchOrderData = async () => {
+      if (!orderId) {
+        // 没有 orderId，跳转到订单列表
+        navigate('/orders');
+        return;
+      }
+
+      try {
+        const order = await orderApi.getById(orderId);
+        setOrderData({
+          orderId: order.id,
+          orderNo: order.orderNo,
+          livestock: order.livestock,
+        });
+      } catch (error) {
+        console.error('Failed to fetch order data:', error);
+        // 获取失败，跳转到订单列表
+        navigate('/orders');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrderData();
+  }, [orderId, navigate]);
 
   useEffect(() => {
     const timers = [
@@ -1228,6 +1356,16 @@ const SuccessPage: React.FC = () => {
     ];
     return () => timers.forEach(clearTimeout);
   }, []);
+
+  if (loading) {
+    return (
+      <PageTransition>
+        <div className="min-h-screen bg-brand-bg flex flex-col items-center justify-center p-8">
+          <LoadingSpinner />
+        </div>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition>
@@ -1682,7 +1820,7 @@ const ProfilePage: React.FC = () => {
                       <div className="flex items-center gap-4">
                         <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-brand-primary/10 to-indigo-50 flex items-center justify-center text-brand-primary shadow-sm relative">
                           <Icons.Bell className="w-5 h-5" />
-                          <NotificationBadgeInProfile />
+                          <NotificationBadge variant="compact" />
                         </div>
                         <span className="text-sm font-bold text-slate-700">消息中心</span>
                       </div>
@@ -2559,9 +2697,10 @@ export default function App() {
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    // 检查本地存储的登录状态
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+    // 安全修复 (F-C03): 使用 sessionStorage 替代 localStorage
+    // sessionStorage 在标签页关闭后自动清除，比 localStorage 更安全
+    const storedToken = sessionStorage.getItem('token');
+    const storedUser = sessionStorage.getItem('user');
     if (storedToken && storedUser) {
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
@@ -2572,15 +2711,23 @@ export default function App() {
   const login = (newToken: string, newUser: User) => {
     setToken(newToken);
     setUser(newUser);
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(newUser));
+    // 安全修复 (F-C03): 使用 sessionStorage 存储
+    sessionStorage.setItem('token', newToken);
+    // 仅存储必要的用户信息，不存储敏感字段
+    sessionStorage.setItem('user', JSON.stringify({
+      id: newUser.id,
+      phone: newUser.phone,
+      nickname: newUser.nickname,
+      avatar: newUser.avatar,
+      status: newUser.status,
+    }));
   };
 
   const logout = () => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
   };
 
   // 初始化时显示加载状态，避免闪烁或跳转问题

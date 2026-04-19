@@ -3,7 +3,22 @@
 # 使用方式：
 #   新版: docker compose up -d
 #   旧版: docker-compose up -d
-version: '3.8'
+#
+# TODO: I-L02 缺少监控/告警基础设施
+# 生产环境建议添加：
+# 1. Prometheus - 指标收集
+# 2. Grafana - 可视化仪表盘
+# 3. AlertManager - 告警通知
+# 4. Loki - 日志聚合
+# 示例配置参考: https://github.com/prometheus/prometheus/blob/main/documentation/examples/docker-compose.yml
+#
+# TODO: I-M14 Docker 安全加固 - 只读文件系统
+# 生产环境可考虑为无状态服务添加只读文件系统：
+# read_only: true
+# tmpfs:
+#   - /tmp
+#   - /var/cache/nginx
+# 注意：需要根据具体应用需求调整，可能影响某些功能
 
 services:
   # MySQL 数据库 - 使用阿里云ACR镜像
@@ -12,21 +27,30 @@ services:
     container_name: cloud-ranch-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123456}
+      # 安全修复：移除默认密码回退，强制要求配置
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?ERROR: MYSQL_ROOT_PASSWORD must be set}
       MYSQL_DATABASE: cloud_ranch
       MYSQL_CHARACTER_SET_SERVER: utf8mb4
       MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
       TZ: Asia/Shanghai
+    # 安全修复：绑定到 localhost，不暴露到公网
     ports:
-      - "${MYSQL_PORT:-3306}:3306"
+      - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - ./mysql/charset.cnf:/etc/mysql/conf.d/charset.cnf:ro
     networks:
       - cloud-ranch-network
+    # 安全修复 (I-M07): 日志轮转配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root123456}"]
+      # 安全修复：使用内部连接检查，不在命令行暴露密码
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -37,15 +61,24 @@ services:
     image: crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/redis:latest
     container_name: cloud-ranch-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123456}
+    # 安全修复：移除默认密码回退，强制要求配置
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?ERROR: REDIS_PASSWORD must be set}
+    # 安全修复：绑定到 localhost，不暴露到公网
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     networks:
       - cloud-ranch-network
+    # 安全修复 (I-M07): 日志轮转配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis123456}", "ping"]
+      # 安全修复：使用 REDISCLI_AUTH 环境变量而非 -a 参数
+      test: ["CMD", "sh", "-c", "REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping | grep PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -63,16 +96,23 @@ services:
       # 数据库配置
       DB_HOST: mysql
       DB_PORT: 3306
+      # TODO: I-H05 安全改进 - 应创建专用的数据库用户而非使用 root 账号
+      # 生产环境建议：
+      # 1. 创建专用用户: CREATE USER 'cloud_ranch'@'%' IDENTIFIED BY 'password';
+      # 2. 授予权限: GRANT SELECT, INSERT, UPDATE, DELETE ON cloud_ranch.* TO 'cloud_ranch'@'%';
+      # 3. 修改此处为: DB_USERNAME: cloud_ranch
       DB_USERNAME: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123456}
+      DB_PASSWORD_FILE: /run/secrets/db_password
       DB_DATABASE: cloud_ranch
       # Redis配置
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123456}
+      REDIS_PASSWORD_FILE: /run/secrets/redis_password
       # JWT配置
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
       JWT_EXPIRES_IN: 7d
+      # 加密密钥（与 JWT_SECRET 分离）
+      ENCRYPTION_KEY_FILE: /run/secrets/encryption_key
       # 支付宝配置
       ALIPAY_APP_ID: ${ALIPAY_APP_ID:-}
       ALIPAY_PRIVATE_KEY: ${ALIPAY_PRIVATE_KEY:-}
@@ -88,6 +128,14 @@ services:
       ALIYUN_SMS_TEMPLATE_CODE: ${ALIYUN_SMS_TEMPLATE_CODE:-}
       # 管理员配置
       ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD:-}
+      # CORS配置
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+    # Docker Secrets 挂载
+    secrets:
+      - jwt_secret
+      - db_password
+      - redis_password
+      - encryption_key
     ports:
       - "${BACKEND_PORT:-3001}:3001"
     depends_on:
@@ -95,14 +143,34 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      secrets-init:
+        condition: service_completed_successfully
     networks:
       - cloud-ranch-network
+    # 安全修复：添加资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/api/"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 90s
+    # 安全修复 (I-M07): 日志轮转配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+    # 安全修复：添加上传文件持久化
+    volumes:
+      - uploads_data:/app/uploads
 
   # 前端服务 - 自动构建
   frontend:
@@ -118,16 +186,114 @@ services:
         condition: service_healthy
     networks:
       - cloud-ranch-network
+    # 安全修复：添加资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
       interval: 30s
       timeout: 10s
       retries: 3
+    # 安全修复 (I-M07): 日志轮转配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # MySQL 自动备份服务 (I-M08)
+  mysql-backup:
+    image: databack/mysql-backup:latest
+    container_name: cloud-ranch-mysql-backup
+    restart: unless-stopped
+    environment:
+      # 数据库连接配置
+      DB_SERVER: mysql
+      DB_USER: root
+      DB_PASS: ${MYSQL_ROOT_PASSWORD:?ERROR: MYSQL_ROOT_PASSWORD must be set}
+      DB_NAMES: cloud_ranch
+      # 备份频率：每 1440 分钟（24小时）备份一次
+      DB_DUMP_FREQ: 1440
+      # 备份开始时间：凌晨 3 点
+      DB_DUMP_BEGIN: 0300
+      # 压缩方式
+      COMPRESSION: gzip
+      # 保留天数：7 天
+      DB_DUMP_KEEP: 7
+      # 启用 MD5 校验
+      MD5: "true"
+    volumes:
+      - mysql_backups:/backups
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - cloud-ranch-network
+    # 日志轮转配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Secrets 自动初始化服务 (I-C04)
+  # 首次启动时自动创建 secrets 文件（如果不存在）
+  secrets-init:
+    image: alpine:3.19
+    container_name: cloud-ranch-secrets-init
+    volumes:
+      - ./secrets:/secrets
+    command: |
+      sh -c "
+        mkdir -p /secrets
+        cd /secrets
+
+        # 检查并创建各个 secret 文件
+        for secret in jwt_secret db_password redis_password encryption_key; do
+          if [ ! -f $${secret}.txt ]; then
+            echo \"Creating $${secret}.txt...\"
+            head -c 48 /dev/urandom | hexdump -C | awk '{print $$2$$3$$4$$5}' | head -c 48 > $${secret}.txt
+            chmod 600 $${secret}.txt
+          fi
+        done
+
+        # 创建 .gitignore
+        if [ ! -f .gitignore ]; then
+          echo '# 此目录包含敏感信息，不要提交到 Git' > .gitignore
+          echo '*' >> .gitignore
+          echo '!.gitignore' >> .gitignore
+        fi
+
+        echo 'Secrets initialized successfully'
+        ls -la /secrets/
+      "
+    # 此服务完成后即退出，其他服务依赖它
+    restart: "no"
 
 networks:
   cloud-ranch-network:
     driver: bridge
 
+# Docker Secrets 配置 (I-C04)
+# 自动初始化：首次启动时 secrets-init 服务会创建这些文件
+secrets:
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt
+  db_password:
+    file: ./secrets/db_password.txt
+  redis_password:
+    file: ./secrets/redis_password.txt
+  encryption_key:
+    file: ./secrets/encryption_key.txt
+
 volumes:
   mysql_data:
   redis_data:
+  uploads_data:
+  mysql_backups:

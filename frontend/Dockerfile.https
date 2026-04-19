@@ -12,7 +12,8 @@ WORKDIR /app
 
 # 安装依赖
 COPY package*.json ./
-RUN npm config set registry https://registry.npmmirror.com && rm -f package-lock.json && npm install
+# 安全修复：使用 npm ci 保证构建可复现，不删除 package-lock.json
+RUN npm config set registry https://registry.npmmirror.com && npm ci
 
 # 构建应用
 COPY . .
@@ -33,10 +34,8 @@ RUN mkdir -p /var/www/certbot /etc/letsencrypt /usr/share/nginx/html
 # 复制构建产物
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# 复制Nginx配置模板和脚本
-COPY nginx/nginx.conf.template /etc/nginx/templates/nginx.conf.template
-COPY nginx/start-nginx.sh /docker-entrypoint.d/start-nginx.sh
-RUN chmod +x /docker-entrypoint.d/start-nginx.sh
+# 复制Nginx配置（使用根目录的 nginx.conf）
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # 暴露端口
 EXPOSE 80 443

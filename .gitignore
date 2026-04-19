@@ -51,12 +51,15 @@ CLAUDE.md
 FIELD_NAMING_CONVENTIONS.md
 NAMING_INCONSISTENCIES.md
 
+# 审计修复日志（不上传）
+AUDIT_FIX_LOG.md
+FIX_LOG.md
+
 # Playwright 测试临时文件
 .playwright-mcp/
 
 # 设计系统文档（不上传）
 design-system/
 
-# Environment files
-.env
+# Environment files (local only)
 *.env.local

@@ -7,6 +7,9 @@
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "target": "ES2021",
+    // TODO: I-M06 生产环境应禁用 sourceMap 以避免暴露源码
+    // 建议：通过环境变量控制，或构建时使用 NODE_ENV=production 禁用
+    // 生产构建可使用: nest build --webpack --webpackPath webpack.config.prod.js
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",

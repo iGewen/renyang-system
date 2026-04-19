@@ -475,56 +475,75 @@ export class RedemptionService {
 
   /**
    * 取消过期的买断订单
+   * 安全修复：使用分布式锁确保并发安全
    */
   private async cancelExpiredRedemption(redemption: RedemptionOrder) {
-    // 更新买断状态为已取消
-    redemption.status = RedemptionStatus.CANCELLED;
-    await this.redemptionRepository.save(redemption);
+    // 安全修复：使用分布式锁防止并发处理同一订单
+    const lockKey = `redemption:cancel:${redemption.id}`;
+    return this.redisService.withLock(lockKey, 30000, async () => {
+      // 重新查询确认状态未变
+      const freshRedemption = await this.redemptionRepository.findOne({
+        where: { id: redemption.id },
+      });
 
-    // 恢复领养状态为原来的领养中状态
-    const adoption = await this.adoptionRepository.findOne({
-      where: { id: redemption.adoptionId },
+      if (!freshRedemption || freshRedemption.status !== RedemptionStatus.AUDIT_PASSED) {
+        return; // 已被处理或状态已变
+      }
+
+      // 更新买断状态为已取消
+      freshRedemption.status = RedemptionStatus.CANCELLED;
+      await this.redemptionRepository.save(freshRedemption);
+
+      // 恢复领养状态为原来的领养中状态
+      const adoption = await this.adoptionRepository.findOne({
+        where: { id: freshRedemption.adoptionId },
+      });
+      if (adoption) {
+        adoption.status = AdoptionStatus.ACTIVE;
+        await this.adoptionRepository.save(adoption);
+      }
+
+      // 发送超时取消通知
+      const livestock = freshRedemption.livestock;
+      await this.notificationService.sendRedemptionNotification(
+        freshRedemption.userId,
+        '买断订单已过期取消',
+        `您的买断申请（${livestock?.name || '活体'}）因超过24小时未支付已自动取消，领养状态已恢复。如需买断请重新申请。`,
+        freshRedemption.id,
+      );
     });
-    if (adoption) {
-      adoption.status = AdoptionStatus.ACTIVE;
-      await this.adoptionRepository.save(adoption);
-    }
-
-    // 发送超时取消通知
-    const livestock = redemption.livestock;
-    await this.notificationService.sendRedemptionNotification(
-      redemption.userId,
-      '买断订单已过期取消',
-      `您的买断申请（${livestock?.name || '活体'}）因超过24小时未支付已自动取消，领养状态已恢复。如需买断请重新申请。`,
-      redemption.id,
-    );
   }
 
   /**
    * 定时任务：取消所有过期的买断订单
+   * 安全修复：使用分布式锁确保多实例部署时不会重复处理
    */
   async cancelExpiredRedemptions() {
-    const now = new Date();
+    // 安全修复：全局锁，确保同一时间只有一个实例在处理过期订单
+    const globalLockKey = 'redemption:cancel:global';
+    return this.redisService.withLock(globalLockKey, 60000, async () => {
+      const now = new Date();
 
-    // 查找所有已过期且状态为审核通过的买断订单
-    const expiredRedemptions = await this.redemptionRepository
-      .createQueryBuilder('redemption')
-      .leftJoinAndSelect('redemption.livestock', 'livestock')
-      .where('redemption.status = :status', { status: RedemptionStatus.AUDIT_PASSED })
-      .andWhere('redemption.expireAt IS NOT NULL')
-      .andWhere('redemption.expireAt < :now', { now })
-      .getMany();
+      // 查找所有已过期且状态为审核通过的买断订单
+      const expiredRedemptions = await this.redemptionRepository
+        .createQueryBuilder('redemption')
+        .leftJoinAndSelect('redemption.livestock', 'livestock')
+        .where('redemption.status = :status', { status: RedemptionStatus.AUDIT_PASSED })
+        .andWhere('redemption.expireAt IS NOT NULL')
+        .andWhere('redemption.expireAt < :now', { now })
+        .getMany();
 
-    if (!expiredRedemptions || expiredRedemptions.length === 0) {
-      return;
-    }
-
-    for (const redemption of expiredRedemptions) {
-      try {
-        await this.cancelExpiredRedemption(redemption);
-      } catch (error) {
-        console.error(`取消过期买断订单失败: ${redemption.id}`, error);
+      if (!expiredRedemptions || expiredRedemptions.length === 0) {
+        return;
       }
-    }
+
+      for (const redemption of expiredRedemptions) {
+        try {
+          await this.cancelExpiredRedemption(redemption);
+        } catch (error) {
+          console.error(`取消过期买断订单失败: ${redemption.id}`, error);
+        }
+      }
+    });
   }
 }

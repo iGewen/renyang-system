@@ -17,7 +17,6 @@ import {
   SystemConfig,
   AuditLog,
 } from '@/entities';
-import { RedisService } from '@/common/utils/redis.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { NotificationModule } from '../notification/notification.module';
@@ -40,18 +39,24 @@ import { NotificationModule } from '../notification/notification.module';
     ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('jwt.secret') || 'your-secret-key',
-        signOptions: {
-          expiresIn: configService.get<string>('jwt.expiresIn') || '7d',
-        },
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const secret = configService.get<string>('jwt.secret');
+        if (!secret) {
+          throw new Error('JWT_SECRET 未配置，请检查环境变量');
+        }
+        return {
+          secret,
+          signOptions: {
+            expiresIn: configService.get<string>('jwt.expiresIn') || '2h',
+          },
+        };
+      },
       inject: [ConfigService],
     }),
     NotificationModule,
   ],
   controllers: [AdminController],
-  providers: [AdminService, RedisService, AdminGuard],
+  providers: [AdminService, AdminGuard],
   exports: [AdminService],
 })
 export class AdminModule {}

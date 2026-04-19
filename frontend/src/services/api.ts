@@ -40,22 +40,24 @@ function safeParseJwtPayload(token: string): { exp?: number; sub?: string } | nu
 }
 
 // Token 管理工具
+// 安全修复 (F-C03): 使用 sessionStorage 替代 localStorage
+// sessionStorage 在标签页关闭后自动清除，比 localStorage 更安全
 const TokenManager = {
   get: (isAdminRequest: boolean = false): string | null => {
     // 如果是管理后台请求，优先使用 admin_token
     if (isAdminRequest) {
-      const adminToken = localStorage.getItem('admin_token');
+      const adminToken = sessionStorage.getItem('admin_token');
       if (adminToken) {
         const payload = safeParseJwtPayload(adminToken);
         if (!payload) {
           // Token 格式无效，清除
-          localStorage.removeItem('admin_token');
-          localStorage.removeItem('admin_info');
+          sessionStorage.removeItem('admin_token');
+          sessionStorage.removeItem('admin_info');
           return null;
         }
         if (payload.exp && payload.exp * 1000 < Date.now()) {
-          localStorage.removeItem('admin_token');
-          localStorage.removeItem('admin_info');
+          sessionStorage.removeItem('admin_token');
+          sessionStorage.removeItem('admin_info');
           return null;
         }
         return adminToken;
@@ -64,19 +66,19 @@ const TokenManager = {
     }
 
     // 普通用户请求，使用 token
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (!token) return null;
 
     const payload = safeParseJwtPayload(token);
     if (!payload) {
       // Token 格式无效，清除
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
       return null;
     }
     if (payload.exp && payload.exp * 1000 < Date.now()) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
       return null;
     }
     return token;
@@ -84,17 +86,17 @@ const TokenManager = {
 
   set: (token: string, isAdmin: boolean = false): void => {
     if (isAdmin) {
-      localStorage.setItem('admin_token', token);
+      sessionStorage.setItem('admin_token', token);
     } else {
-      localStorage.setItem('token', token);
+      sessionStorage.setItem('token', token);
     }
   },
 
   clear: (): void => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('admin_info');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('admin_token');
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('admin_info');
   }
 };
 
@@ -125,13 +127,13 @@ async function request<T>(url: string, options?: RequestInit, isAdminRequest: bo
       if (response.status === 401) {
         const isLoginRequest = url.includes('/auth/login');
         if (isAdminRequest && !isLoginRequest) {
-          localStorage.removeItem('admin_token');
-          localStorage.removeItem('admin_info');
+          sessionStorage.removeItem('admin_token');
+          sessionStorage.removeItem('admin_info');
           // 跳转到管理员登录页
           window.location.href = '/admin-login';
         } else if (!isAdminRequest && !isLoginRequest) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+          sessionStorage.removeItem('token');
+          sessionStorage.removeItem('user');
           // 跳转到用户登录页
           window.location.href = '/auth';
         }
@@ -273,7 +275,8 @@ export const livestockApi = {
 
 export const orderApi = {
   // 创建领养订单
-  create: async (data: { livestockId: string; quantity?: number; clientOrderId: string }): Promise<{ orderId: string; orderNo: string; expireAt: string }> => {
+  // 后端返回完整的 Order 对象
+  create: async (data: { livestockId: string; quantity?: number; clientOrderId: string }): Promise<{ id: string; orderNo: string; expireAt: string; [key: string]: any }> => {
     return request('/orders/adoption', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -420,11 +423,11 @@ export const balanceApi = {
     return request(`/balance/logs?${query.toString()}`);
   },
 
-  // 充值余额
+  // 充值余额（使用专用接口，订单ID由后端生成）
   recharge: async (amount: number, paymentMethod: 'alipay' | 'wechat'): Promise<PaymentResult> => {
-    return request('/payments', {
+    return request('/payments/recharge', {
       method: 'POST',
-      body: JSON.stringify({ orderType: 'recharge', orderId: `recharge_${Date.now()}`, amount, paymentMethod }),
+      body: JSON.stringify({ amount, paymentMethod }),
     });
   }
 };

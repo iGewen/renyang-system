@@ -2,13 +2,6 @@ import * as crypto from 'crypto';
 
 export class CryptoUtil {
   /**
-   * MD5加密
-   */
-  static md5(text: string): string {
-    return crypto.createHash('md5').update(text).digest('hex');
-  }
-
-  /**
    * SHA256加密
    */
   static sha256(text: string): string {

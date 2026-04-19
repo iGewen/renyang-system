@@ -1,6 +1,24 @@
 // ==================== 状态枚举 ====================
 // 与后端保持一致的数字枚举
 
+// ==================== 家畜类型常量 ====================
+// 定义家畜类型的标准化常量，避免硬编码字符串
+export const LIVESTOCK_TYPES = {
+  SHEEP: 'sheep',
+  CHICKEN: 'chicken',
+  OSTRICH: 'ostrich',
+} as const;
+
+// 家畜类型联合类型
+export type LivestockTypeCode = typeof LIVESTOCK_TYPES[keyof typeof LIVESTOCK_TYPES];
+
+// 家畜类型显示名称映射
+export const LIVESTOCK_TYPE_NAMES: Record<LivestockTypeCode, string> = {
+  [LIVESTOCK_TYPES.SHEEP]: '羊',
+  [LIVESTOCK_TYPES.CHICKEN]: '鸡',
+  [LIVESTOCK_TYPES.OSTRICH]: '鸵鸟',
+};
+
 // 用户状态
 export enum UserStatus {
   NORMAL = 1,      // 正常

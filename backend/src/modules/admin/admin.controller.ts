@@ -1,242 +1,29 @@
 import { Controller, Get, Post, Put, Delete, Param, Body, Query, Req, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth, ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
-import { IsString, IsNumber, IsOptional, IsBoolean, IsIn, IsObject } from 'class-validator';
 import { Public } from '@/common/decorators/public.decorator';
 import { AdminGuard } from '@/common/guards/admin.guard';
 import { RequireAdmin, AdminRole } from '@/common/decorators/admin-role.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { Request } from 'express';
-
-// DTOs
-class LoginDto {
-  @ApiProperty({ description: '用户名' })
-  @IsString()
-  username: string;
-
-  @ApiProperty({ description: '密码' })
-  @IsString()
-  password: string;
-}
-
-class ChangePasswordDto {
-  @ApiProperty({ description: '原密码' })
-  @IsString()
-  oldPassword: string;
-
-  @ApiProperty({ description: '新密码' })
-  @IsString()
-  newPassword: string;
-}
-
-class CreateLivestockTypeDto {
-  @ApiProperty({ description: '类型名称' })
-  @IsString()
-  name: string;
-
-  @ApiPropertyOptional({ description: '图标' })
-  @IsString()
-  @IsOptional()
-  icon?: string;
-
-  @ApiPropertyOptional({ description: '描述' })
-  @IsString()
-  @IsOptional()
-  description?: string;
-
-  @ApiPropertyOptional({ description: '排序' })
-  @IsNumber()
-  @IsOptional()
-  sortOrder?: number;
-
-  @ApiPropertyOptional({ description: '是否启用' })
-  @IsBoolean()
-  @IsOptional()
-  isActive?: boolean;
-}
-
-class UpdateLivestockTypeDto {
-  @ApiPropertyOptional({ description: '类型名称' })
-  @IsString()
-  @IsOptional()
-  name?: string;
-
-  @ApiPropertyOptional({ description: '图标' })
-  @IsString()
-  @IsOptional()
-  icon?: string;
-
-  @ApiPropertyOptional({ description: '描述' })
-  @IsString()
-  @IsOptional()
-  description?: string;
-
-  @ApiPropertyOptional({ description: '排序' })
-  @IsNumber()
-  @IsOptional()
-  sortOrder?: number;
-
-  @ApiPropertyOptional({ description: '是否启用' })
-  @IsBoolean()
-  @IsOptional()
-  isActive?: boolean;
-}
-
-class CreateLivestockDto {
-  @ApiProperty({ description: '活体名称' })
-  @IsString()
-  name: string;
-
-  @ApiProperty({ description: '类型ID' })
-  @IsString()
-  typeId: string;
-
-  @ApiProperty({ description: '价格' })
-  @IsNumber()
-  price: number;
-
-  @ApiProperty({ description: '月饲料费' })
-  @IsNumber()
-  monthlyFeedFee: number;
-
-  @ApiProperty({ description: '买断所需月数' })
-  @IsNumber()
-  redemptionMonths: number;
-
-  @ApiPropertyOptional({ description: '图片列表', type: [String] })
-  @IsOptional()
-  images?: string[];
-
-  @ApiPropertyOptional({ description: '主图URL' })
-  @IsString()
-  @IsOptional()
-  mainImage?: string;
-
-  @ApiPropertyOptional({ description: '描述' })
-  @IsString()
-  @IsOptional()
-  description?: string;
-
-  @ApiPropertyOptional({ description: '库存' })
-  @IsNumber()
-  @IsOptional()
-  stock?: number;
-
-  @ApiPropertyOptional({ description: '是否上架' })
-  @IsBoolean()
-  @IsOptional()
-  isActive?: boolean;
-}
-
-class UpdateLivestockDto {
-  @ApiPropertyOptional({ description: '活体名称' })
-  @IsString()
-  @IsOptional()
-  name?: string;
-
-  @ApiPropertyOptional({ description: '类型ID' })
-  @IsString()
-  @IsOptional()
-  typeId?: string;
-
-  @ApiPropertyOptional({ description: '价格' })
-  @IsNumber()
-  @IsOptional()
-  price?: number;
-
-  @ApiPropertyOptional({ description: '月饲料费' })
-  @IsNumber()
-  @IsOptional()
-  monthlyFeedFee?: number;
-
-  @ApiPropertyOptional({ description: '买断所需月数' })
-  @IsNumber()
-  @IsOptional()
-  redemptionMonths?: number;
-
-  @ApiPropertyOptional({ description: '图片列表', type: [String] })
-  @IsOptional()
-  images?: string[];
-
-  @ApiPropertyOptional({ description: '主图URL' })
-  @IsString()
-  @IsOptional()
-  mainImage?: string;
-
-  @ApiPropertyOptional({ description: '描述' })
-  @IsString()
-  @IsOptional()
-  description?: string;
-
-  @ApiPropertyOptional({ description: '库存' })
-  @IsNumber()
-  @IsOptional()
-  stock?: number;
-
-  @ApiPropertyOptional({ description: '是否上架' })
-  @IsBoolean()
-  @IsOptional()
-  isActive?: boolean;
-}
-
-class UpdateSystemConfigDto {
-  @ApiProperty({ description: '配置键' })
-  @IsString()
-  configKey: string;
-
-  @ApiProperty({ description: '配置值' })
-  @IsOptional()
-  configValue: any;
-}
-
-class SendAnnouncementDto {
-  @ApiProperty({ description: '公告标题' })
-  @IsString()
-  title: string;
-
-  @ApiProperty({ description: '公告内容' })
-  @IsString()
-  content: string;
-}
-
-class SaveAgreementDto {
-  @ApiProperty({ description: '协议键名' })
-  @IsString()
-  agreementKey: string;
-
-  @ApiProperty({ description: '协议标题' })
-  @IsString()
-  title: string;
-
-  @ApiProperty({ description: '协议内容' })
-  @IsString()
-  content: string;
-}
-
-class CreateAdminDto {
-  @ApiProperty({ description: '用户名' })
-  @IsString()
-  username: string;
-
-  @ApiProperty({ description: '密码' })
-  @IsString()
-  password: string;
-
-  @ApiPropertyOptional({ description: '姓名' })
-  @IsString()
-  @IsOptional()
-  name?: string;
-
-  @ApiPropertyOptional({ description: '手机号' })
-  @IsString()
-  @IsOptional()
-  phone?: string;
-
-  @ApiProperty({ description: '角色：1超级管理员 2普通管理员', enum: [1, 2] })
-  @IsNumber()
-  @IsIn([1, 2])
-  role: number;
-}
+// DTOs 从独立文件导入
+import {
+  LoginDto,
+  ChangePasswordDto,
+  CreateLivestockTypeDto,
+  UpdateLivestockTypeDto,
+  CreateLivestockDto,
+  UpdateLivestockDto,
+  UpdateSystemConfigDto,
+  SendAnnouncementDto,
+  SaveAgreementDto,
+  CreateAdminDto,
+  AdjustBalanceDto,
+  UpdateUserInfoDto,
+  SendNotificationDto,
+  AuditRedemptionDto,
+  AuditRefundDto,
+} from './dto';
 
 @ApiTags('管理员')
 @Controller('admin')
@@ -254,6 +41,11 @@ export class AdminController {
            '';
   }
 
+  // 获取 User-Agent
+  private getUserAgent(req: any): string {
+    return req.headers['user-agent'] || '';
+  }
+
   // =============== 认证相关 ===============
 
   /**
@@ -266,7 +58,8 @@ export class AdminController {
   @ApiResponse({ status: 401, description: '用户名或密码错误' })
   async login(@Body() dto: LoginDto, @Req() req: any) {
     const ip = this.getClientIp(req);
-    return this.adminService.login(dto.username, dto.password, ip);
+    const userAgent = this.getUserAgent(req);
+    return this.adminService.login(dto.username, dto.password, ip, userAgent);
   }
 
   /**
@@ -291,7 +84,8 @@ export class AdminController {
   async changePassword(@Body() dto: ChangePasswordDto, @Req() req: any) {
     const adminId = req.user?.id;
     const ip = this.getClientIp(req);
-    return this.adminService.changePassword(adminId, dto.oldPassword, dto.newPassword, ip);
+    const userAgent = this.getUserAgent(req);
+    return this.adminService.changePassword(adminId, dto.oldPassword, dto.newPassword, ip, userAgent);
   }
 
   /**
@@ -372,7 +166,8 @@ export class AdminController {
     const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
-    return this.adminService.updateUserStatus(id, status, adminId, adminName, ip);
+    const userAgent = this.getUserAgent(req);
+    return this.adminService.updateUserStatus(id, status, adminId, adminName, ip, userAgent);
   }
 
   /**
@@ -384,13 +179,13 @@ export class AdminController {
   @ApiParam({ name: 'id', description: '用户ID' })
   async updateUserInfo(
     @Param('id') id: string,
-    @Body() body: { nickname?: string; phone?: string },
+    @Body() dto: UpdateUserInfoDto,
     @Req() req: any,
   ) {
     const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
-    return this.adminService.updateUserInfo(id, body, adminId, adminName, ip);
+    return this.adminService.updateUserInfo(id, dto, adminId, adminName, ip);
   }
 
   /**
@@ -402,13 +197,13 @@ export class AdminController {
   @ApiParam({ name: 'id', description: '用户ID' })
   async adjustUserBalance(
     @Param('id') id: string,
-    @Body() body: { amount: number; reason: string },
+    @Body() dto: AdjustBalanceDto,
     @Req() req: any,
   ) {
     const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
-    return this.adminService.adjustUserBalance(id, body.amount, body.reason, adminId, adminName, ip);
+    return this.adminService.adjustUserBalance(id, dto.amount, dto.reason, adminId, adminName, ip);
   }
 
   /**
@@ -612,7 +407,8 @@ export class AdminController {
     const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
-    return this.adminService.deleteLivestock(id, adminId, adminName, ip);
+    const userAgent = this.getUserAgent(req);
+    return this.adminService.deleteLivestock(id, adminId, adminName, ip, userAgent);
   }
 
   // =============== 订单管理 ===============
@@ -626,7 +422,6 @@ export class AdminController {
   @ApiQuery({ name: 'page', required: false, description: '页码' })
   @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
   @ApiQuery({ name: 'status', required: false, description: '状态' })
-  @ApiQuery({ name: 'orderType', required: false, description: '订单类型' })
   @ApiQuery({ name: 'keyword', required: false, description: '搜索关键词' })
   @ApiQuery({ name: 'startDate', required: false, description: '开始日期' })
   @ApiQuery({ name: 'endDate', required: false, description: '结束日期' })
@@ -634,7 +429,6 @@ export class AdminController {
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
     @Query('status') status?: string,
-    @Query('orderType') orderType?: string,
     @Query('keyword') keyword?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
@@ -643,7 +437,6 @@ export class AdminController {
       page: page ? parseInt(page) : 1,
       pageSize: pageSize ? parseInt(pageSize) : 20,
       status: status ? parseInt(status) : undefined,
-      orderType,
       keyword,
       startDate,
       endDate,
@@ -812,13 +605,13 @@ export class AdminController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '发送通知' })
   async sendNotification(
-    @Body() body: { userIds?: string[]; title: string; content: string; type: string },
+    @Body() dto: SendNotificationDto,
     @Req() req: any,
   ) {
     const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
-    return this.adminService.sendNotification(body, adminId, adminName, ip);
+    return this.adminService.sendNotification(dto, adminId, adminName, ip);
   }
 
   // =============== 管理员管理 ===============
@@ -906,15 +699,18 @@ export class AdminController {
 
   /**
    * 清空审计日志
+   * 安全修复：仅超级管理员（role=1）可操作
    */
   @Delete('audit-logs')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '清空审计日志' })
+  @ApiOperation({ summary: '清空审计日志（仅超级管理员）' })
+  @RequireAdmin(AdminRole.SUPER_ADMIN)
   async clearAuditLogs(@Req() req: any) {
     const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
-    return this.adminService.clearAuditLogs(adminId, adminName, ip);
+    const userAgent = this.getUserAgent(req);
+    return this.adminService.clearAuditLogs(adminId, adminName, ip, userAgent);
   }
 
   // =============== 数据导出 ===============
@@ -1046,13 +842,13 @@ export class AdminController {
   @ApiParam({ name: 'id', description: '买断订单ID' })
   async auditRedemption(
     @Param('id') id: string,
-    @Body() body: { approved: boolean; adjustedAmount?: number; remark?: string },
+    @Body() dto: AuditRedemptionDto,
     @Req() req: any,
   ) {
     const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
-    return this.adminService.auditRedemption(id, body.approved, body.adjustedAmount, body.remark, adminId, adminName, ip);
+    return this.adminService.auditRedemption(id, dto.approved, dto.adjustedAmount, dto.remark, adminId, adminName, ip);
   }
 
   // =============== 退款管理 ===============
@@ -1098,13 +894,13 @@ export class AdminController {
   @ApiParam({ name: 'id', description: '退款订单ID' })
   async auditRefund(
     @Param('id') id: string,
-    @Body() body: { approved: boolean; remark?: string },
+    @Body() dto: AuditRefundDto,
     @Req() req: any,
   ) {
     const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
-    return this.adminService.auditRefund(id, body.approved, body.remark, adminId, adminName, ip);
+    return this.adminService.auditRefund(id, dto.approved, dto.remark, adminId, adminName, ip);
   }
 
   // =============== 协议管理 ===============

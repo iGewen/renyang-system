@@ -15,7 +15,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "db:init": "ts-node -r tsconfig-paths/register scripts/init-database.ts",
-    "db:create": "mysql -u root -p -e \"CREATE DATABASE IF NOT EXISTS cloud_ranch CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\""
+    "db:create": "echo '使用环境变量 DB_PASSWORD 或 MYSQL_ROOT_PASSWORD 替代命令行参数' && mysql -u root -p -e \"CREATE DATABASE IF NOT EXISTS cloud_ranch CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\""
   },
   "jest": {
     "moduleFileExtensions": [

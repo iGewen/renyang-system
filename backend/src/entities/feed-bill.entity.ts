@@ -13,6 +13,21 @@ import { User } from './user.entity';
 import { Livestock } from './livestock.entity';
 import { Adoption } from './adoption.entity';
 
+/**
+ * 精度说明：
+ * 本实体中使用 decimal 类型存储金额相关字段。
+ * - decimal(10,2): 金额字段，精确到分
+ * - decimal(5,4): 滞纳金比例（日），如 0.0005 表示每日 0.05%
+ *
+ * 风险评估：
+ * 1. 滞纳金计算采用累加方式（totalLateFee），避免单次计算误差
+ * 2. 所有金额字段在 JavaScript 中以 string 形式返回，避免浮点精度问题
+ * 3. 计算时应使用精确计算库（如 decimal.js）或后端服务方法
+ *
+ * 业务约束：
+ * - lateFeeRate 建议范围：0 ~ 0.01（日利率最高 1%）
+ * - lateFeeCap 建议设置为原金额的 50%~100%
+ */
 export enum FeedBillStatus {
   PENDING = 1, // 待支付
   PAID = 2, // 已支付

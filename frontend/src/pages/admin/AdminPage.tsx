@@ -456,6 +456,8 @@ export const AdminLivestock: React.FC = () => {
   };
 
   const handleDeleteType = async (id: string) => {
+    // TODO (F-M09): 后续改进为自定义确认对话框，提升用户体验
+    // 当前使用原生 confirm() 可被浏览器阻止，且样式无法自定义
     if (!confirm('确定要删除此类型吗？')) return;
     try {
       await adminApi.deleteLivestockType(id);
@@ -468,6 +470,27 @@ export const AdminLivestock: React.FC = () => {
 
   const handleSaveLivestock = async () => {
     try {
+      // 验证图片 URL 格式
+      if (livestockForm.image) {
+        const imageUrl = livestockForm.image.trim();
+        // 只允许相对路径或已上传路径（/uploads/ 开头）
+        // 或者允许 https 协议的外部链接
+        const isRelativePath = imageUrl.startsWith('/');
+        const isHttpsUrl = imageUrl.startsWith('https://');
+        const isDataUrl = imageUrl.startsWith('data:image/');
+
+        if (!isRelativePath && !isHttpsUrl && !isDataUrl) {
+          toast.error('图片URL格式不正确：只允许相对路径（如 /uploads/xxx）或 HTTPS 链接');
+          return;
+        }
+
+        // 额外安全检查：禁止 javascript: 协议
+        if (imageUrl.toLowerCase().startsWith('javascript:')) {
+          toast.error('图片URL包含不安全的协议');
+          return;
+        }
+      }
+
       const data = {
         name: livestockForm.name,
         typeId: livestockForm.typeId,
@@ -507,6 +530,7 @@ export const AdminLivestock: React.FC = () => {
   };
 
   const handleDeleteLivestock = async (id: string) => {
+    // TODO (F-M09): 后续改进为自定义确认对话框，提升用户体验
     if (!window.confirm('确定要删除这个活体吗？')) return;
     try {
       await adminApi.deleteLivestock(id);
@@ -619,7 +643,17 @@ export const AdminLivestock: React.FC = () => {
           <Input label="价格" type="number" value={livestockForm.price} onChange={e => setLivestockForm({ ...livestockForm, price: e.target.value })} placeholder="请输入价格" />
           <Input label="月饲料费" type="number" value={livestockForm.monthlyFeedFee} onChange={e => setLivestockForm({ ...livestockForm, monthlyFeedFee: e.target.value })} placeholder="请输入月饲料费" />
           <Input label="库存" type="number" value={livestockForm.stock} onChange={e => setLivestockForm({ ...livestockForm, stock: e.target.value })} placeholder="请输入库存数量" />
-          <Input label="图片URL" value={livestockForm.image} onChange={e => setLivestockForm({ ...livestockForm, image: e.target.value })} placeholder="请输入图片URL" />
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">图片URL</label>
+            <input
+              type="text"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none"
+              value={livestockForm.image}
+              onChange={e => setLivestockForm({ ...livestockForm, image: e.target.value })}
+              placeholder="/uploads/xxx.jpg 或 https://..."
+            />
+            <p className="text-xs text-slate-400 mt-1">支持相对路径（/uploads/）或 HTTPS 链接</p>
+          </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">描述</label>
             <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none" rows={3} value={livestockForm.description} onChange={e => setLivestockForm({ ...livestockForm, description: e.target.value })} placeholder="请输入描述" />
@@ -2439,6 +2473,7 @@ export const AdminAgreements: React.FC = () => {
   };
 
   const handleDelete = async (key: string) => {
+    // TODO (F-M09): 后续改进为自定义确认对话框，提升用户体验
     if (!window.confirm('确定要删除该协议吗？')) return;
 
     try {

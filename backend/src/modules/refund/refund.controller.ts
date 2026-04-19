@@ -4,7 +4,7 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { AdminGuard } from '@/common/guards/admin.guard';
 import { RequireAdmin } from '@/common/decorators/admin-role.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { IsIn, IsOptional, IsNumber, IsBoolean, IsString, IsNumberString } from 'class-validator';
+import { IsIn, IsOptional, IsNumber, IsBoolean, IsString, IsNumberString, Min, Max } from 'class-validator';
 import { Request } from 'express';
 
 class ApplyRefundDto {
@@ -39,6 +39,8 @@ class AdminRefundDto {
   userId: string;
 
   @IsNumber()
+  @Min(0.01, { message: '退款金额必须大于0' })
+  @Max(1000000, { message: '退款金额不能超过100万' })
   amount: number;
 
   @IsString()

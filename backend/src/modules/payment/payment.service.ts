@@ -47,13 +47,8 @@ export class PaymentService {
 
     switch (orderType) {
       case 'adoption': {
-        const order = await this.orderService.getById(orderId);
-        if (!order) {
-          throw new BadRequestException('订单不存在');
-        }
-        if (order.userId !== userId) {
-          throw new BadRequestException('无权支付此订单');
-        }
+        // 安全修复：使用 getByIdForUser 强制验证用户归属
+        const order = await this.orderService.getByIdForUser(orderId, userId);
         // 检查订单状态是否为待支付
         if (order.status !== OrderStatus.PENDING_PAYMENT) {
           throw new BadRequestException('订单已过期或已支付，请返回订单列表查看');
@@ -457,23 +452,47 @@ export class PaymentService {
       return { code: 'SUCCESS', message: '已接收' };
     }
 
-    // 使用 outTradeNo 查找支付记录
-    // 注意：微信返回的 out_trade_no 是我们传入的订单号
-    // 我们存的是 payment.outTradeNo = orderId，需要通过 paymentNo 或 orderId 查找
-    let payment = await this.paymentRepository.findOne({
+    // 安全修复：验证 outTradeNo 与支付记录的一致性
+    // 微信返回的 out_trade_no 应该等于我们创建支付时传入的 paymentNo
+    // 我们存储的 payment.outTradeNo = orderId（业务订单ID）
+    const payment = await this.paymentRepository.findOne({
       where: { paymentNo: outTradeNo },
     });
 
-    // 如果找不到，尝试用 outTradeNo 作为 orderId 查找
     if (!payment) {
-      payment = await this.paymentRepository.findOne({
+      // 记录详细日志，帮助排查问题
+      this.logger.error(`[WechatPay] 找不到支付记录，outTradeNo: ${outTradeNo}`);
+      this.logger.warn(`[WechatPay] 安全警告：回调的 out_trade_no 与系统中任何 paymentNo 都不匹配`);
+
+      // 检查是否存在使用 outTradeNo 作为 orderId 的支付记录（历史兼容）
+      const legacyPayment = await this.paymentRepository.findOne({
         where: { outTradeNo },
       });
+
+      if (legacyPayment) {
+        // 安全修复：验证一致性 - 回调的 out_trade_no 必须与 paymentNo 匹配
+        this.logger.error(`[WechatPay] 发现 outTradeNo 匹配但 paymentNo 不一致`, {
+          callbackOutTradeNo: outTradeNo,
+          actualPaymentNo: legacyPayment.paymentNo,
+          expectedPaymentNo: outTradeNo,
+          orderId: legacyPayment.orderId,
+        });
+        // 拒绝处理，防止支付被错误应用到其他订单
+        return { code: 'FAIL', message: '订单号不一致' };
+      }
+
+      return { code: 'FAIL', message: '订单不存在' };
     }
 
-    if (!payment) {
-      this.logger.error(`[WechatPay] 找不到支付记录: ${outTradeNo}`);
-      return { code: 'FAIL', message: '订单不存在' };
+    // 验证：确保支付记录的 paymentNo 与回调的 out_trade_no 完全一致
+    if (payment.paymentNo !== outTradeNo) {
+      this.logger.error(`[WechatPay] 支付记录 paymentNo 与回调 out_trade_no 不一致`, {
+        paymentId: payment.id,
+        paymentNo: payment.paymentNo,
+        callbackOutTradeNo: outTradeNo,
+        orderId: payment.orderId,
+      });
+      return { code: 'FAIL', message: '订单号不一致' };
     }
 
     // 安全修复：验证金额一致性
@@ -494,16 +513,16 @@ export class PaymentService {
     const lockKey = `payment:notify:${payment.paymentNo}`;
     return this.redisService.withLock(lockKey, 30000, async () => {
       // 幂等性检查：仅使用 status 判断
-      if (payment!.status === PaymentStatus.SUCCESS) {
+      if (payment.status === PaymentStatus.SUCCESS) {
         return { code: 'SUCCESS', message: '成功' };
       }
 
       // 修复：使用新字段存储第三方交易号
-      payment!.transactionId = transactionId;
-      payment!.notifyAt = new Date();
-      payment!.notifyData = transactionData;
+      payment.transactionId = transactionId;
+      payment.notifyAt = new Date();
+      payment.notifyData = transactionData;
 
-      await this.handlePaymentSuccess(payment!);
+      await this.handlePaymentSuccess(payment);
 
       return { code: 'SUCCESS', message: '成功' };
     });
@@ -511,14 +530,20 @@ export class PaymentService {
 
   /**
    * 查询支付状态
+   * 安全修复：添加 userId 校验，确保用户只能查询自己的支付记录
    */
-  async getPaymentStatus(paymentNo: string) {
+  async getPaymentStatus(paymentNo: string, userId: string) {
     const payment = await this.paymentRepository.findOne({
       where: { paymentNo },
     });
 
     if (!payment) {
       throw new BadRequestException('支付记录不存在');
+    }
+
+    // 安全修复：验证支付记录归属
+    if (payment.userId !== userId) {
+      throw new BadRequestException('无权查询此支付记录');
     }
 
     return {

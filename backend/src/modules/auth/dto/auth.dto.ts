@@ -13,6 +13,11 @@ export class SendSmsCodeDto {
   @IsNotEmpty({ message: '类型不能为空' })
   @Matches(/^(register|login|reset_password)$/, { message: '类型不正确' })
   type: string;
+
+  @ApiPropertyOptional({ description: '客户端IP（由服务器注入，非前端传递）' })
+  @IsString()
+  @IsOptional()
+  clientIp?: string;
 }
 
 // 密码强度正则：至少包含大小写字母和数字，8-20位
@@ -88,18 +93,6 @@ export class ResetPasswordDto {
   @IsNotEmpty({ message: '新密码不能为空' })
   @Matches(PASSWORD_PATTERN, { message: PASSWORD_MESSAGE })
   newPassword: string;
-}
-
-export class WechatCallbackDto {
-  @ApiProperty({ description: '微信授权code' })
-  @IsString()
-  @IsNotEmpty({ message: 'code不能为空' })
-  code: string;
-
-  @ApiProperty({ description: '状态参数' })
-  @IsString()
-  @IsNotEmpty({ message: 'state不能为空' })
-  state: string;
 }
 
 export class BindPhoneDto {

@@ -6,6 +6,9 @@ import { AppLogger } from './app.logger';
 export class LoggerMiddleware implements NestMiddleware {
   constructor(private readonly logger: AppLogger) {}
 
+  // 敏感字段列表
+  private readonly sensitiveQueryFields = ['token', 'code', 'state', 'ticket', 'auth', 'session', 'secret', 'key'];
+
   use(req: Request, res: Response, next: NextFunction) {
     const startTime = Date.now();
 
@@ -18,7 +21,7 @@ export class LoggerMiddleware implements NestMiddleware {
         userId: (req as any).user?.id,
         userAgent: req.headers['user-agent'],
         body: this.sanitizeBody(req.body),
-        query: req.query,
+        query: this.sanitizeQuery(req.query),
       },
     );
 
@@ -65,6 +68,25 @@ export class LoggerMiddleware implements NestMiddleware {
     const sensitiveFields = ['password', 'newPassword', 'oldPassword', 'token', 'secret'];
 
     for (const field of sensitiveFields) {
+      if (sanitized[field]) {
+        sanitized[field] = '******';
+      }
+    }
+
+    return sanitized;
+  }
+
+  /**
+   * 清理 query 参数中的敏感信息
+   */
+  private sanitizeQuery(query: any): any {
+    if (!query || typeof query !== 'object') {
+      return query;
+    }
+
+    const sanitized = { ...query };
+
+    for (const field of this.sensitiveQueryFields) {
       if (sanitized[field]) {
         sanitized[field] = '******';
       }
