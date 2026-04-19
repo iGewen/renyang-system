@@ -15,7 +15,6 @@ import { Order } from './order.entity';
 
 @Entity('livestock')
 export class Livestock {
-  @Index()
   @Column({ length: 32, primary: true, comment: '活体ID' })
   id: string;
 

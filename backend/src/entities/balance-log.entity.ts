@@ -11,7 +11,6 @@ import { User } from './user.entity';
 
 @Entity('balance_logs')
 export class BalanceLog {
-  @Index()
   @Column({ length: 32, primary: true, comment: '余额日志ID' })
   id: string;
 

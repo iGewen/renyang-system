@@ -10,7 +10,6 @@ import {
 
 @Entity('admins')
 export class Admin {
-  @Index()
   @Column({ length: 32, primary: true, comment: '管理员ID' })
   id: string;
 

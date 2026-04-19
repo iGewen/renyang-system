@@ -18,7 +18,6 @@ export enum PaymentStatus {
 
 @Entity('payment_records')
 export class PaymentRecord {
-  @Index()
   @Column({ length: 32, primary: true, comment: '支付记录ID' })
   id: string;
 

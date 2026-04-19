@@ -22,7 +22,6 @@ export enum FeedBillStatus {
 
 @Entity('feed_bills')
 export class FeedBill {
-  @Index()
   @Column({ length: 32, primary: true, comment: '饲料账单ID' })
   id: string;
 

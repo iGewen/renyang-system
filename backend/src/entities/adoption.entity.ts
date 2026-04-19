@@ -27,7 +27,6 @@ export enum AdoptionStatus {
 
 @Entity('adoptions')
 export class Adoption {
-  @Index()
   @Column({ length: 32, primary: true, comment: '领养ID' })
   id: string;
 

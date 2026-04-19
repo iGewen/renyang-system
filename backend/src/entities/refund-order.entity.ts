@@ -26,7 +26,6 @@ export enum RefundStatus {
 
 @Entity('refund_orders')
 export class RefundOrder {
-  @Index()
   @Column({ length: 32, primary: true, comment: '退款订单ID' })
   id: string;
 

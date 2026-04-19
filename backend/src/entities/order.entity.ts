@@ -23,7 +23,6 @@ export enum OrderStatus {
 
 @Entity('orders')
 export class Order {
-  @Index()
   @Column({ length: 32, primary: true, comment: '订单ID' })
   id: string;
 

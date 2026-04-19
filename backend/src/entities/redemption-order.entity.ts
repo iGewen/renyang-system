@@ -27,7 +27,6 @@ export enum RedemptionStatus {
 
 @Entity('redemption_orders')
 export class RedemptionOrder {
-  @Index()
   @Column({ length: 32, primary: true, comment: '买断订单ID' })
   id: string;
 

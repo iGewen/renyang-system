@@ -8,7 +8,6 @@ import {
 
 @Entity('notifications')
 export class Notification {
-  @Index()
   @Column({ length: 32, primary: true, comment: '通知ID' })
   id: string;
 
