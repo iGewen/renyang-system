@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Icons, PageTransition, LoadingSpinner, Button, Card, Modal } from '../../components/ui';
+import { Icons, PageTransition, LoadingSpinner, Button, Card, Modal, useToast } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { adoptionApi } from '../../services/api';
 import { FeedBillStatus } from '../../types/enums';
@@ -11,6 +11,7 @@ import { usePaymentConfig } from '../../contexts/SiteConfigContext';
 const FeedBillDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { success, error: toastError } = useToast();
   const [bill, setBill] = useState<FeedBill | null>(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
@@ -36,7 +37,7 @@ const FeedBillDetailPage: React.FC = () => {
   const handlePay = async () => {
     if (!id) return;
     if (!paymentMethod) {
-      alert('请选择支付方式');
+      toastError('请选择支付方式');
       return;
     }
     setPaying(true);
@@ -45,11 +46,11 @@ const FeedBillDetailPage: React.FC = () => {
       if (result.payUrl) {
         window.location.href = result.payUrl;
       } else {
-        alert('支付成功');
+        success('支付成功');
         navigate(-1);
       }
     } catch (error: any) {
-      alert(error.message || '支付失败');
+      toastError(error.message || '支付失败');
     } finally {
       setPaying(false);
     }

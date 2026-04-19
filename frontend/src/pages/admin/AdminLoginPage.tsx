@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Icons, Input, Button } from '../../components/ui';
+import { Icons, Input, Button, useToast } from '../../components/ui';
 import { adminApi } from '../../services/api';
 import { cn } from '../../lib/utils';
 
 export const AdminLoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const { success, error: toastError } = useToast();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -110,7 +111,7 @@ export const AdminLoginPage: React.FC = () => {
       setConfirmPassword('');
 
       // 提示用户重新登录
-      alert('密码修改成功，请使用新密码重新登录');
+      success('密码修改成功，请使用新密码重新登录');
     } catch (err: any) {
       // 修改失败时清除 token
       localStorage.removeItem('admin_token');

@@ -2318,6 +2318,7 @@ const GrowthRecordsPage: React.FC = () => {
 const SupportPage: React.FC = () => {
   const navigate = useNavigate();
   const siteConfig = useSiteConfig();
+  const { success } = useToast();
 
   return (
     <PageTransition>
@@ -2398,7 +2399,7 @@ const SupportPage: React.FC = () => {
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(siteConfig.contactWechat);
-                    alert('微信号已复制');
+                    success('微信号已复制');
                   }}
                   className="px-3 py-1.5 bg-brand-primary/10 text-brand-primary rounded-lg text-sm font-medium hover:bg-brand-primary/20 transition-colors"
                 >

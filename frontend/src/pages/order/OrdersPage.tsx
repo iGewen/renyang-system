@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, EmptyState, Modal, Input } from '../../components/ui';
+import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, EmptyState, Modal, Input, useToast } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { orderApi, refundApi } from '../../services/api';
 import type { Order } from '../../types';
@@ -12,6 +12,7 @@ type OrderFilterTab = 'all' | 'pending_payment' | 'paid' | 'cancelled' | 'refund
 const OrdersPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { success, error: toastError } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<OrderFilterTab>('all');
@@ -73,7 +74,7 @@ const OrdersPage: React.FC = () => {
   const handleApplyRefund = async () => {
     if (!refundOrder) return;
     if (!refundReason.trim()) {
-      alert('请填写退款原因');
+      toastError('请填写退款原因');
       return;
     }
     setRefundLoading(true);
@@ -83,7 +84,7 @@ const OrdersPage: React.FC = () => {
         orderId: refundOrder.id,
         reason: refundReason.trim()
       });
-      alert('退款申请已提交，请等待审核');
+      success('退款申请已提交，请等待审核');
       setShowRefundModal(false);
       setRefundOrder(null);
       setRefundReason('');
@@ -91,7 +92,7 @@ const OrdersPage: React.FC = () => {
       const data = await orderApi.getMyOrders({});
       setOrders(data.list);
     } catch (error: any) {
-      alert(error.message || '申请退款失败');
+      toastError(error.message || '申请退款失败');
     } finally {
       setRefundLoading(false);
     }

@@ -120,16 +120,18 @@ async function request<T>(url: string, options?: RequestInit, isAdminRequest: bo
     const data = await response.json();
 
     if (!response.ok) {
-      // 401 错误时清除过期的 Token，但不刷新页面
-      // 只在登录后 token 过期的情况下才需要重新登录
+      // 401 错误时清除过期的 Token 并跳转到登录页
       if (response.status === 401) {
-        // 只清除对应类型的 token
         if (isAdminRequest) {
           localStorage.removeItem('admin_token');
           localStorage.removeItem('admin_info');
+          // 跳转到管理员登录页
+          window.location.href = '/admin-login';
         } else {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
+          // 跳转到用户登录页
+          window.location.href = '/auth';
         }
       }
       throw new Error(data.message || '请求失败');

@@ -91,12 +91,14 @@ export class AdminService {
       lastLoginIp: ip,
     });
 
-    // 生成token
+    // 生成token - 管理员token有效期2小时
     const token = this.jwtService.sign({
       sub: admin.id,
       username: admin.username,
       type: 'admin',
       role: admin.role,
+    }, {
+      expiresIn: '2h',
     });
 
     // 记录登录日志
