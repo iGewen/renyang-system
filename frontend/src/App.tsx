@@ -356,15 +356,6 @@ const LivestockCard: React.FC<LivestockCardProps> = ({ item, index, onClick }) =
                 {item.type.name}
               </span>
             )}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                // TODO: 收藏功能
-              }}
-              className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/30 transition-all ml-auto"
-            >
-              <Icons.Heart className="w-5 h-5" />
-            </button>
           </div>
 
           {/* 底部信息 */}
@@ -1016,6 +1007,187 @@ const PaymentPage: React.FC = () => {
   );
 };
 
+// ==================== 支付结果查询页 ====================
+
+const PaymentResultPage: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { success, error } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [paymentStatus, setPaymentStatus] = useState<'success' | 'pending' | 'failed' | null>(null);
+  const [orderInfo, setOrderInfo] = useState<any>(null);
+
+  // 从URL参数获取支付信息
+  const searchParams = new URLSearchParams(location.search);
+  const outTradeNo = searchParams.get('out_trade_no');
+  const paymentNo = searchParams.get('payment_no');
+
+  useEffect(() => {
+    const checkPaymentStatus = async () => {
+      if (!outTradeNo && !paymentNo) {
+        // 没有支付参数，跳转到订单列表
+        navigate('/orders');
+        return;
+      }
+
+      try {
+        // 查询支付状态
+        const paymentIdentifier = paymentNo || outTradeNo;
+        if (!paymentIdentifier) {
+          throw new Error('缺少支付参数');
+        }
+
+        const result = await paymentApi.getStatus(paymentIdentifier);
+
+        if (result.status === 2) {
+          // 支付成功
+          setPaymentStatus('success');
+          setOrderInfo(result);
+          success('支付成功！');
+        } else if (result.status === 1) {
+          // 待支付，轮询查询
+          setPaymentStatus('pending');
+          let retryCount = 0;
+          const maxRetries = 10;
+
+          const pollInterval = setInterval(async () => {
+            retryCount++;
+            try {
+              const pollResult = await paymentApi.getStatus(paymentIdentifier);
+              if (pollResult.status === 2) {
+                clearInterval(pollInterval);
+                setPaymentStatus('success');
+                setOrderInfo(pollResult);
+                success('支付成功！');
+              } else if (pollResult.status === 3 || retryCount >= maxRetries) {
+                clearInterval(pollInterval);
+                if (pollResult.status === 3) {
+                  setPaymentStatus('failed');
+                } else {
+                  setPaymentStatus('pending');
+                  error('支付状态查询超时，请稍后在订单列表查看');
+                }
+              }
+            } catch (e) {
+              console.error('轮询支付状态失败:', e);
+            }
+          }, 2000);
+
+          return () => clearInterval(pollInterval);
+        } else {
+          // 支付失败或已关闭
+          setPaymentStatus('failed');
+        }
+      } catch (err: any) {
+        console.error('查询支付状态失败:', err);
+        setPaymentStatus('failed');
+        error(err.message || '查询支付状态失败');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkPaymentStatus();
+  }, [outTradeNo, paymentNo, navigate, success, error]);
+
+  if (loading) {
+    return (
+      <PageTransition>
+        <div className="min-h-screen bg-brand-bg flex flex-col items-center justify-center p-8">
+          <Icons.Loader2 className="w-12 h-12 text-brand-primary animate-spin mb-4" />
+          <p className="text-slate-500">正在查询支付结果...</p>
+        </div>
+      </PageTransition>
+    );
+  }
+
+  return (
+    <PageTransition>
+      <div className="min-h-screen bg-brand-bg flex flex-col items-center justify-center p-8">
+        {paymentStatus === 'success' && (
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="text-center"
+          >
+            <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Icons.CheckCircle2 className="w-12 h-12 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">支付成功</h2>
+            <p className="text-slate-500 mb-6">您的订单已支付完成</p>
+            {orderInfo && (
+              <div className="bg-white rounded-2xl p-6 mb-6 shadow-sm">
+                <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                  <span className="text-slate-500">支付金额</span>
+                  <span className="font-bold text-brand-primary">¥{orderInfo.amount}</span>
+                </div>
+                {orderInfo.paymentNo && (
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-slate-500">支付单号</span>
+                    <span className="font-mono text-sm text-slate-600">{orderInfo.paymentNo}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="flex gap-4">
+              <Button variant="outline" onClick={() => navigate('/orders')}>
+                查看订单
+              </Button>
+              <Button onClick={() => navigate('/my-adoptions')}>
+                进入牧场
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
+        {paymentStatus === 'pending' && (
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="text-center"
+          >
+            <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Icons.Clock className="w-12 h-12 text-yellow-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">支付处理中</h2>
+            <p className="text-slate-500 mb-6">请稍后在订单列表查看支付状态</p>
+            <div className="flex gap-4">
+              <Button variant="outline" onClick={() => navigate('/orders')}>
+                查看订单
+              </Button>
+              <Button onClick={() => navigate('/')}>
+                返回首页
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
+        {paymentStatus === 'failed' && (
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="text-center"
+          >
+            <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Icons.XCircle className="w-12 h-12 text-red-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">支付失败</h2>
+            <p className="text-slate-500 mb-6">支付遇到问题，请重新尝试</p>
+            <div className="flex gap-4">
+              <Button variant="outline" onClick={() => navigate('/orders')}>
+                查看订单
+              </Button>
+              <Button onClick={() => navigate('/')}>
+                返回首页
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </div>
+    </PageTransition>
+  );
+};
+
 // ==================== 成功页 ====================
 
 const SuccessPage: React.FC = () => {
@@ -1501,6 +1673,15 @@ const ProfilePage: React.FC = () => {
                       </div>
                       <Icons.ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-brand-primary group-hover:translate-x-1 transition-all" />
                     </Link>
+                    <Link to="/security" className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-brand-primary/10 to-indigo-50 flex items-center justify-center text-brand-primary">
+                          <Icons.ShieldCheck className="w-5 h-5" />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700">账户安全</span>
+                      </div>
+                      <Icons.ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-brand-primary group-hover:translate-x-1 transition-all" />
+                    </Link>
                   </div>
                 </Card>
               </motion.section>
@@ -1541,6 +1722,275 @@ const ProfilePage: React.FC = () => {
               </Button>
               <Button className="flex-1" onClick={handleSaveNickname} loading={savingNickname}>
                 保存
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      </div>
+    </PageTransition>
+  );
+};
+
+// ==================== 账户安全页 ====================
+
+const SecurityPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { success, error } = useToast();
+
+  // 修改密码
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  // 修改手机号
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [phoneForm, setPhoneForm] = useState({ newPhone: '', code: '' });
+  const [phoneLoading, setPhoneLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
+  // 发送验证码
+  const handleSendCode = async () => {
+    if (!phoneForm.newPhone || !/^1\d{10}$/.test(phoneForm.newPhone)) {
+      error('请输入正确的手机号');
+      return;
+    }
+    if (countdown > 0) return;
+
+    try {
+      await authApi.sendSmsCode(phoneForm.newPhone, 'change_phone');
+      setCountdown(60);
+      const timer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      success('验证码已发送');
+    } catch (err: any) {
+      error(err.message || '发送失败');
+    }
+  };
+
+  // 修改密码
+  const handleChangePassword = async () => {
+    if (!passwordForm.oldPassword || !passwordForm.newPassword) {
+      error('请填写完整信息');
+      return;
+    }
+    if (passwordForm.newPassword.length < 6) {
+      error('新密码至少6位');
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      error('两次密码不一致');
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      await authApi.changePassword({
+        oldPassword: passwordForm.oldPassword,
+        newPassword: passwordForm.newPassword
+      });
+      success('密码修改成功，请重新登录');
+      setShowPasswordModal(false);
+      setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err: any) {
+      error(err.message || '修改失败');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  // 修改手机号
+  const handleChangePhone = async () => {
+    if (!phoneForm.newPhone || !/^1\d{10}$/.test(phoneForm.newPhone)) {
+      error('请输入正确的手机号');
+      return;
+    }
+    if (!phoneForm.code) {
+      error('请输入验证码');
+      return;
+    }
+
+    setPhoneLoading(true);
+    try {
+      await authApi.changePhone({
+        newPhone: phoneForm.newPhone,
+        code: phoneForm.code
+      });
+      success('手机号修改成功');
+      setShowPhoneModal(false);
+      setPhoneForm({ newPhone: '', code: '' });
+    } catch (err: any) {
+      error(err.message || '修改失败');
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
+
+  return (
+    <PageTransition>
+      <div className="min-h-screen bg-brand-bg pb-8">
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-white border-b border-slate-100">
+          <div className="flex items-center justify-between px-6 py-4">
+            <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+              <Icons.ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-lg font-bold text-slate-900">账户安全</h1>
+            <div className="w-10" />
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="px-6 mt-6 space-y-4">
+          {/* 当前账户信息 */}
+          <Card className="p-6">
+            <h3 className="text-lg font-bold text-slate-900 mb-4">账户信息</h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center py-3 border-b border-slate-50">
+                <span className="text-slate-500">当前手机号</span>
+                <span className="font-medium">{user?.phone?.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')}</span>
+              </div>
+              <div className="flex justify-between items-center py-3">
+                <span className="text-slate-500">登录密码</span>
+                <span className="text-green-600 text-sm">已设置</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* 安全设置 */}
+          <Card className="p-6">
+            <h3 className="text-lg font-bold text-slate-900 mb-4">安全设置</h3>
+            <div className="divide-y divide-slate-50">
+              <button
+                onClick={() => setShowPasswordModal(true)}
+                className="w-full py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <Icons.Lock className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-medium text-slate-900">修改密码</p>
+                    <p className="text-xs text-slate-400">定期修改密码更安全</p>
+                  </div>
+                </div>
+                <Icons.ChevronRight className="w-5 h-5 text-slate-300" />
+              </button>
+              <button
+                onClick={() => setShowPhoneModal(true)}
+                className="w-full py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
+                    <Icons.Smartphone className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-medium text-slate-900">更换手机号</p>
+                    <p className="text-xs text-slate-400">更换绑定的手机号</p>
+                  </div>
+                </div>
+                <Icons.ChevronRight className="w-5 h-5 text-slate-300" />
+              </button>
+            </div>
+          </Card>
+
+          {/* 安全提示 */}
+          <Card className="p-6 bg-amber-50 border-amber-100">
+            <div className="flex gap-4">
+              <Icons.AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0" />
+              <div>
+                <h4 className="font-bold text-amber-800">安全提示</h4>
+                <ul className="text-sm text-amber-700 mt-2 space-y-1">
+                  <li>• 请勿将密码告知他人</li>
+                  <li>• 请勿使用简单密码如123456</li>
+                  <li>• 定期更换密码保护账户安全</li>
+                </ul>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* 修改密码弹窗 */}
+        <Modal open={showPasswordModal} onClose={() => setShowPasswordModal(false)} title="修改密码">
+          <div className="p-6 space-y-4">
+            <Input
+              label="原密码"
+              type="password"
+              placeholder="请输入原密码"
+              value={passwordForm.oldPassword}
+              onChange={e => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })}
+            />
+            <Input
+              label="新密码"
+              type="password"
+              placeholder="请输入新密码（至少6位）"
+              value={passwordForm.newPassword}
+              onChange={e => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+            />
+            <Input
+              label="确认密码"
+              type="password"
+              placeholder="请再次输入新密码"
+              value={passwordForm.confirmPassword}
+              onChange={e => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+            />
+            <div className="flex gap-3 pt-4">
+              <Button variant="outline" className="flex-1" onClick={() => setShowPasswordModal(false)}>
+                取消
+              </Button>
+              <Button className="flex-1" onClick={handleChangePassword} loading={passwordLoading}>
+                确认修改
+              </Button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* 修改手机号弹窗 */}
+        <Modal open={showPhoneModal} onClose={() => setShowPhoneModal(false)} title="更换手机号">
+          <div className="p-6 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">新手机号</label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="请输入新手机号"
+                  value={phoneForm.newPhone}
+                  onChange={e => setPhoneForm({ ...phoneForm, newPhone: e.target.value })}
+                  className="flex-1"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">验证码</label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="请输入验证码"
+                  value={phoneForm.code}
+                  onChange={e => setPhoneForm({ ...phoneForm, code: e.target.value })}
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  onClick={handleSendCode}
+                  disabled={countdown > 0}
+                  className="whitespace-nowrap"
+                >
+                  {countdown > 0 ? `${countdown}s` : '获取验证码'}
+                </Button>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-4">
+              <Button variant="outline" className="flex-1" onClick={() => setShowPhoneModal(false)}>
+                取消
+              </Button>
+              <Button className="flex-1" onClick={handleChangePhone} loading={phoneLoading}>
+                确认修改
               </Button>
             </div>
           </div>
@@ -2128,6 +2578,7 @@ export default function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/details/:id" element={<UserProtectedRoute><DetailsPage /></UserProtectedRoute>} />
                 <Route path="/payment" element={<UserProtectedRoute><PaymentPage /></UserProtectedRoute>} />
+                <Route path="/payment-result" element={<UserProtectedRoute><PaymentResultPage /></UserProtectedRoute>} />
                 <Route path="/success" element={<UserProtectedRoute><SuccessPage /></UserProtectedRoute>} />
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/admin-login" element={<AdminLoginPageWrapper />} />
@@ -2136,6 +2587,7 @@ export default function App() {
                 <Route path="/profile" element={<UserProtectedRoute><ProfilePage /></UserProtectedRoute>} />
                 <Route path="/balance" element={<UserProtectedRoute><Suspense fallback={<LoadingSpinner />}><BalancePage /></Suspense></UserProtectedRoute>} />
                 <Route path="/notifications" element={<UserProtectedRoute><NotificationPage /></UserProtectedRoute>} />
+                <Route path="/security" element={<UserProtectedRoute><SecurityPage /></UserProtectedRoute>} />
                 <Route path="/growth-records" element={<UserProtectedRoute><GrowthRecordsPage /></UserProtectedRoute>} />
                 <Route path="/support" element={<UserProtectedRoute><SupportPage /></UserProtectedRoute>} />
                 <Route path="/orders" element={<UserProtectedRoute><Suspense fallback={<LoadingSpinner />}><OrdersPage /></Suspense></UserProtectedRoute>} />

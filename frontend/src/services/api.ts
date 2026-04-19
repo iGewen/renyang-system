@@ -200,6 +200,22 @@ export const authApi = {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
+  },
+
+  // 修改密码
+  changePassword: async (data: { oldPassword: string; newPassword: string }): Promise<{ success: boolean }> => {
+    return request('/users/me/password', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // 修改手机号
+  changePhone: async (data: { newPhone: string; code: string }): Promise<{ success: boolean }> => {
+    return request('/users/me/phone', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 };
 
@@ -887,5 +903,38 @@ export const adminApi = {
 
   deleteAgreement: async (key: string): Promise<{ success: boolean }> => {
     return adminRequest(`/admin/agreements/${key}`, { method: 'DELETE' });
-  }
+  },
+
+  // ==================== 数据导出 ====================
+  exportUsers: async (params?: { status?: number; startDate?: string; endDate?: string }): Promise<{ base64: string; filename: string }> => {
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status.toString());
+    if (params?.startDate) query.set('startDate', params.startDate);
+    if (params?.endDate) query.set('endDate', params.endDate);
+    return adminRequest(`/admin/export/users?${query.toString()}`);
+  },
+
+  exportOrders: async (params?: { status?: number; startDate?: string; endDate?: string }): Promise<{ base64: string; filename: string }> => {
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status.toString());
+    if (params?.startDate) query.set('startDate', params.startDate);
+    if (params?.endDate) query.set('endDate', params.endDate);
+    return adminRequest(`/admin/export/orders?${query.toString()}`);
+  },
+
+  exportAdoptions: async (params?: { status?: number; startDate?: string; endDate?: string }): Promise<{ base64: string; filename: string }> => {
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status.toString());
+    if (params?.startDate) query.set('startDate', params.startDate);
+    if (params?.endDate) query.set('endDate', params.endDate);
+    return adminRequest(`/admin/export/adoptions?${query.toString()}`);
+  },
+
+  exportFeedBills: async (params?: { status?: number; startDate?: string; endDate?: string }): Promise<{ base64: string; filename: string }> => {
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status.toString());
+    if (params?.startDate) query.set('startDate', params.startDate);
+    if (params?.endDate) query.set('endDate', params.endDate);
+    return adminRequest(`/admin/export/feed-bills?${query.toString()}`);
+  },
 };

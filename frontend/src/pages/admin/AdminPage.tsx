@@ -750,10 +750,30 @@ export const AdminOrders: React.FC = () => {
 
   if (loading) return <LoadingSpinner />;
 
+  // 导出订单数据
+  const handleExportOrders = async () => {
+    try {
+      toast.info('正在导出订单数据...');
+      const result = await adminApi.exportOrders({
+        status: statusFilter ? parseInt(statusFilter) : undefined
+      });
+      const link = document.createElement('a');
+      link.href = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${result.base64}`;
+      link.download = result.filename;
+      link.click();
+      toast.success('导出成功');
+    } catch (error: any) {
+      toast.error(error.message || '导出失败');
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6 gap-4">
         <div className="flex-1 flex gap-2">
+          <Button size="sm" onClick={handleExportOrders} icon={<Icons.Download className="w-4 h-4" />}>
+            导出Excel
+          </Button>
           <div className="relative flex-1 max-w-xs">
             <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
@@ -1347,9 +1367,28 @@ export const AdminUsers: React.FC = () => {
 
   if (loading) return <LoadingSpinner />;
 
+  // 导出用户数据
+  const handleExportUsers = async () => {
+    try {
+      toast.info('正在导出用户数据...');
+      const result = await adminApi.exportUsers();
+      // 下载文件
+      const link = document.createElement('a');
+      link.href = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${result.base64}`;
+      link.download = result.filename;
+      link.click();
+      toast.success('导出成功');
+    } catch (error: any) {
+      toast.error(error.message || '导出失败');
+    }
+  };
+
   return (
     <div className="p-6">
-      <div className="flex justify-end items-center mb-6">
+      <div className="flex justify-between items-center mb-6">
+        <Button size="sm" onClick={handleExportUsers} icon={<Icons.Download className="w-4 h-4" />}>
+          导出Excel
+        </Button>
         <Input placeholder="搜索用户（手机号/昵称）" value={keyword} onChange={e => setKeyword(e.target.value)} icon={<Icons.Search className="w-5 h-5" />} className="w-64" />
       </div>
 

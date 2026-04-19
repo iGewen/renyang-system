@@ -6,10 +6,11 @@ import { User } from '@/entities/user.entity';
 import { BalanceLog } from '@/entities/balance-log.entity';
 import { SystemConfig } from '@/entities/system-config.entity';
 import { Adoption } from '@/entities/adoption.entity';
+import { SmsCode } from '@/entities/sms-code.entity';
 import { RedisService } from '@/common/utils/redis.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, BalanceLog, SystemConfig, Adoption])],
+  imports: [TypeOrmModule.forFeature([User, BalanceLog, SystemConfig, Adoption, SmsCode])],
   controllers: [UserController],
   providers: [UserService, RedisService],
   exports: [UserService],

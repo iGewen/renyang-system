@@ -128,4 +128,12 @@ export class UserService {
       totalPages: Math.ceil(total / pageSize),
     };
   }
+
+  async updatePassword(userId: string, hashedPassword: string) {
+    await this.userRepository.update(userId, { password: hashedPassword });
+  }
+
+  async updatePhone(userId: string, phone: string) {
+    await this.userRepository.update(userId, { phone });
+  }
 }

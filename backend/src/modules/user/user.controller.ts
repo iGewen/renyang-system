@@ -1,10 +1,11 @@
-import { Controller, Get, Param, NotFoundException, Patch, Body } from '@nestjs/common';
+import { Controller, Get, Param, NotFoundException, Patch, Body, Put, BadRequestException } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { Public } from '@/common/decorators/public.decorator';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { SystemConfig } from '@/entities';
+import { SystemConfig, SmsCode } from '@/entities';
+import * as bcrypt from 'bcryptjs';
 
 @Controller('users')
 export class UserController {
@@ -12,6 +13,8 @@ export class UserController {
     private readonly userService: UserService,
     @InjectRepository(SystemConfig)
     private systemConfigRepository: Repository<SystemConfig>,
+    @InjectRepository(SmsCode)
+    private smsCodeRepository: Repository<SmsCode>,
   ) {}
 
   @Get('me')
@@ -22,6 +25,70 @@ export class UserController {
   @Patch('me')
   async updateProfile(@CurrentUser('id') userId: string, @Body() body: { nickname?: string }) {
     return this.userService.updateProfile(userId, body);
+  }
+
+  /**
+   * 修改密码
+   */
+  @Put('me/password')
+  async changePassword(
+    @CurrentUser('id') userId: string,
+    @Body() body: { oldPassword: string; newPassword: string }
+  ) {
+    const user = await this.userService.findOne(userId);
+    if (!user) {
+      throw new NotFoundException('用户不存在');
+    }
+
+    // 验证原密码
+    const isValid = await bcrypt.compare(body.oldPassword, user.password);
+    if (!isValid) {
+      throw new BadRequestException('原密码错误');
+    }
+
+    // 更新密码
+    const hashedPassword = await bcrypt.hash(body.newPassword, 10);
+    await this.userService.updatePassword(userId, hashedPassword);
+
+    return { success: true };
+  }
+
+  /**
+   * 修改手机号
+   */
+  @Put('me/phone')
+  async changePhone(
+    @CurrentUser('id') userId: string,
+    @Body() body: { newPhone: string; code: string }
+  ) {
+    // 验证验证码
+    const smsCode = await this.smsCodeRepository.findOne({
+      where: { phone: body.newPhone, code: body.code, type: 'change_phone', isUsed: 0 },
+      order: { createdAt: 'DESC' },
+    });
+
+    if (!smsCode) {
+      throw new BadRequestException('验证码错误或已过期');
+    }
+
+    if (new Date() > smsCode.expireAt) {
+      throw new BadRequestException('验证码已过期');
+    }
+
+    // 检查手机号是否已被使用
+    const existingUser = await this.userService.findByPhone(body.newPhone);
+    if (existingUser && existingUser.id !== userId) {
+      throw new BadRequestException('该手机号已被其他用户使用');
+    }
+
+    // 更新手机号
+    await this.userService.updatePhone(userId, body.newPhone);
+
+    // 标记验证码已使用
+    smsCode.isUsed = 1;
+    await this.smsCodeRepository.save(smsCode);
+
+    return { success: true };
   }
 
   @Get('me/balance-logs')

@@ -917,6 +917,92 @@ export class AdminController {
     return this.adminService.clearAuditLogs(adminId, adminName, ip);
   }
 
+  // =============== 数据导出 ===============
+
+  /**
+   * 导出用户数据
+   */
+  @Get('export/users')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '导出用户数据' })
+  @ApiQuery({ name: 'status', required: false, description: '用户状态' })
+  @ApiQuery({ name: 'startDate', required: false, description: '开始日期' })
+  @ApiQuery({ name: 'endDate', required: false, description: '结束日期' })
+  async exportUsers(
+    @Query('status') status?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.adminService.exportUsers({
+      status: status ? parseInt(status) : undefined,
+      startDate,
+      endDate,
+    });
+  }
+
+  /**
+   * 导出订单数据
+   */
+  @Get('export/orders')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '导出订单数据' })
+  @ApiQuery({ name: 'status', required: false, description: '订单状态' })
+  @ApiQuery({ name: 'startDate', required: false, description: '开始日期' })
+  @ApiQuery({ name: 'endDate', required: false, description: '结束日期' })
+  async exportOrders(
+    @Query('status') status?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.adminService.exportOrders({
+      status: status ? parseInt(status) : undefined,
+      startDate,
+      endDate,
+    });
+  }
+
+  /**
+   * 导出领养数据
+   */
+  @Get('export/adoptions')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '导出领养数据' })
+  @ApiQuery({ name: 'status', required: false, description: '领养状态' })
+  @ApiQuery({ name: 'startDate', required: false, description: '开始日期' })
+  @ApiQuery({ name: 'endDate', required: false, description: '结束日期' })
+  async exportAdoptions(
+    @Query('status') status?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.adminService.exportAdoptions({
+      status: status ? parseInt(status) : undefined,
+      startDate,
+      endDate,
+    });
+  }
+
+  /**
+   * 导出饲料费账单数据
+   */
+  @Get('export/feed-bills')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '导出饲料费账单数据' })
+  @ApiQuery({ name: 'status', required: false, description: '账单状态' })
+  @ApiQuery({ name: 'startDate', required: false, description: '开始日期' })
+  @ApiQuery({ name: 'endDate', required: false, description: '结束日期' })
+  async exportFeedBills(
+    @Query('status') status?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.adminService.exportFeedBills({
+      status: status ? parseInt(status) : undefined,
+      startDate,
+      endDate,
+    });
+  }
+
   // =============== 买断管理 ===============
 
   /**
