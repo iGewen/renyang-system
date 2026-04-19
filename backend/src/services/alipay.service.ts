@@ -118,14 +118,36 @@ export class AlipayService {
    * 验证回调签名
    * 文档：https://opendocs.alipay.com/apis/api_1/alipay.trade.wap.pay
    * 安全修复：公钥未配置时安全失败，不再绕过验证
+   * 安全修复：添加 app_id 验证和 notify_id 防重放检查
    */
   async verifyNotify(params: Record<string, string>): Promise<boolean> {
     const alipayPublicKey = await this.getConfig('alipay_public_key');
+    const expectedAppId = await this.getConfig('alipay_app_id');
 
     // 安全修复：公钥未配置时，拒绝验签而非绕过
     if (!alipayPublicKey) {
       this.logger.error('[Alipay] 支付宝公钥未配置，拒绝验签');
       return false;
+    }
+
+    // 安全修复：验证 app_id 是否匹配
+    if (expectedAppId && params.app_id !== expectedAppId) {
+      this.logger.error('[Alipay] app_id 不匹配', {
+        expected: expectedAppId,
+        received: params.app_id,
+      });
+      return false;
+    }
+
+    // 安全修复：防重放攻击 - 检查 notify_id 是否已处理
+    const notifyId = params.notify_id;
+    if (notifyId) {
+      const processedKey = `alipay:notify:${notifyId}`;
+      const isProcessed = await this.redisService.exists(processedKey);
+      if (isProcessed) {
+        this.logger.warn('[Alipay] 重复的回调通知', { notifyId });
+        return false;
+      }
     }
 
     const sign = params.sign;
@@ -157,6 +179,11 @@ export class AlipayService {
 
       if (!result) {
         this.logger.error('[Alipay] 验签失败', { signData: signData.substring(0, 100) });
+      } else {
+        // 验签成功，标记 notify_id 为已处理（24小时）
+        if (notifyId) {
+          await this.redisService.set(`alipay:notify:${notifyId}`, '1', 86400);
+        }
       }
 
       return result;
@@ -169,14 +196,16 @@ export class AlipayService {
   /**
    * 查询订单
    * 文档：https://opendocs.alipay.com/apis/api_1/alipay.trade.query
+   * 安全修复：配置缺失时抛出异常，不返回模拟数据
    */
   async queryOrder(outTradeNo: string): Promise<any> {
     const appId = await this.getConfig('alipay_app_id');
     const privateKey = await this.getConfig('alipay_private_key');
 
+    // 安全修复：配置缺失时抛出异常
     if (!appId || !privateKey) {
-      this.logger.log(`[Alipay] 模拟查询订单 - 订单号: ${outTradeNo}`);
-      return { trade_status: 'TRADE_SUCCESS' };
+      this.logger.error('[Alipay] 支付宝配置缺失，无法查询订单');
+      throw new BadRequestException('支付宝配置不完整，请联系管理员');
     }
 
     const bizContent = {
@@ -218,14 +247,16 @@ export class AlipayService {
   /**
    * 关闭订单
    * 文档：https://opendocs.alipay.com/apis/api_1/alipay.trade.close
+   * 安全修复：配置缺失时抛出异常
    */
   async closeOrder(outTradeNo: string): Promise<boolean> {
     const appId = await this.getConfig('alipay_app_id');
     const privateKey = await this.getConfig('alipay_private_key');
 
+    // 安全修复：配置缺失时抛出异常
     if (!appId || !privateKey) {
-      this.logger.log(`[Alipay] 模拟关闭订单 - 订单号: ${outTradeNo}`);
-      return true;
+      this.logger.error('[Alipay] 支付宝配置缺失，无法关闭订单');
+      throw new BadRequestException('支付宝配置不完整，请联系管理员');
     }
 
     const bizContent = {
@@ -267,6 +298,7 @@ export class AlipayService {
   /**
    * 退款
    * 文档：https://opendocs.alipay.com/apis/api_1/alipay.trade.refund
+   * 安全修复：配置缺失时抛出异常
    */
   async refund(
     outTradeNo: string,
@@ -276,12 +308,14 @@ export class AlipayService {
     const appId = await this.getConfig('alipay_app_id');
     const privateKey = await this.getConfig('alipay_private_key');
 
+    // 安全修复：配置缺失时抛出异常
     if (!appId || !privateKey) {
-      this.logger.log(`[Alipay] 模拟退款 - 订单号: ${outTradeNo}, 金额: ${refundAmount}`);
-      return { success: true, refundNo: `RFD${Date.now()}` };
+      this.logger.error('[Alipay] 支付宝配置缺失，无法退款');
+      throw new BadRequestException('支付宝配置不完整，请联系管理员');
     }
 
-    const refundNo = `RFD${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    // 安全修复：使用更长的随机后缀防止碰撞
+    const refundNo = `RFD${Date.now()}${CryptoUtil.randomString(8).toUpperCase()}`;
 
     const bizContent = {
       out_trade_no: outTradeNo,

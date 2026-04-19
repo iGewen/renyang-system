@@ -1,10 +1,15 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Order, OrderStatus, User, Livestock, Adoption, AdoptionStatus } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
 import { IdUtil } from '@/common/utils/id.util';
 import { LivestockService } from '../livestock/livestock.service';
+
+// 常量定义
+const ORDER_EXPIRE_MINUTES = 15;
+const ORDER_EXPIRE_MS = ORDER_EXPIRE_MINUTES * 60 * 1000;
+const EXPIRED_ORDER_BATCH_SIZE = 100; // 单次最多处理100个过期订单
 
 @Injectable()
 export class OrderService {
@@ -43,57 +48,57 @@ export class OrderService {
       }
 
       // 使用事务确保订单创建和库存操作的原子性
-      return this.dataSource.transaction(async (manager) => {
-        // 获取活体信息（使用事务管理器）
+      const order = await this.dataSource.transaction(async (manager) => {
+        // 安全修复：使用乐观锁原子更新库存，防止超卖
+        const updateResult = await manager
+          .createQueryBuilder()
+          .update(Livestock)
+          .set({
+            stock: () => 'stock - 1',
+            soldCount: () => 'soldCount + 1',
+          })
+          .where('id = :id AND stock > 0 AND status = 1', { id: livestockId })
+          .execute();
+
+        if (updateResult.affected === 0) {
+          throw new BadRequestException('活体已售罄或已下架');
+        }
+
+        // 获取更新后的活体信息
         const livestock = await manager.findOne(Livestock, { where: { id: livestockId } });
-        if (!livestock) {
-          throw new BadRequestException('活体不存在');
-        }
-
-        if (livestock.status !== 1) {
-          throw new BadRequestException('活体已下架');
-        }
-
-        // 检查库存（数据库层面）
-        if (livestock.stock <= 0) {
-          throw new BadRequestException('活体已售罄');
-        }
-
-        // 预扣减库存（数据库层面）
-        livestock.stock -= 1;
-        livestock.soldCount += 1;
-        await manager.save(livestock);
 
         // 创建订单
-        const order = manager.create(Order, {
+        const newOrder = manager.create(Order, {
           id: IdUtil.generate('ORD'),
           orderNo: IdUtil.generateOrderNo(),
           userId,
           livestockId,
           livestockSnapshot: livestock,
           quantity: 1,
-          totalAmount: livestock.price,
+          totalAmount: livestock!.price,
           paidAmount: 0,
           status: OrderStatus.PENDING_PAYMENT,
-          expireAt: new Date(Date.now() + 15 * 60 * 1000), // 15分钟后过期
+          expireAt: new Date(Date.now() + ORDER_EXPIRE_MS),
           clientOrderId,
         });
 
-        await manager.save(order);
+        await manager.save(newOrder);
 
-        // 设置幂等键（在事务外执行，但已扣减库存，如果失败会回滚）
-        await this.redisService.set(idempotentKey, order.id, 3600);
-
-        // 设置库存锁（用于订单取消时恢复）
-        const lockStockKey = `livestock:lock:${livestockId}:${clientOrderId}`;
-        await this.redisService.set(lockStockKey, '1', 900); // 15分钟
-
-        // 添加到延时队列（用于订单超时处理）
-        const expireTime = Date.now() + 15 * 60 * 1000;
-        await this.redisService.zadd('delay:queue:order', expireTime, order.id);
-
-        return order;
+        return newOrder;
       });
+
+      // 修复：Redis操作移到事务外执行，避免事务回滚但Redis已生效
+      await this.redisService.set(idempotentKey, order.id, 3600);
+
+      // 设置库存锁（用于订单取消时恢复）
+      const lockStockKey = `livestock:lock:${livestockId}:${clientOrderId}`;
+      await this.redisService.set(lockStockKey, '1', ORDER_EXPIRE_MS / 1000);
+
+      // 添加到延时队列（用于订单超时处理）
+      const expireTime = Date.now() + ORDER_EXPIRE_MS;
+      await this.redisService.zadd('delay:queue:order', expireTime, order.id);
+
+      return order;
     });
   }
 
@@ -110,8 +115,8 @@ export class OrderService {
         throw new BadRequestException('订单状态不允许取消');
       }
 
-      // 使用事务处理
-      return this.dataSource.transaction(async (manager) => {
+      // 使用事务处理数据库操作
+      await this.dataSource.transaction(async (manager) => {
         // 更新订单状态
         order.status = OrderStatus.CANCELLED;
         order.cancelReason = '用户主动取消';
@@ -119,24 +124,25 @@ export class OrderService {
         await manager.save(order);
 
         // 恢复库存
-        const livestock = await manager.findOne(Livestock, { where: { id: order.livestockId } });
-        if (livestock) {
-          livestock.stock += 1;
-          livestock.soldCount -= 1;
-          await manager.save(livestock);
-        }
-
-        // 释放库存锁
-        if (order.clientOrderId) {
-          const lockStockKey = `livestock:lock:${order.livestockId}:${order.clientOrderId}`;
-          await this.redisService.del(lockStockKey);
-        }
-
-        // 从延时队列移除
-        await this.redisService.zrem('delay:queue:order', order.id);
-
-        return order;
+        await manager
+          .createQueryBuilder()
+          .update(Livestock)
+          .set({
+            stock: () => 'stock + 1',
+            soldCount: () => 'GREATEST(soldCount - 1, 0)',
+          })
+          .where('id = :id', { id: order.livestockId })
+          .execute();
       });
+
+      // 修复：Redis操作移到事务外执行
+      if (order.clientOrderId) {
+        const lockStockKey = `livestock:lock:${order.livestockId}:${order.clientOrderId}`;
+        await this.redisService.del(lockStockKey);
+      }
+      await this.redisService.zrem('delay:queue:order', order.id);
+
+      return order;
     });
   }
 
@@ -146,6 +152,21 @@ export class OrderService {
       where.userId = userId;
     }
     return this.orderRepository.findOne({ where, relations: ['livestock', 'user'] });
+  }
+
+  /**
+   * 根据订单ID获取订单（强制验证用户归属）
+   * 安全修复：移除可选的 userId 参数，强制验证
+   */
+  async getByIdForUser(orderId: string, userId: string) {
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId, userId },
+      relations: ['livestock', 'user'],
+    });
+    if (!order) {
+      throw new NotFoundException('订单不存在');
+    }
+    return order;
   }
 
   async getUserOrders(userId: string, status?: OrderStatus, page: number = 1, pageSize: number = 10) {
@@ -187,8 +208,8 @@ export class OrderService {
         return order; // 已处理，幂等返回
       }
 
-      // 使用事务处理
-      return this.dataSource.transaction(async (manager) => {
+      // 使用事务处理数据库操作
+      await this.dataSource.transaction(async (manager) => {
         // 更新订单状态
         order.status = OrderStatus.PAID;
         order.paidAt = new Date();
@@ -196,15 +217,6 @@ export class OrderService {
         order.paymentMethod = paymentMethod;
         order.paidAmount = order.totalAmount;
         await manager.save(order);
-
-        // 释放库存锁
-        if (order.clientOrderId) {
-          const lockStockKey = `livestock:lock:${order.livestockId}:${order.clientOrderId}`;
-          await this.redisService.del(lockStockKey);
-        }
-
-        // 从延时队列移除
-        await this.redisService.zrem('delay:queue:order', order.id);
 
         // 创建领养记录
         const livestock = order.livestockSnapshot;
@@ -228,9 +240,16 @@ export class OrderService {
           isException: 0,
         });
         await manager.save(adoption);
-
-        return order;
       });
+
+      // 修复：Redis操作移到事务外执行
+      if (order.clientOrderId) {
+        const lockStockKey = `livestock:lock:${order.livestockId}:${order.clientOrderId}`;
+        await this.redisService.del(lockStockKey);
+      }
+      await this.redisService.zrem('delay:queue:order', order.id);
+
+      return order;
     });
   }
 
@@ -243,8 +262,8 @@ export class OrderService {
         return;
       }
 
-      // 使用事务处理
-      return this.dataSource.transaction(async (manager) => {
+      // 使用事务处理数据库操作
+      await this.dataSource.transaction(async (manager) => {
         // 更新订单状态
         order.status = OrderStatus.CANCELLED;
         order.cancelReason = '订单超时自动取消';
@@ -252,47 +271,62 @@ export class OrderService {
         await manager.save(order);
 
         // 恢复库存
-        const livestock = await manager.findOne(Livestock, { where: { id: order.livestockId } });
-        if (livestock) {
-          livestock.stock += 1;
-          livestock.soldCount -= 1;
-          await manager.save(livestock);
-        }
-
-        // 释放库存锁
-        if (order.clientOrderId) {
-          const lockStockKey = `livestock:lock:${order.livestockId}:${order.clientOrderId}`;
-          await this.redisService.del(lockStockKey);
-        }
+        await manager
+          .createQueryBuilder()
+          .update(Livestock)
+          .set({
+            stock: () => 'stock + 1',
+            soldCount: () => 'GREATEST(soldCount - 1, 0)',
+          })
+          .where('id = :id', { id: order.livestockId })
+          .execute();
       });
+
+      // 修复：Redis操作移到事务外执行
+      if (order.clientOrderId) {
+        const lockStockKey = `livestock:lock:${order.livestockId}:${order.clientOrderId}`;
+        await this.redisService.del(lockStockKey);
+      }
     });
   }
 
   /**
    * 取消过期订单（定时任务调用）
+   * 安全修复：添加批量处理限制
    */
   async cancelExpiredOrders() {
     const now = Date.now();
 
-    // 从延时队列获取过期订单
+    // 从延时队列获取过期订单（限制每次最多处理100个）
     const expiredOrderIds = await this.redisService.zrangebyscore(
       'delay:queue:order',
       0,
       now,
+      EXPIRED_ORDER_BATCH_SIZE,
     );
 
     if (!expiredOrderIds || expiredOrderIds.length === 0) {
       return;
     }
 
-    for (const orderId of expiredOrderIds) {
-      try {
-        await this.handleOrderExpire(orderId);
-        // 从延时队列移除
-        await this.redisService.zrem('delay:queue:order', orderId);
-      } catch (error) {
-        console.error(`处理过期订单失败: ${orderId}`, error);
+    // 并发处理过期订单
+    const results = await Promise.allSettled(
+      expiredOrderIds.map(async (orderId) => {
+        try {
+          await this.handleOrderExpire(orderId);
+          // 从延时队列移除
+          await this.redisService.zrem('delay:queue:order', orderId);
+        } catch (error) {
+          console.error(`处理过期订单失败: ${orderId}`, error);
+        }
+      }),
+    );
+
+    // 记录失败的订单
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.error(`处理过期订单失败: ${expiredOrderIds[index]}`, result.reason);
       }
-    }
+    });
   }
 }

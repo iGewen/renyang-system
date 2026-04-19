@@ -1,6 +1,7 @@
-import React, { useState, useEffect, createContext, useContext, lazy, Suspense } from 'react';
+import React, { useState, useEffect, createContext, useContext, lazy, Suspense, useMemo, useCallback, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation, Link, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import DOMPurify from 'dompurify';
 import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState, useToast, Skeleton, SkeletonCard, PageLoader, InlineLoader } from './components/ui';
 import { cn } from './lib/utils';
 import type { Livestock, Adoption, FeedBill, User, Order } from './types';
@@ -276,12 +277,19 @@ const AuthPage: React.FC = () => {
           </AnimatePresence>
         </div>
 
-        {/* 协议弹窗 */}
+        {/* 协议弹窗 - 使用 DOMPurify 防止 XSS */}
         <Modal open={showAgreement} onClose={() => setShowAgreement(false)} title={agreementContent?.title || '协议'}>
           <div className="p-6 max-h-[60vh] overflow-y-auto">
-            <div className="prose prose-sm max-w-none text-slate-600 whitespace-pre-wrap">
-              {agreementContent?.content}
-            </div>
+            <div
+              className="prose prose-sm max-w-none text-slate-600"
+              dangerouslySetInnerHTML={{
+                __html: DOMPurify.sanitize(agreementContent?.content || '', {
+                  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'span', 'div'],
+                  ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'style'],
+                  ADD_ATTR: ['target'],
+                }),
+              }}
+            />
           </div>
         </Modal>
       </div>
@@ -1017,10 +1025,23 @@ const PaymentResultPage: React.FC = () => {
   const [paymentStatus, setPaymentStatus] = useState<'success' | 'pending' | 'failed' | null>(null);
   const [orderInfo, setOrderInfo] = useState<any>(null);
 
+  // 使用 ref 保存轮询定时器引用，确保组件卸载时能正确清理
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   // 从URL参数获取支付信息
   const searchParams = new URLSearchParams(location.search);
   const outTradeNo = searchParams.get('out_trade_no');
   const paymentNo = searchParams.get('payment_no');
+
+  // 组件卸载时清理定时器
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const checkPaymentStatus = async () => {
@@ -1050,17 +1071,23 @@ const PaymentResultPage: React.FC = () => {
           let retryCount = 0;
           const maxRetries = 10;
 
-          const pollInterval = setInterval(async () => {
+          pollIntervalRef.current = setInterval(async () => {
             retryCount++;
             try {
               const pollResult = await paymentApi.getStatus(paymentIdentifier);
               if (pollResult.status === 2) {
-                clearInterval(pollInterval);
+                if (pollIntervalRef.current) {
+                  clearInterval(pollIntervalRef.current);
+                  pollIntervalRef.current = null;
+                }
                 setPaymentStatus('success');
                 setOrderInfo(pollResult);
                 success('支付成功！');
               } else if (pollResult.status === 3 || retryCount >= maxRetries) {
-                clearInterval(pollInterval);
+                if (pollIntervalRef.current) {
+                  clearInterval(pollIntervalRef.current);
+                  pollIntervalRef.current = null;
+                }
                 if (pollResult.status === 3) {
                   setPaymentStatus('failed');
                 } else {
@@ -1069,17 +1096,14 @@ const PaymentResultPage: React.FC = () => {
                 }
               }
             } catch (e) {
-              console.error('轮询支付状态失败:', e);
+              // 静默处理轮询错误
             }
           }, 2000);
-
-          return () => clearInterval(pollInterval);
         } else {
           // 支付失败或已关闭
           setPaymentStatus('failed');
         }
       } catch (err: any) {
-        console.error('查询支付状态失败:', err);
         setPaymentStatus('failed');
         error(err.message || '查询支付状态失败');
       } finally {

@@ -20,6 +20,25 @@ import type {
 const API_BASE = '/api';
 const REQUEST_TIMEOUT = 30000; // 30秒超时
 
+/**
+ * 安全解析 JWT payload
+ * 修复：添加完整的错误处理和格式验证
+ */
+function safeParseJwtPayload(token: string): { exp?: number; sub?: string } | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      // JWT 格式不正确
+      return null;
+    }
+    const payload = JSON.parse(atob(parts[1]));
+    return payload;
+  } catch {
+    // 解析失败，返回 null
+    return null;
+  }
+}
+
 // Token 管理工具
 const TokenManager = {
   get: (isAdminRequest: boolean = false): string | null => {
@@ -27,17 +46,19 @@ const TokenManager = {
     if (isAdminRequest) {
       const adminToken = localStorage.getItem('admin_token');
       if (adminToken) {
-        try {
-          const payload = JSON.parse(atob(adminToken.split('.')[1]));
-          if (payload.exp && payload.exp * 1000 < Date.now()) {
-            localStorage.removeItem('admin_token');
-            localStorage.removeItem('admin_info');
-            return null;
-          }
-          return adminToken;
-        } catch {
-          return adminToken;
+        const payload = safeParseJwtPayload(adminToken);
+        if (!payload) {
+          // Token 格式无效，清除
+          localStorage.removeItem('admin_token');
+          localStorage.removeItem('admin_info');
+          return null;
         }
+        if (payload.exp && payload.exp * 1000 < Date.now()) {
+          localStorage.removeItem('admin_token');
+          localStorage.removeItem('admin_info');
+          return null;
+        }
+        return adminToken;
       }
       return null;
     }
@@ -46,17 +67,19 @@ const TokenManager = {
     const token = localStorage.getItem('token');
     if (!token) return null;
 
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      if (payload.exp && payload.exp * 1000 < Date.now()) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        return null;
-      }
-      return token;
-    } catch {
-      return token;
+    const payload = safeParseJwtPayload(token);
+    if (!payload) {
+      // Token 格式无效，清除
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      return null;
     }
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      return null;
+    }
+    return token;
   },
 
   set: (token: string, isAdmin: boolean = false): void => {

@@ -5,7 +5,7 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { UserStatusGuard, UserStatus, MIN_STATUS_KEY } from '@/common/guards/user-status.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { Public } from '@/common/decorators/public.decorator';
-import { IsIn, IsNumber, IsOptional, IsString, IsNotEmpty, IsObject, ValidateNested } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsString, IsNotEmpty, IsObject, ValidateNested, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class CreatePaymentDto {
@@ -21,6 +21,8 @@ class CreatePaymentDto {
 
   @ApiProperty({ description: '支付金额' })
   @IsNumber()
+  @Min(0.01, { message: '支付金额必须大于0' })
+  @Max(1000000, { message: '支付金额不能超过100万' })
   amount: number;
 
   @ApiProperty({ description: '支付方式', enum: ['balance', 'alipay', 'wechat'] })

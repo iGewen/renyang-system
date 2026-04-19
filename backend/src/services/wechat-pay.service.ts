@@ -223,8 +223,17 @@ export class WechatPayService {
     const currentTime = Math.floor(Date.now() / 1000);
     const maxTimeDiff = 5 * 60; // 5分钟
 
-    if (isNaN(timestampNum) || Math.abs(currentTime - timestampNum) > maxTimeDiff) {
-      this.logger.error('[WechatPay] 回调时间戳过期或无效', {
+    // 安全修复：检查整数溢出和负数
+    if (isNaN(timestampNum) || timestampNum <= 0 || timestampNum > currentTime + maxTimeDiff) {
+      this.logger.error('[WechatPay] 回调时间戳无效', {
+        receivedTimestamp: timestamp,
+        currentTimestamp: currentTime,
+      });
+      return false;
+    }
+
+    if (Math.abs(currentTime - timestampNum) > maxTimeDiff) {
+      this.logger.error('[WechatPay] 回调时间戳过期', {
         receivedTimestamp: timestamp,
         currentTimestamp: currentTime,
         diff: Math.abs(currentTime - timestampNum),
@@ -327,13 +336,15 @@ export class WechatPayService {
 
   /**
    * 解密回调数据
+   * 安全修复：配置缺失时抛出异常
    */
   async decryptNotifyResource(resource: any): Promise<any> {
     const apiV3Key = await this.getConfig('wechat_api_v3_key');
 
+    // 安全修复：配置缺失时抛出异常
     if (!apiV3Key) {
-      this.logger.log('[WechatPay] 模拟环境，返回原始数据');
-      return resource;
+      this.logger.error('[WechatPay] API密钥未配置，无法解密回调数据');
+      throw new BadRequestException('微信支付配置不完整');
     }
 
     const { ciphertext, associated_data, nonce } = resource;
@@ -360,6 +371,7 @@ export class WechatPayService {
 
   /**
    * 查询订单
+   * 安全修复：配置缺失时抛出异常，不返回模拟数据
    */
   async queryOrder(outTradeNo: string): Promise<any> {
     const appId = await this.getConfig('wechat_app_id');
@@ -368,9 +380,10 @@ export class WechatPayService {
     const serialNo = await this.getConfig('wechat_serial_no');
     const privateKey = await this.getConfig('wechat_private_key');
 
+    // 安全修复：配置缺失时抛出异常
     if (!appId || !mchId || !apiV3Key || !serialNo || !privateKey) {
-      this.logger.log(`[WechatPay] 模拟查询订单 - 订单号: ${outTradeNo}`);
-      return { trade_state: 'SUCCESS' };
+      this.logger.error('[WechatPay] 微信支付配置缺失，无法查询订单');
+      throw new BadRequestException('微信支付配置不完整，请联系管理员');
     }
 
     const url = `https://api.mch.weixin.qq.com/v3/pay/transactions/out-trade-no/${outTradeNo}?mchid=${mchId}`;
@@ -390,6 +403,7 @@ export class WechatPayService {
 
   /**
    * 关闭订单
+   * 安全修复：配置缺失时抛出异常
    */
   async closeOrder(outTradeNo: string): Promise<boolean> {
     const appId = await this.getConfig('wechat_app_id');
@@ -398,9 +412,10 @@ export class WechatPayService {
     const serialNo = await this.getConfig('wechat_serial_no');
     const privateKey = await this.getConfig('wechat_private_key');
 
+    // 安全修复：配置缺失时抛出异常
     if (!appId || !mchId || !apiV3Key || !serialNo || !privateKey) {
-      this.logger.log(`[WechatPay] 模拟关闭订单 - 订单号: ${outTradeNo}`);
-      return true;
+      this.logger.error('[WechatPay] 微信支付配置缺失，无法关闭订单');
+      throw new BadRequestException('微信支付配置不完整，请联系管理员');
     }
 
     const url = `https://api.mch.weixin.qq.com/v3/pay/transactions/out-trade-no/${outTradeNo}/close`;
@@ -425,6 +440,7 @@ export class WechatPayService {
   /**
    * 退款
    * 文档：https://pay.weixin.qq.com/doc/v3/merchant/4012791871
+   * 安全修复：配置缺失时抛出异常
    */
   async refund(
     outTradeNo: string,
@@ -438,12 +454,14 @@ export class WechatPayService {
     const serialNo = await this.getConfig('wechat_serial_no');
     const privateKey = await this.getConfig('wechat_private_key');
 
+    // 安全修复：配置缺失时抛出异常
     if (!appId || !mchId || !apiV3Key || !serialNo || !privateKey) {
-      this.logger.log(`[WechatPay] 模拟退款 - 订单号: ${outTradeNo}, 金额: ${refundAmount}`);
-      return { success: true, refundId: `RFD${Date.now()}` };
+      this.logger.error('[WechatPay] 微信支付配置缺失，无法退款');
+      throw new BadRequestException('微信支付配置不完整，请联系管理员');
     }
 
-    const refundId = `RFD${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    // 安全修复：使用更长的随机后缀防止碰撞
+    const refundId = `RFD${Date.now()}${CryptoUtil.randomString(8).toUpperCase()}`;
 
     const url = 'https://api.mch.weixin.qq.com/v3/refund/domestic/refunds';
 

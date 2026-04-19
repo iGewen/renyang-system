@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, Inject, forwardRef, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { PaymentRecord, PaymentStatus, OrderStatus } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
@@ -10,6 +10,7 @@ import { UserService } from '../user/user.service';
 import { AlipayService } from '@/services/alipay.service';
 import { WechatPayService } from '@/services/wechat-pay.service';
 import { RedemptionService } from '../redemption/redemption.service';
+import { FeedBill } from '@/entities/feed-bill.entity';
 
 @Injectable()
 export class PaymentService {
@@ -18,6 +19,9 @@ export class PaymentService {
   constructor(
     @InjectRepository(PaymentRecord)
     private paymentRepository: Repository<PaymentRecord>,
+    @InjectRepository(FeedBill)
+    private feedBillRepository: Repository<FeedBill>,
+    private dataSource: DataSource,
     private configService: ConfigService,
     private redisService: RedisService,
     private orderService: OrderService,
@@ -243,51 +247,101 @@ export class PaymentService {
         return;
       }
 
-      // 如果已经处理过（状态已是SUCCESS且有paidAt），直接返回
-      if (latestPayment.status === PaymentStatus.SUCCESS && latestPayment.paidAt) {
+      // 幂等性检查：仅使用 status 判断，不依赖 paidAt
+      if (latestPayment.status === PaymentStatus.SUCCESS) {
         return;
       }
 
-      // 更新支付状态
-      latestPayment.status = PaymentStatus.SUCCESS;
-      latestPayment.paidAt = new Date();
-      await this.paymentRepository.save(latestPayment);
+      // 使用事务更新支付状态和处理业务
+      await this.dataSource.transaction(async (manager) => {
+        // 更新支付状态
+        latestPayment.status = PaymentStatus.SUCCESS;
+        latestPayment.paidAt = new Date();
+        if (payment.transactionId) {
+          latestPayment.transactionId = payment.transactionId;
+        }
+        if (payment.notifyData) {
+          latestPayment.notifyData = payment.notifyData;
+        }
+        await manager.save(latestPayment);
 
-      // 根据订单类型处理
-      switch (latestPayment.orderType) {
-        case 'adoption':
-          await this.orderService.handlePaymentSuccess(
-            latestPayment.orderId,
-            latestPayment.paymentNo,
-            latestPayment.paymentMethod,
-          );
-          break;
-        case 'feed':
-          // 饲料费支付成功，由 FeedService 处理
-          break;
-        case 'redemption':
-          // 处理买断支付
-          await this.redemptionService.handlePaymentSuccess(
-            latestPayment.orderId,
-            latestPayment.paymentNo,
-            latestPayment.paymentMethod,
-          );
-          break;
-        case 'recharge':
-          // 余额充值
-          await this.userService.updateBalance(
-            latestPayment.userId,
-            latestPayment.amount,
-            `余额充值: ${latestPayment.paymentNo}`,
-          );
-          break;
-      }
+        // 根据订单类型处理
+        switch (latestPayment.orderType) {
+          case 'adoption':
+            await this.orderService.handlePaymentSuccess(
+              latestPayment.orderId,
+              latestPayment.paymentNo,
+              latestPayment.paymentMethod,
+            );
+            break;
+          case 'feed':
+            // 修复：饲料费支付成功，调用处理方法
+            await this.handleFeedBillPaymentSuccess(
+              latestPayment.orderId,
+              latestPayment.paymentNo,
+              latestPayment.paymentMethod,
+            );
+            break;
+          case 'redemption':
+            // 处理买断支付
+            await this.redemptionService.handlePaymentSuccess(
+              latestPayment.orderId,
+              latestPayment.paymentNo,
+              latestPayment.paymentMethod,
+            );
+            break;
+          case 'recharge':
+            // 余额充值
+            await this.userService.updateBalance(
+              latestPayment.userId,
+              latestPayment.amount,
+              `余额充值: ${latestPayment.paymentNo}`,
+            );
+            break;
+        }
+      });
     });
   }
 
   /**
+   * 处理饲料费支付成功
+   * 使用事务确保数据一致性
+   */
+  private async handleFeedBillPaymentSuccess(
+    billId: string,
+    paymentNo: string,
+    paymentMethod: string,
+  ) {
+    const bill = await this.feedBillRepository.findOne({
+      where: { id: billId },
+    });
+
+    if (!bill) {
+      this.logger.error(`[PaymentService] 饲料费账单不存在: ${billId}`);
+      return;
+    }
+
+    // 幂等性检查
+    if (bill.status === 2) {
+      // 2 = PAID
+      this.logger.log(`[PaymentService] 饲料费账单已支付: ${billId}`);
+      return;
+    }
+
+    // 更新账单状态
+    bill.status = 2; // PAID
+    bill.paidAmount = bill.adjustedAmount || bill.originalAmount;
+    bill.paymentMethod = paymentMethod;
+    bill.paymentNo = paymentNo;
+    bill.paidAt = new Date();
+
+    await this.feedBillRepository.save(bill);
+    this.logger.log(`[PaymentService] 饲料费账单支付成功: ${billId}`);
+  }
+
+  /**
    * 支付宝回调
-   * 安全修复：添加签名验证，防止伪造回调
+   * 安全修复：添加签名验证、金额验证，防止伪造回调
    */
   async handleAlipayNotify(data: any) {
     // 安全修复：先验证签名
@@ -300,6 +354,7 @@ export class PaymentService {
     const outTradeNo = data.out_trade_no;
     const tradeNo = data.trade_no;
     const tradeStatus = data.trade_status;
+    const totalAmount = data.total_amount;
 
     if (tradeStatus !== 'TRADE_SUCCESS' && tradeStatus !== 'TRADE_FINISHED') {
       return 'fail';
@@ -310,16 +365,33 @@ export class PaymentService {
     });
 
     if (!payment) {
+      this.logger.error(`[PaymentService] 支付记录不存在: ${outTradeNo}`);
       return 'fail';
+    }
+
+    // 安全修复：验证金额一致性
+    if (totalAmount) {
+      const receivedAmount = parseFloat(totalAmount);
+      const expectedAmount = Number(payment.amount);
+      if (isNaN(receivedAmount) || Math.abs(receivedAmount - expectedAmount) > 0.01) {
+        this.logger.error('[PaymentService] 支付宝回调金额不一致', {
+          paymentNo: payment.paymentNo,
+          expected: expectedAmount,
+          received: receivedAmount,
+        });
+        return 'fail';
+      }
     }
 
     const lockKey = `payment:notify:${payment.paymentNo}`;
     return this.redisService.withLock(lockKey, 30000, async () => {
+      // 幂等性检查：仅使用 status 判断，不依赖 paidAt
       if (payment.status === PaymentStatus.SUCCESS) {
         return 'success';
       }
 
-      payment.paymentNo = tradeNo;
+      // 修复：使用新字段存储第三方交易号，不覆盖 paymentNo
+      payment.transactionId = tradeNo;
       payment.notifyAt = new Date();
       payment.notifyData = data;
 
@@ -340,6 +412,7 @@ export class PaymentService {
   /**
    * 微信回调
    * 完善处理：正确解密 resource 字段获取订单信息
+   * 安全修复：添加金额验证
    */
   async handleWechatNotify(data: any) {
     // 微信支付回调报文结构：
@@ -403,12 +476,30 @@ export class PaymentService {
       return { code: 'FAIL', message: '订单不存在' };
     }
 
+    // 安全修复：验证金额一致性
+    // 微信金额单位是分，需要转换为元
+    const receivedAmount = transactionData.amount?.total;
+    if (receivedAmount !== undefined) {
+      const expectedAmount = Math.round(Number(payment.amount) * 100);
+      if (receivedAmount !== expectedAmount) {
+        this.logger.error('[WechatPay] 回调金额不一致', {
+          paymentNo: payment.paymentNo,
+          expected: expectedAmount,
+          received: receivedAmount,
+        });
+        return { code: 'FAIL', message: '金额不一致' };
+      }
+    }
+
     const lockKey = `payment:notify:${payment.paymentNo}`;
     return this.redisService.withLock(lockKey, 30000, async () => {
+      // 幂等性检查：仅使用 status 判断
       if (payment!.status === PaymentStatus.SUCCESS) {
         return { code: 'SUCCESS', message: '成功' };
       }
 
+      // 修复：使用新字段存储第三方交易号
+      payment!.transactionId = transactionId;
       payment!.notifyAt = new Date();
       payment!.notifyData = transactionData;
 

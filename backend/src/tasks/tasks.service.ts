@@ -23,52 +23,55 @@ export class TasksService {
 
   /**
    * 每天凌晨1点生成饲料费账单
+   * 安全修复：使用 try-finally 确保锁释放
    */
   @Cron('0 1 * * *')
   async generateFeedBills() {
     this.logger.log('开始生成饲料费账单...');
 
+    const lockKey = 'task:generateFeedBills';
+    const locked = await this.redisService.setNX(lockKey, '1', 300); // 5分钟锁
+
+    if (!locked) {
+      this.logger.log('生成饲料费账单任务正在执行中，跳过');
+      return;
+    }
+
     try {
-      // 使用分布式锁防止重复执行
-      const lockKey = 'task:generateFeedBills';
-      const locked = await this.redisService.setNX(lockKey, '1', 300); // 5分钟锁
-
-      if (!locked) {
-        this.logger.log('生成饲料费账单任务正在执行中，跳过');
-        return;
-      }
-
       await this.feedService.generateFeedBills();
-
-      await this.redisService.del(lockKey);
       this.logger.log('饲料费账单生成完成');
     } catch (error) {
       this.logger.error('生成饲料费账单失败:', error);
+    } finally {
+      // 安全修复：确保锁释放
+      await this.redisService.del(lockKey);
     }
   }
 
   /**
    * 每天凌晨2点计算滞纳金
+   * 安全修复：使用 try-finally 确保锁释放
    */
   @Cron('0 2 * * *')
   async calculateLateFees() {
     this.logger.log('开始计算滞纳金...');
 
+    const lockKey = 'task:calculateLateFees';
+    const locked = await this.redisService.setNX(lockKey, '1', 300);
+
+    if (!locked) {
+      this.logger.log('计算滞纳金任务正在执行中，跳过');
+      return;
+    }
+
     try {
-      const lockKey = 'task:calculateLateFees';
-      const locked = await this.redisService.setNX(lockKey, '1', 300);
-
-      if (!locked) {
-        this.logger.log('计算滞纳金任务正在执行中，跳过');
-        return;
-      }
-
       await this.feedService.calculateLateFees();
-
-      await this.redisService.del(lockKey);
       this.logger.log('滞纳金计算完成');
     } catch (error) {
       this.logger.error('计算滞纳金失败:', error);
+    } finally {
+      // 安全修复：确保锁释放
+      await this.redisService.del(lockKey);
     }
   }
 
@@ -89,26 +92,28 @@ export class TasksService {
 
   /**
    * 每天凌晨3点检查领养状态
+   * 安全修复：使用 try-finally 确保锁释放
    */
   @Cron('0 3 * * *')
   async checkAdoptionStatus() {
     this.logger.log('开始检查领养状态...');
 
+    const lockKey = 'task:checkAdoptionStatus';
+    const locked = await this.redisService.setNX(lockKey, '1', 300);
+
+    if (!locked) {
+      this.logger.log('检查领养状态任务正在执行中，跳过');
+      return;
+    }
+
     try {
-      const lockKey = 'task:checkAdoptionStatus';
-      const locked = await this.redisService.setNX(lockKey, '1', 300);
-
-      if (!locked) {
-        this.logger.log('检查领养状态任务正在执行中，跳过');
-        return;
-      }
-
       await this.adoptionService.checkAndUpdateStatus();
-
-      await this.redisService.del(lockKey);
       this.logger.log('领养状态检查完成');
     } catch (error) {
       this.logger.error('检查领养状态失败:', error);
+    } finally {
+      // 安全修复：确保锁释放
+      await this.redisService.del(lockKey);
     }
   }
 
