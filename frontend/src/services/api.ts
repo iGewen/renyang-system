@@ -121,13 +121,15 @@ async function request<T>(url: string, options?: RequestInit, isAdminRequest: bo
 
     if (!response.ok) {
       // 401 错误时清除过期的 Token 并跳转到登录页
+      // 但登录接口本身返回401时不跳转（用户名密码错误）
       if (response.status === 401) {
-        if (isAdminRequest) {
+        const isLoginRequest = url.includes('/auth/login');
+        if (isAdminRequest && !isLoginRequest) {
           localStorage.removeItem('admin_token');
           localStorage.removeItem('admin_info');
           // 跳转到管理员登录页
           window.location.href = '/admin-login';
-        } else {
+        } else if (!isAdminRequest && !isLoginRequest) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           // 跳转到用户登录页

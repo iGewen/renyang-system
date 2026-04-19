@@ -2542,7 +2542,10 @@ const UserProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children 
       return <Navigate to="/auth" replace />;
     }
   } catch {
-    // Token 解析失败，继续显示页面
+    // Token 解析失败，清除并跳转
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    return <Navigate to="/auth" replace />;
   }
 
   return <>{children}</>;
