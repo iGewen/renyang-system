@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, EmptyState, useToast } from '../../components/ui';
 import { cn } from '../../lib/utils';
-import { adoptionApi, redemptionApi, balanceApi, paymentApi } from '../../services/api';
+import { adoptionApi, redemptionApi, balanceApi, paymentApi, orderApi } from '../../services/api';
 import { FeedBillStatus, RedemptionStatus } from '../../types/enums';
 import type { Adoption, FeedBill, RedemptionOrder } from '../../types';
 import { usePaymentConfig } from '../../contexts/SiteConfigContext';
@@ -30,10 +30,29 @@ const AdoptionDetailPage: React.FC = () => {
     const fetchData = async () => {
       if (!id) return;
       try {
-        const [adoptionData, billsData] = await Promise.all([
-          adoptionApi.getById(id),
-          adoptionApi.getFeedBills(id)
-        ]);
+        // 先尝试作为领养ID获取
+        let adoptionData: Adoption | null = null;
+
+        try {
+          adoptionData = await adoptionApi.getById(id);
+        } catch (e: any) {
+          // 如果404，可能是订单ID，尝试通过订单ID查找领养记录
+          if (e.message?.includes('不存在') || e.message?.includes('404')) {
+            try {
+              adoptionData = await adoptionApi.getByOrderId(id);
+            } catch (e2) {
+              // 两种方式都失败
+              console.error('Failed to fetch adoption by order id:', e2);
+            }
+          }
+        }
+
+        if (!adoptionData) {
+          setLoading(false);
+          return;
+        }
+
+        const billsData = await adoptionApi.getFeedBills(adoptionData.id);
         setAdoption(adoptionData);
         setFeedBills(billsData);
 
@@ -42,7 +61,7 @@ const AdoptionDetailPage: React.FC = () => {
           try {
             const redemptions = await redemptionApi.getMyRedemptions();
             const activeRedemption = redemptions.find(r =>
-              r.adoptionId === id && (r.status === RedemptionStatus.PENDING_AUDIT || r.status === RedemptionStatus.AUDIT_PASSED)
+              r.adoptionId === adoptionData!.id && (r.status === RedemptionStatus.PENDING_AUDIT || r.status === RedemptionStatus.AUDIT_PASSED)
             );
             if (activeRedemption) {
               setRedemption(activeRedemption);

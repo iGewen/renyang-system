@@ -25,6 +25,17 @@ export class AdoptionController {
   }
 
   /**
+   * 通过订单ID获取领养记录
+   */
+  @Get('order/:orderId')
+  async getByOrderId(
+    @Param('orderId') orderId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.adoptionService.getByOrderId(orderId, userId);
+  }
+
+  /**
    * 获取饲料费账单详情
    * 注意：此路由必须放在 :id 路由之前，否则 feed-bills 会被当作 id 匹配
    */

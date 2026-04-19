@@ -213,7 +213,11 @@ const OrdersPage: React.FC = () => {
                           variant="outline"
                           size="sm"
                           className="flex-1"
-                          onClick={() => navigate(`/adoption/${order.adoption?.id || order.id}`)}
+                          onClick={() => {
+                            // 领养详情页现在支持通过领养ID或订单ID访问
+                            const targetId = order.adoption?.id || order.id;
+                            navigate(`/adoption/${targetId}`);
+                          }}
                         >
                           查看详情
                         </Button>

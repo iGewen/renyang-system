@@ -41,6 +41,25 @@ export class AdoptionService {
   }
 
   /**
+   * 通过订单ID获取领养记录
+   */
+  async getByOrderId(orderId: string, userId: string) {
+    const adoption = await this.adoptionRepository.findOne({
+      where: { orderId, userId },
+      relations: ['livestock'],
+    });
+
+    if (!adoption) {
+      throw new NotFoundException('领养记录不存在');
+    }
+
+    return {
+      ...adoption,
+      days: Math.floor((Date.now() - new Date(adoption.startDate).getTime()) / (1000 * 60 * 60 * 24)),
+    };
+  }
+
+  /**
    * 获取领养详情
    */
   async getById(adoptionId: string, userId?: string) {

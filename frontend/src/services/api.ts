@@ -281,6 +281,11 @@ export const adoptionApi = {
     return request('/adoptions');
   },
 
+  // 通过订单ID获取领养记录
+  getByOrderId: async (orderId: string): Promise<Adoption> => {
+    return request(`/adoptions/order/${orderId}`);
+  },
+
   // 获取领养详情
   getById: async (adoptionId: string): Promise<Adoption> => {
     return request(`/adoptions/${adoptionId}`);

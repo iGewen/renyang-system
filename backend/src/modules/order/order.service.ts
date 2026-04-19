@@ -129,6 +129,7 @@ export class OrderService {
   async getUserOrders(userId: string, status?: OrderStatus, page: number = 1, pageSize: number = 10) {
     const queryBuilder = this.orderRepository.createQueryBuilder('order')
       .leftJoinAndSelect('order.livestock', 'livestock')
+      .leftJoinAndSelect('order.adoption', 'adoption')
       .where('order.userId = :userId', { userId });
 
     if (status) {
