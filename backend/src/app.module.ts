@@ -57,7 +57,7 @@ import { AppLogger, LoggerMiddleware } from './common/logger';
         password: configService.get('database.password'),
         database: configService.get('database.database'),
         entities: [__dirname + '/entities/**/*.entity{.ts,.js}', __dirname + '/entities/*{.ts,.js}'],
-        synchronize: false, // 生产环境关闭自动同步，避免数据冲突
+        synchronize: true, // 自动同步表结构，确保实体定义与数据库一致
         logging: configService.get('NODE_ENV') === 'development',
         charset: 'utf8mb4',
         extra: {
@@ -131,6 +131,7 @@ export class AppModule implements NestModule, OnModuleInit {
     this.validateEnvironment();
     await this.initializeAdmin();
     await this.initializeSystemConfig();
+    await this.initializeLivestockTypes();
   }
 
   private validateEnvironment() {
@@ -261,6 +262,32 @@ export class AppModule implements NestModule, OnModuleInit {
       this.logger.log('系统配置初始化完成');
     } catch (error) {
       this.logger.error('初始化系统配置失败', error);
+    }
+  }
+
+  private async initializeLivestockTypes() {
+    try {
+      const result = await this.dataSource.query('SELECT COUNT(*) as count FROM livestock_types');
+      const count = Number(result[0].count);
+
+      if (count === 0) {
+        const defaultTypes = [
+          { id: 'LT001', name: '山羊', icon: 'goat', description: '温顺可爱的山羊', sortOrder: 1 },
+          { id: 'LT002', name: '绵羊', icon: 'sheep', description: '毛茸茸的绵羊', sortOrder: 2 },
+          { id: 'LT003', name: '黄牛', icon: 'cattle', description: '强壮的黄牛', sortOrder: 3 },
+          { id: 'LT004', name: '水牛', icon: 'buffalo', description: '勤劳的水牛', sortOrder: 4 },
+        ];
+
+        for (const type of defaultTypes) {
+          await this.dataSource.query(
+            'INSERT INTO livestock_types (id, name, icon, description, sort_order, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, NOW(), NOW())',
+            [type.id, type.name, type.icon, type.description, type.sortOrder]
+          );
+        }
+        this.logger.log('默认活体类型已初始化');
+      }
+    } catch (error) {
+      this.logger.error('初始化活体类型失败', error);
     }
   }
 }
