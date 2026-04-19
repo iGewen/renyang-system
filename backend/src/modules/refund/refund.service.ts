@@ -42,78 +42,85 @@ export class RefundService {
     orderId: string,
     reason: string,
   ) {
-    // 验证订单
-    let order: Order | null = null;
-    let adoption: Adoption | null = null;
-    let refundLivestock = 2; // 默认不退活体
-    let originalAmount = 0;
+    // 使用分布式锁防止重复申请
+    const lockKey = `refund:apply:${orderType}:${orderId}`;
+    return this.redisService.withLock(lockKey, 10000, async () => {
+      // 使用事务确保原子性
+      return this.dataSource.transaction(async (manager) => {
+        // 验证订单
+        let order: Order | null = null;
+        let adoption: Adoption | null = null;
+        let refundLivestock = 2; // 默认不退活体
+        let originalAmount = 0;
 
-    if (orderType === 'adoption') {
-      order = await this.orderRepository.findOne({
-        where: { id: orderId, userId },
+        if (orderType === 'adoption') {
+          order = await manager.findOne(Order, {
+            where: { id: orderId, userId },
+          });
+
+          if (!order) {
+            throw new NotFoundException('订单不存在');
+          }
+
+          if (order.status !== OrderStatus.PAID) {
+            throw new BadRequestException('订单状态不允许退款');
+          }
+
+          originalAmount = Number(order.totalAmount);
+
+          // 查找领养记录
+          adoption = await manager.findOne(Adoption, {
+            where: { orderId: order.id },
+          });
+
+          if (adoption && adoption.status !== AdoptionStatus.ACTIVE) {
+            throw new BadRequestException('领养状态不允许退款');
+          }
+
+          // 领养订单需要退活体
+          refundLivestock = 1;
+        } else if (orderType === 'feed') {
+          // 饲料费退款逻辑
+          throw new BadRequestException('饲料费退款请联系客服处理');
+        } else if (orderType === 'redemption') {
+          throw new BadRequestException('买断订单不支持退款');
+        } else {
+          throw new BadRequestException('不支持的订单类型');
+        }
+
+        // 检查是否已有待审核的退款申请
+        const existingRefund = await manager.findOne(RefundOrder, {
+          where: {
+            orderType,
+            orderId,
+            status: RefundStatus.PENDING_AUDIT,
+          },
+        });
+
+        if (existingRefund) {
+          throw new BadRequestException('已有待审核的退款申请');
+        }
+
+        // 创建退款订单
+        const refund = manager.create(RefundOrder, {
+          id: IdUtil.generate('RFD'),
+          refundNo: IdUtil.generateRefundNo(),
+          userId,
+          orderType,
+          orderId,
+          originalAmount,
+          refundAmount: originalAmount, // 默认全额退款
+          refundLivestock,
+          reason,
+          type: RefundType.USER_APPLY,
+          status: RefundStatus.PENDING_AUDIT,
+        });
+
+        await manager.save(refund);
+
+        return refund;
       });
-
-      if (!order) {
-        throw new NotFoundException('订单不存在');
-      }
-
-      if (order.status !== OrderStatus.PAID) {
-        throw new BadRequestException('订单状态不允许退款');
-      }
-
-      originalAmount = Number(order.totalAmount);
-
-      // 查找领养记录
-      adoption = await this.adoptionRepository.findOne({
-        where: { orderId: order.id },
-      });
-
-      if (adoption && adoption.status !== AdoptionStatus.ACTIVE) {
-        throw new BadRequestException('领养状态不允许退款');
-      }
-
-      // 领养订单需要退活体
-      refundLivestock = 1;
-    } else if (orderType === 'feed') {
-      // 饲料费退款逻辑
-      throw new BadRequestException('饲料费退款请联系客服处理');
-    } else if (orderType === 'redemption') {
-      throw new BadRequestException('买断订单不支持退款');
-    } else {
-      throw new BadRequestException('不支持的订单类型');
-    }
-
-    // 检查是否已有待审核的退款申请
-    const existingRefund = await this.refundRepository.findOne({
-      where: {
-        orderType,
-        orderId,
-        status: RefundStatus.PENDING_AUDIT,
-      },
     });
-
-    if (existingRefund) {
-      throw new BadRequestException('已有待审核的退款申请');
-    }
-
-    // 创建退款订单
-    const refund = this.refundRepository.create({
-      id: IdUtil.generate('RFD'),
-      refundNo: IdUtil.generateRefundNo(),
-      userId,
-      orderType,
-      orderId,
-      originalAmount,
-      refundAmount: originalAmount, // 默认全额退款
-      refundLivestock,
-      reason,
-      type: RefundType.USER_APPLY,
-      status: RefundStatus.PENDING_AUDIT,
-    });
-
-    await this.refundRepository.save(refund);
-
-    return refund;
   }
 
   /**

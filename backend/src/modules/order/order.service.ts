@@ -30,7 +30,7 @@ export class OrderService {
       return null;
     }
 
-    // 分布式锁
+    // 分布式锁 - 锁定用户和活体
     const lockKey = `order:lock:${userId}:${livestockId}`;
     return this.redisService.withLock(lockKey, 30000, async () => {
       // 再次检查幂等性
@@ -42,80 +42,102 @@ export class OrderService {
         }
       }
 
-      // 获取活体信息
-      const livestock = await this.livestockService.getById(livestockId);
-      if (!livestock) {
-        throw new BadRequestException('活体不存在');
-      }
+      // 使用事务确保订单创建和库存操作的原子性
+      return this.dataSource.transaction(async (manager) => {
+        // 获取活体信息（使用事务管理器）
+        const livestock = await manager.findOne(Livestock, { where: { id: livestockId } });
+        if (!livestock) {
+          throw new BadRequestException('活体不存在');
+        }
 
-      if (livestock.status !== 1) {
-        throw new BadRequestException('活体已下架');
-      }
+        if (livestock.status !== 1) {
+          throw new BadRequestException('活体已下架');
+        }
 
-      // 检查库存
-      const stock = await this.livestockService.getStock(livestockId);
-      if (stock <= 0) {
-        throw new BadRequestException('活体已售罄');
-      }
+        // 检查库存（数据库层面）
+        if (livestock.stock <= 0) {
+          throw new BadRequestException('活体已售罄');
+        }
 
-      // 预锁定库存
-      const lockStockKey = `livestock:lock:${livestockId}:${clientOrderId}`;
-      await this.redisService.set(lockStockKey, '1', 900); // 15分钟
+        // 预扣减库存（数据库层面）
+        livestock.stock -= 1;
+        livestock.soldCount += 1;
+        await manager.save(livestock);
 
-      // 创建订单
-      const order = this.orderRepository.create({
-        id: IdUtil.generate('ORD'),
-        orderNo: IdUtil.generateOrderNo(),
-        userId,
-        livestockId,
-        livestockSnapshot: livestock,
-        quantity: 1,
-        totalAmount: livestock.price,
-        paidAmount: 0,
-        status: OrderStatus.PENDING_PAYMENT,
-        expireAt: new Date(Date.now() + 15 * 60 * 1000), // 15分钟后过期
-        clientOrderId,
+        // 创建订单
+        const order = manager.create(Order, {
+          id: IdUtil.generate('ORD'),
+          orderNo: IdUtil.generateOrderNo(),
+          userId,
+          livestockId,
+          livestockSnapshot: livestock,
+          quantity: 1,
+          totalAmount: livestock.price,
+          paidAmount: 0,
+          status: OrderStatus.PENDING_PAYMENT,
+          expireAt: new Date(Date.now() + 15 * 60 * 1000), // 15分钟后过期
+          clientOrderId,
+        });
+
+        await manager.save(order);
+
+        // 设置幂等键（在事务外执行，但已扣减库存，如果失败会回滚）
+        await this.redisService.set(idempotentKey, order.id, 3600);
+
+        // 设置库存锁（用于订单取消时恢复）
+        const lockStockKey = `livestock:lock:${livestockId}:${clientOrderId}`;
+        await this.redisService.set(lockStockKey, '1', 900); // 15分钟
+
+        // 添加到延时队列（用于订单超时处理）
+        const expireTime = Date.now() + 15 * 60 * 1000;
+        await this.redisService.zadd('delay:queue:order', expireTime, order.id);
+
+        return order;
       });
-
-      await this.orderRepository.save(order);
-
-      // 设置幂等键
-      await this.redisService.set(idempotentKey, order.id, 3600);
-
-      // 添加到延时队列（用于订单超时处理）
-      const expireAt = Date.now() + 15 * 60 * 1000;
-      await this.redisService.zadd('delay:queue:order', expireAt, order.id);
-
-      return order;
     });
   }
 
   async cancel(userId: string, orderId: string) {
-    const order = await this.orderRepository.findOne({ where: { id: orderId, userId } });
-    if (!order) {
-      throw new BadRequestException('订单不存在');
-    }
+    // 使用分布式锁
+    const lockKey = `order:cancel:${orderId}`;
+    return this.redisService.withLock(lockKey, 10000, async () => {
+      const order = await this.orderRepository.findOne({ where: { id: orderId, userId } });
+      if (!order) {
+        throw new BadRequestException('订单不存在');
+      }
 
-    if (order.status !== OrderStatus.PENDING_PAYMENT) {
-      throw new BadRequestException('订单状态不允许取消');
-    }
+      if (order.status !== OrderStatus.PENDING_PAYMENT) {
+        throw new BadRequestException('订单状态不允许取消');
+      }
 
-    // 更新订单状态
-    order.status = OrderStatus.CANCELLED;
-    order.cancelReason = '用户主动取消';
-    order.canceledAt = new Date();
-    await this.orderRepository.save(order);
+      // 使用事务处理
+      return this.dataSource.transaction(async (manager) => {
+        // 更新订单状态
+        order.status = OrderStatus.CANCELLED;
+        order.cancelReason = '用户主动取消';
+        order.canceledAt = new Date();
+        await manager.save(order);
 
-    // 释放库存锁
-    if (order.clientOrderId) {
-      const lockStockKey = `livestock:lock:${order.livestockId}:${order.clientOrderId}`;
-      await this.redisService.del(lockStockKey);
-    }
+        // 恢复库存
+        const livestock = await manager.findOne(Livestock, { where: { id: order.livestockId } });
+        if (livestock) {
+          livestock.stock += 1;
+          livestock.soldCount -= 1;
+          await manager.save(livestock);
+        }
 
-    // 从延时队列移除
-    await this.redisService.zrem('delay:queue:order', order.id);
+        // 释放库存锁
+        if (order.clientOrderId) {
+          const lockStockKey = `livestock:lock:${order.livestockId}:${order.clientOrderId}`;
+          await this.redisService.del(lockStockKey);
+        }
 
-    return order;
+        // 从延时队列移除
+        await this.redisService.zrem('delay:queue:order', order.id);
+
+        return order;
+      });
+    });
   }
 
   async getById(orderId: string, userId?: string) {
@@ -153,81 +175,97 @@ export class OrderService {
   }
 
   async handlePaymentSuccess(orderId: string, paymentNo: string, paymentMethod: string) {
-    const order = await this.orderRepository.findOne({ where: { id: orderId } });
-    if (!order) {
-      throw new BadRequestException('订单不存在');
-    }
-
-    if (order.status !== OrderStatus.PENDING_PAYMENT) {
-      return order; // 已处理，幂等返回
-    }
-
-    // 使用事务处理
-    return this.dataSource.transaction(async (manager) => {
-      // 更新订单状态
-      order.status = OrderStatus.PAID;
-      order.paidAt = new Date();
-      order.paymentNo = paymentNo;
-      order.paymentMethod = paymentMethod;
-      order.paidAmount = order.totalAmount;
-      await manager.save(order);
-
-      // 扣减库存 - 使用事务管理器，失败会自动回滚
-      await this.livestockService.updateStock(order.livestockId, -1, manager);
-
-      // 释放库存锁
-      if (order.clientOrderId) {
-        const lockStockKey = `livestock:lock:${order.livestockId}:${order.clientOrderId}`;
-        await this.redisService.del(lockStockKey);
+    // 使用分布式锁确保幂等性
+    const lockKey = `order:payment:${orderId}`;
+    return this.redisService.withLock(lockKey, 30000, async () => {
+      const order = await this.orderRepository.findOne({ where: { id: orderId } });
+      if (!order) {
+        throw new BadRequestException('订单不存在');
       }
 
-      // 从延时队列移除
-      await this.redisService.zrem('delay:queue:order', order.id);
+      if (order.status !== OrderStatus.PENDING_PAYMENT) {
+        return order; // 已处理，幂等返回
+      }
 
-      // 创建领养记录
-      const livestock = order.livestockSnapshot;
+      // 使用事务处理
+      return this.dataSource.transaction(async (manager) => {
+        // 更新订单状态
+        order.status = OrderStatus.PAID;
+        order.paidAt = new Date();
+        order.paymentNo = paymentNo;
+        order.paymentMethod = paymentMethod;
+        order.paidAmount = order.totalAmount;
+        await manager.save(order);
 
-      // 每次领养都生成新的唯一领养编号
-      const adoptionNo = IdUtil.generateLivestockNo();
+        // 释放库存锁
+        if (order.clientOrderId) {
+          const lockStockKey = `livestock:lock:${order.livestockId}:${order.clientOrderId}`;
+          await this.redisService.del(lockStockKey);
+        }
 
-      const adoption = manager.create(Adoption, {
-        id: IdUtil.generate('ADP'),
-        adoptionNo: adoptionNo,
-        orderId: order.id,
-        userId: order.userId,
-        livestockId: order.livestockId,
-        livestockSnapshot: livestock,
-        startDate: new Date(),
-        redemptionMonths: livestock.redemptionMonths || 12,
-        feedMonthsPaid: 0,
-        totalFeedAmount: 0,
-        lateFeeAmount: 0,
-        status: AdoptionStatus.ACTIVE,
-        isException: 0,
+        // 从延时队列移除
+        await this.redisService.zrem('delay:queue:order', order.id);
+
+        // 创建领养记录
+        const livestock = order.livestockSnapshot;
+
+        // 每次领养都生成新的唯一领养编号
+        const adoptionNo = IdUtil.generateLivestockNo();
+
+        const adoption = manager.create(Adoption, {
+          id: IdUtil.generate('ADP'),
+          adoptionNo: adoptionNo,
+          orderId: order.id,
+          userId: order.userId,
+          livestockId: order.livestockId,
+          livestockSnapshot: livestock,
+          startDate: new Date(),
+          redemptionMonths: livestock.redemptionMonths || 12,
+          feedMonthsPaid: 0,
+          totalFeedAmount: 0,
+          lateFeeAmount: 0,
+          status: AdoptionStatus.ACTIVE,
+          isException: 0,
+        });
+        await manager.save(adoption);
+
+        return order;
       });
-      await manager.save(adoption);
-
-      return order;
     });
   }
 
   async handleOrderExpire(orderId: string) {
-    const order = await this.orderRepository.findOne({ where: { id: orderId } });
-    if (!order || order.status !== OrderStatus.PENDING_PAYMENT) {
-      return;
-    }
+    // 使用分布式锁确保幂等性
+    const lockKey = `order:expire:${orderId}`;
+    return this.redisService.withLock(lockKey, 10000, async () => {
+      const order = await this.orderRepository.findOne({ where: { id: orderId } });
+      if (!order || order.status !== OrderStatus.PENDING_PAYMENT) {
+        return;
+      }
 
-    // 更新订单状态
-    order.status = OrderStatus.CANCELLED;
-    order.cancelReason = '订单超时自动取消';
-    order.canceledAt = new Date();
-    await this.orderRepository.save(order);
+      // 使用事务处理
+      return this.dataSource.transaction(async (manager) => {
+        // 更新订单状态
+        order.status = OrderStatus.CANCELLED;
+        order.cancelReason = '订单超时自动取消';
+        order.canceledAt = new Date();
+        await manager.save(order);
 
-    // 释放库存锁
-    if (order.clientOrderId) {
-      const lockStockKey = `livestock:lock:${order.livestockId}:${order.clientOrderId}`;
-      await this.redisService.del(lockStockKey);
-    }
+        // 恢复库存
+        const livestock = await manager.findOne(Livestock, { where: { id: order.livestockId } });
+        if (livestock) {
+          livestock.stock += 1;
+          livestock.soldCount -= 1;
+          await manager.save(livestock);
+        }
+
+        // 释放库存锁
+        if (order.clientOrderId) {
+          const lockStockKey = `livestock:lock:${order.livestockId}:${order.clientOrderId}`;
+          await this.redisService.del(lockStockKey);
+        }
+      });
+    });
   }
 
   /**

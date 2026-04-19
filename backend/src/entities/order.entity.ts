@@ -8,6 +8,7 @@ import {
   ManyToOne,
   OneToOne,
   JoinColumn,
+  VersionColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 import { Livestock } from './livestock.entity';
@@ -78,6 +79,10 @@ export class Order {
 
   @Column({ name: 'client_order_id', length: 64, nullable: true, comment: '客户端幂等键' })
   clientOrderId: string;
+
+  // 乐观锁版本号
+  @VersionColumn({ comment: '乐观锁版本号' })
+  version: number;
 
   @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;

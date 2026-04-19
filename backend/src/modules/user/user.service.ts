@@ -72,43 +72,47 @@ export class UserService {
   }
 
   async updateBalance(userId: string, amount: number, remark: string) {
-    // 使用事务确保余额更新和日志记录的原子性
-    return this.dataSource.transaction(async (manager) => {
-      const user = await manager.findOne(User, { where: { id: userId } });
-      if (!user) {
-        throw new Error('用户不存在');
-      }
+    // 使用分布式锁防止并发操作导致余额计算错误
+    const lockKey = `user:balance:${userId}`;
+    return this.redisService.withLock(lockKey, 10000, async () => {
+      // 使用事务确保余额更新和日志记录的原子性
+      return this.dataSource.transaction(async (manager) => {
+        const user = await manager.findOne(User, { where: { id: userId } });
+        if (!user) {
+          throw new Error('用户不存在');
+        }
 
-      // 确保余额转换为数字
-      const balanceBefore = Number(user.balance) || 0;
-      const changeAmount = Number(amount);
-      const balanceAfter = balanceBefore + changeAmount;
+        // 确保余额转换为数字
+        const balanceBefore = Number(user.balance) || 0;
+        const changeAmount = Number(amount);
+        const balanceAfter = balanceBefore + changeAmount;
 
-      if (balanceAfter < 0) {
-        throw new Error('余额不足');
-      }
+        if (balanceAfter < 0) {
+          throw new Error('余额不足');
+        }
 
-      // 更新余额 - 保留两位小数
-      const finalBalance = Math.round(balanceAfter * 100) / 100;
-      user.balance = finalBalance;
-      await manager.save(user);
+        // 更新余额 - 保留两位小数
+        const finalBalance = Math.round(balanceAfter * 100) / 100;
+        user.balance = finalBalance;
+        await manager.save(user);
 
-      // 记录流水
-      const log = manager.create(BalanceLog, {
-        id: `BL${Date.now()}`,
-        userId,
-        type: amount > 0 ? 1 : 2, // 1充值 2消费
-        amount: Math.abs(changeAmount),
-        balanceBefore,
-        balanceAfter: finalBalance,
-        remark,
+        // 记录流水
+        const log = manager.create(BalanceLog, {
+          id: `BL${Date.now()}`,
+          userId,
+          type: amount > 0 ? 1 : 2, // 1充值 2消费
+          amount: Math.abs(changeAmount),
+          balanceBefore,
+          balanceAfter: finalBalance,
+          remark,
+        });
+        await manager.save(log);
+
+        // 更新缓存（在事务外执行，失败不影响事务）
+        this.redisService.set(`user:balance:${userId}`, finalBalance.toString()).catch(() => {});
+
+        return { balanceBefore, balanceAfter: finalBalance };
       });
-      await manager.save(log);
-
-      // 更新缓存（在事务外执行，失败不影响事务）
-      this.redisService.set(`user:balance:${userId}`, finalBalance.toString()).catch(() => {});
-
-      return { balanceBefore, balanceAfter: finalBalance };
     });
   }
 

@@ -369,25 +369,46 @@ export class RedemptionService {
    * 支付成功后处理
    */
   async handlePaymentSuccess(redemptionId: string, paymentNo: string, paymentMethod: string) {
-    const redemption = await this.redemptionRepository.findOne({
-      where: { id: redemptionId },
-      relations: ['adoption'],
+    // 使用分布式锁确保幂等性
+    const lockKey = `redemption:payment:${redemptionId}`;
+    return this.redisService.withLock(lockKey, 30000, async () => {
+      // 使用事务确保原子性
+      return this.dataSource.transaction(async (manager) => {
+        const redemption = await manager.findOne(RedemptionOrder, {
+          where: { id: redemptionId },
+          relations: ['adoption'],
+        });
+
+        if (!redemption) {
+          throw new NotFoundException('买断记录不存在');
+        }
+
+        // 幂等检查：如果已支付，直接返回
+        if (redemption.status === RedemptionStatus.PAID) {
+          return redemption;
+        }
+
+        // 检查状态是否允许支付
+        if (redemption.status !== RedemptionStatus.AUDIT_PASSED) {
+          throw new BadRequestException('买断订单状态不允许支付');
+        }
+
+        redemption.status = RedemptionStatus.PAID;
+        redemption.paymentMethod = paymentMethod;
+        redemption.paymentNo = paymentNo;
+        redemption.paidAmount = redemption.finalAmount;
+        redemption.paidAt = new Date();
+
+        await manager.save(redemption);
+
+        // 更新领养状态
+        const adoption = redemption.adoption;
+        adoption.status = AdoptionStatus.REDEEMED;
+        await manager.save(adoption);
+
+        return redemption;
+      });
     });
-
-    if (!redemption) {
-      throw new NotFoundException('买断记录不存在');
-    }
-
-    redemption.status = RedemptionStatus.PAID;
-    redemption.paymentMethod = paymentMethod;
-    redemption.paymentNo = paymentNo;
-    redemption.paidAmount = redemption.finalAmount;
-    redemption.paidAt = new Date();
-
-    await this.redemptionRepository.save(redemption);
-
-    // 更新领养状态
-    await this.completeRedemption(redemption);
   }
 
   /**

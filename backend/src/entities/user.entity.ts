@@ -7,6 +7,7 @@ import {
   DeleteDateColumn,
   Index,
   OneToMany,
+  VersionColumn,
 } from 'typeorm';
 import { Order } from './order.entity';
 import { Adoption } from './adoption.entity';
@@ -53,6 +54,10 @@ export class User {
 
   @Column({ name: 'last_login_ip', length: 45, nullable: true, comment: '最后登录IP' })
   lastLoginIp: string;
+
+  // 乐观锁版本号
+  @VersionColumn({ comment: '乐观锁版本号' })
+  version: number;
 
   @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;

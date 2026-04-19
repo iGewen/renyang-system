@@ -251,35 +251,52 @@ export class FeedService {
    * 支付成功后更新账单
    */
   async handleFeedBillPaymentSuccess(billId: string, paymentNo: string, paymentMethod: string) {
-    const bill = await this.feedBillRepository.findOne({
-      where: { id: billId },
-      relations: ['adoption'],
+    // 使用分布式锁确保幂等性
+    const lockKey = `feed:payment:${billId}`;
+    return this.redisService.withLock(lockKey, 30000, async () => {
+      // 使用事务确保原子性
+      return this.dataSource.transaction(async (manager) => {
+        const bill = await manager.findOne(FeedBill, {
+          where: { id: billId },
+          relations: ['adoption'],
+        });
+
+        if (!bill) {
+          throw new NotFoundException('账单不存在');
+        }
+
+        // 幂等检查：如果已支付，直接返回
+        if (bill.status === FeedBillStatus.PAID) {
+          return bill;
+        }
+
+        // 再次检查账单状态是否允许支付
+        if (bill.status !== FeedBillStatus.PENDING && bill.status !== FeedBillStatus.OVERDUE) {
+          throw new BadRequestException('账单状态不允许支付');
+        }
+
+        const amount = (bill.adjustedAmount || bill.originalAmount) + bill.lateFeeAmount;
+
+        bill.status = FeedBillStatus.PAID;
+        bill.paidAmount = amount;
+        bill.paymentMethod = paymentMethod;
+        bill.paymentNo = paymentNo;
+        bill.paidAt = new Date();
+
+        await manager.save(bill);
+
+        // 更新领养记录
+        await this.updateAdoptionAfterPaymentWithManager(bill.adoption, manager);
+      });
     });
-
-    if (!bill) {
-      throw new NotFoundException('账单不存在');
-    }
-
-    const amount = (bill.adjustedAmount || bill.originalAmount) + bill.lateFeeAmount;
-
-    bill.status = FeedBillStatus.PAID;
-    bill.paidAmount = amount;
-    bill.paymentMethod = paymentMethod;
-    bill.paymentNo = paymentNo;
-    bill.paidAt = new Date();
-
-    await this.feedBillRepository.save(bill);
-
-    // 更新领养记录
-    await this.updateAdoptionAfterPayment(bill.adoption);
   }
 
   /**
-   * 支付成功后更新领养记录
+   * 支付成功后更新领养记录（使用事务管理器）
    */
-  private async updateAdoptionAfterPayment(adoption: Adoption) {
+  private async updateAdoptionAfterPaymentWithManager(adoption: Adoption, manager: any) {
     // 更新已缴月数和总金额
-    const paidBills = await this.feedBillRepository.count({
+    const paidBills = await manager.count(FeedBill, {
       where: { adoptionId: adoption.id, status: FeedBillStatus.PAID },
     });
 
@@ -297,7 +314,7 @@ export class FeedService {
       adoption.status = AdoptionStatus.ACTIVE;
     }
 
-    await this.adoptionRepository.save(adoption);
+    await manager.save(adoption);
   }
 
   /**

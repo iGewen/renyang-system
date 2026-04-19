@@ -7,6 +7,7 @@ import {
   Index,
   ManyToOne,
   JoinColumn,
+  VersionColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 import { Livestock } from './livestock.entity';
@@ -100,6 +101,10 @@ export class FeedBill {
 
   @Column({ name: 'operator_id', length: 32, nullable: true, comment: '操作管理员ID' })
   operatorId: string;
+
+  // 乐观锁版本号
+  @VersionColumn({ comment: '乐观锁版本号' })
+  version: number;
 
   @CreateDateColumn({ name: 'created_at', comment: '创建时间' })
   createdAt: Date;
