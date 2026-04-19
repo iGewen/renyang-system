@@ -56,7 +56,7 @@ import { AppLogger, LoggerMiddleware } from './common/logger';
         username: configService.get('database.username'),
         password: configService.get('database.password'),
         database: configService.get('database.database'),
-        entities: [__dirname + '/entities/**/*.entity{.ts,.js}', __dirname + '/entities/*{.ts,.js}'],
+        entities: [__dirname + '/entities/*{.ts,.js}'],
         synchronize: true, // 自动同步表结构，确保实体定义与数据库一致
         logging: configService.get('NODE_ENV') === 'development',
         charset: 'utf8mb4',
