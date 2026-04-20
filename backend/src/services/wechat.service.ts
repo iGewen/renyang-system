@@ -237,7 +237,7 @@ export class WechatService {
       }
 
       accessToken = tokenData.access_token;
-      await this.redisService.set('wechat:jsapi:access_token', accessToken!, 7000);
+      await this.redisService.set('wechat:jsapi:access_token', accessToken, 7000);
     }
 
     // 获取jsapi_ticket
@@ -252,7 +252,7 @@ export class WechatService {
       }
 
       ticket = ticketData.ticket;
-      await this.redisService.set('wechat:jsapi:ticket', ticket!, 7000);
+      await this.redisService.set('wechat:jsapi:ticket', ticket, 7000);
     }
 
     // 生成签名

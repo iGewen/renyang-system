@@ -21,8 +21,8 @@ export class SendSmsCodeDto {
 }
 
 // 密码强度正则：至少包含大小写字母和数字，8-20位
-const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,20}$/;
-const PASSWORD_MESSAGE = '密码必须包含大小写字母和数字，长度8-20位，可包含特殊字符@$!%*?&';
+const PWD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,20}$/;
+const PWD_VALIDATION_MSG = '密码必须包含大小写字母和数字，长度8-20位，可包含特殊字符@$!%*?&';
 
 export class RegisterDto {
   @ApiProperty({ description: '手机号', example: '13800138000' })
@@ -40,7 +40,7 @@ export class RegisterDto {
   @ApiProperty({ description: '密码', example: 'Password123' })
   @IsString()
   @IsNotEmpty({ message: '密码不能为空' })
-  @Matches(PASSWORD_PATTERN, { message: PASSWORD_MESSAGE })
+  @Matches(PWD_PATTERN, { message: PWD_VALIDATION_MSG })
   password: string;
 
   @ApiPropertyOptional({ description: '邀请码' })
@@ -92,7 +92,7 @@ export class ResetPasswordDto {
   @ApiProperty({ description: '新密码', example: 'NewPassword123' })
   @IsString()
   @IsNotEmpty({ message: '新密码不能为空' })
-  @Matches(PASSWORD_PATTERN, { message: PASSWORD_MESSAGE })
+  @Matches(PWD_PATTERN, { message: PWD_VALIDATION_MSG })
   newPassword: string;
 }
 

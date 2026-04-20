@@ -166,6 +166,7 @@ export const AdminLoginPage: React.FC = () => {
   // 背景动画元素
   const FloatingShape = ({ delay, duration, className }: { delay: number; duration: number; className: string }) => (
     <motion.div
+      aria-hidden="true"
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{
         opacity: 0.15,

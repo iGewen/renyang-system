@@ -337,9 +337,9 @@ const AuthPage: React.FC = () => {
                     <Icons.Check className="w-3.5 h-3.5" />
                   </button>
                   <span className="text-sm text-slate-500">
-                    我已阅读并同意
+                    我已阅读并同意{' '}
                     <button type="button" onClick={() => handleShowAgreement('user')} className="text-brand-primary cursor-pointer font-medium">《用户协议》</button>
-                    和
+                    {' '}和{' '}
                     <button type="button" onClick={() => handleShowAgreement('privacy')} className="text-brand-primary cursor-pointer font-medium">《隐私政策》</button>
                   </span>
                 </div>
@@ -1466,6 +1466,15 @@ const MyAdoptionsPage: React.FC = () => {
     return redemptions.find(r => r.adoptionId === adoptionId && (r.status === 1 || r.status === 2));
   };
 
+  // 获取领养状态的 Badge variant
+  const getAdoptionBadgeVariant = (status: number): 'success' | 'warning' | 'danger' | 'info' | 'default' => {
+    if (status === AdoptionStatus.ACTIVE) return 'success';
+    if (status === AdoptionStatus.FEED_OVERDUE || status === AdoptionStatus.EXCEPTION) return 'danger';
+    if (status === AdoptionStatus.REDEEMABLE) return 'info';
+    if (status === AdoptionStatus.REDEMPTION_PENDING) return 'warning';
+    return 'default';
+  };
+
   const getStatusBadge = (status: number, redemption?: any) => {
     // 如果有买断订单且状态是审核通过，显示特殊状态
     if (redemption?.status === 2) {
@@ -2441,12 +2450,7 @@ const GrowthRecordsPage: React.FC = () => {
                         <h3 className="font-bold text-slate-900 truncate">{livestock?.name || '未知活体'}</h3>
                         <p className="text-xs text-slate-400 font-mono mt-1">{adoption.adoptionNo}</p>
                         <div className="flex items-center gap-2 mt-2">
-                          <Badge variant={
-                            adoption.status === 1 ? 'success' :
-                            adoption.status === 2 || adoption.status === 3 ? 'danger' :
-                            adoption.status === 4 ? 'info' :
-                            adoption.status === 5 ? 'warning' : 'default'
-                          }>
+                          <Badge variant={getAdoptionBadgeVariant(adoption.status)}>
                             {getAdoptionStatusText(adoption.status)}
                           </Badge>
                         </div>
@@ -2778,6 +2782,12 @@ export default function App() {
     sessionStorage.removeItem('user');
   };
 
+  // 使用 useMemo 避免不必要的重渲染
+  const authContextValue = useMemo(
+    () => ({ user, token, isAuthenticated: !!token, login, logout }),
+    [user, token, login, logout]
+  );
+
   // 初始化时显示加载状态，避免闪烁或跳转问题
   if (initializing) {
     return (
@@ -2789,7 +2799,7 @@ export default function App() {
 
   return (
     <SiteConfigProvider>
-      <AuthContext.Provider value={{ user, token, isAuthenticated: !!token, login, logout }}>
+      <AuthContext.Provider value={authContextValue}>
         <Router>
           <div className="w-full min-h-screen bg-brand-bg relative overflow-x-hidden">
             <AnimatePresence mode="wait">

@@ -112,6 +112,12 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const warning = useCallback((message: string) => showToast('warning', message), [showToast]);
   const info = useCallback((message: string) => showToast('info', message), [showToast]);
 
+  // 使用 useMemo 避免不必要的重渲染
+  const contextValue = useMemo(
+    () => ({ showToast, success, error, warning, info }),
+    [showToast, success, error, warning, info]
+  );
+
   // 图标使用更合适的样式
   const iconMap = {
     success: (
@@ -158,7 +164,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   return (
-    <ToastContext.Provider value={{ showToast, success, error, warning, info }}>
+    <ToastContext.Provider value={contextValue}>
       {children}
       {/* Toast 容器 - 固定在顶部居中 */}
       <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-2 max-w-sm w-[calc(100%-2rem)]">

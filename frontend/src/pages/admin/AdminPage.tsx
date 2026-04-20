@@ -824,6 +824,14 @@ export const AdminOrders: React.FC = () => {
     [OrderStatus.REFUNDED]: { label: '已退款', variant: 'info' },
   };
 
+  // 支付方式文本映射
+  const getPaymentMethodText = (method: string | undefined): string => {
+    if (method === 'alipay') return '支付宝';
+    if (method === 'wechat') return '微信支付';
+    if (method === 'balance') return '余额支付';
+    return method || '-';
+  };
+
   if (loading) return <LoadingSpinner />;
 
   // 导出订单数据
@@ -964,12 +972,7 @@ export const AdminOrders: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-slate-500">支付方式</p>
-                <p>{
-                  selectedOrder.paymentMethod === 'alipay' ? '支付宝' :
-                  selectedOrder.paymentMethod === 'wechat' ? '微信支付' :
-                  selectedOrder.paymentMethod === 'balance' ? '余额支付' :
-                  selectedOrder.paymentMethod || '-'
-                }</p>
+                <p>{getPaymentMethodText(selectedOrder.paymentMethod)}</p>
               </div>
               <div>
                 <p className="text-sm text-slate-500">支付时间</p>
@@ -1175,11 +1178,23 @@ export const AdminRedemptions: React.FC = () => {
           <p className="text-sm text-slate-400 mt-0.5">共 {redemptions.length} 条买断申请</p>
         </div>
         <div className="flex gap-2">
-          {[0, RedemptionStatus.PENDING_AUDIT, RedemptionStatus.AUDIT_PASSED, RedemptionStatus.AUDIT_REJECTED].map(status => (
-            <button key={status} onClick={() => setStatusFilter(status === 0 ? '' : String(status))} className={cn('px-4 py-2 rounded-lg text-sm font-medium transition-colors', statusFilter === (status === 0 ? '' : String(status)) ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}>
-              {status === 0 ? '全部' : redemptionStatusMap[status]?.label || '未知'}
-            </button>
-          ))}
+          {[0, RedemptionStatus.PENDING_AUDIT, RedemptionStatus.AUDIT_PASSED, RedemptionStatus.AUDIT_REJECTED].map(status => {
+            const filterValue = status === 0 ? '' : String(status);
+            const isActive = statusFilter === filterValue;
+            const buttonText = status === 0 ? '全部' : (redemptionStatusMap[status]?.label || '未知');
+            return (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(filterValue)}
+                className={cn(
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                  isActive ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                )}
+              >
+                {buttonText}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -2783,6 +2798,20 @@ export const AdminRefunds: React.FC = () => {
   const [auditLoading, setAuditLoading] = useState(false);
   const [confirmToken, setConfirmToken] = useState<string | undefined>(undefined);
 
+  // 订单类型文本映射
+  const getOrderTypeText = (orderType: string): string => {
+    if (orderType === 'adoption') return '领养订单';
+    if (orderType === 'feed') return '饲料费';
+    return orderType;
+  };
+
+  // 审核按钮文本
+  const getAuditButtonText = (): string => {
+    if (auditLoading) return '处理中...';
+    if (confirmToken) return '确认执行';
+    return auditPassed ? '审核通过' : '拒绝退款';
+  };
+
   const loadRefunds = async () => {
     setLoading(true);
     try {
@@ -2901,7 +2930,7 @@ export const AdminRefunds: React.FC = () => {
                     <td className="py-3 px-4">{refund.user?.nickname || refund.user?.phone || refund.userId}</td>
                     <td className="py-3 px-4">
                       <span className="px-2 py-1 rounded text-xs bg-slate-100 text-slate-600">
-                        {refund.orderType === 'adoption' ? '领养订单' : refund.orderType === 'feed' ? '饲料费' : refund.orderType}
+                        {getOrderTypeText(refund.orderType)}
                       </span>
                     </td>
                     <td className="py-3 px-4">¥{refund.originalAmount}</td>
@@ -3000,7 +3029,7 @@ export const AdminRefunds: React.FC = () => {
               onClick={handleAudit}
               disabled={auditLoading}
             >
-              {auditLoading ? '处理中...' : confirmToken ? '确认执行' : (auditPassed ? '审核通过' : '拒绝退款')}
+              {getAuditButtonText()}
             </Button>
           </div>
         </div>

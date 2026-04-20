@@ -95,7 +95,7 @@ const TokenManager = {
     return token;
   },
 
-  set: (token: string, isAdmin: boolean = false): void => {
+  set: (token: string, isAdmin: boolean): void => {
     if (isAdmin) {
       sessionStorage.setItem('admin_token', token);
     } else {
