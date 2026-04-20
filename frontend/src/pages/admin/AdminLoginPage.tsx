@@ -76,8 +76,8 @@ export const AdminLoginPage: React.FC = () => {
     }
   };
 
-  // 计算密码强度
-  const calculatePasswordStrength = (pwd: string) => {
+  // 计算密码强度 - 使用 useCallback 避免每次渲染创建新函数
+  const calculatePasswordStrength = React.useCallback((pwd: string) => {
     let strength = 0;
     if (pwd.length >= 6) strength++;
     if (pwd.length >= 10) strength++;
@@ -85,7 +85,7 @@ export const AdminLoginPage: React.FC = () => {
     if (/[0-9]/.test(pwd)) strength++;
     if (/[^A-Za-z0-9]/.test(pwd)) strength++;
     return strength;
-  };
+  }, []);
 
   const handleChangePassword = async () => {
     if (!newPassword || !confirmPassword) {
@@ -139,7 +139,7 @@ export const AdminLoginPage: React.FC = () => {
   // 监听密码变化
   useEffect(() => {
     setPasswordStrength(calculatePasswordStrength(newPassword));
-  }, [newPassword]);
+  }, [newPassword, calculatePasswordStrength]);
 
   // 背景动画元素
   const FloatingShape = ({ delay, duration, className }: { delay: number; duration: number; className: string }) => (

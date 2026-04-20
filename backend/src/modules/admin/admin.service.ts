@@ -154,7 +154,7 @@ export class AdminService {
    */
   private async recordLoginFailure(username: string, ip: string): Promise<void> {
     const failKey = `admin:login:fail:${username}`;
-    const failCount = parseInt(await this.redisService.get(failKey) || '0', 10) + 1;
+    const failCount = Number.parseInt(await this.redisService.get(failKey) || '0', 10) + 1;
     await this.redisService.set(failKey, failCount.toString(), this.ADMIN_LOGIN_FAIL_LOCK_DURATION);
 
     if (failCount >= this.ADMIN_LOGIN_FAIL_MAX_ATTEMPTS) {
@@ -1606,12 +1606,15 @@ export class AdminService {
 
     // 发送站内信通知用户
     try {
+      // 构建通知内容
+      const amountStr = adjustedAmount !== undefined ? `调整后金额：¥${adjustedAmount}` : `金额：¥${redemption.finalAmount}`;
+      const approvedContent = `您的买断申请（编号：${redemption.redemptionNo}）已通过审核，请尽快完成支付。${amountStr}`;
+      const rejectedContent = `您的买断申请（编号：${redemption.redemptionNo}）未通过审核。${remark ? `原因：${remark}` : ''}`;
+
       await this.notificationService.createNotification({
         userId: redemption.userId,
         title: approved ? '买断申请已通过' : '买断申请已拒绝',
-        content: approved
-          ? `您的买断申请（编号：${redemption.redemptionNo}）已通过审核，请尽快完成支付。${adjustedAmount !== undefined ? `调整后金额：¥${adjustedAmount}` : `金额：¥${redemption.finalAmount}`}`
-          : `您的买断申请（编号：${redemption.redemptionNo}）未通过审核。${remark ? `原因：${remark}` : ''}`,
+        content: approved ? approvedContent : rejectedContent,
         type: 'redemption',
         relatedType: 'redemption',
         relatedId: redemption.id,

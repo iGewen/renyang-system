@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PageTransition, Icons, Card, Button, Input, useToast, EmptyState } from '../../components/ui';
@@ -24,7 +24,7 @@ export const BalancePage: React.FC = () => {
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
   const paymentConfig = usePaymentConfig();
 
-  const fetchData = async (pageNum: number = 1, append: boolean = false) => {
+  const fetchData = useCallback(async (pageNum: number = 1, append: boolean = false) => {
     if (pageNum === 1) {
       setLoading(true);
     } else {
@@ -45,14 +45,15 @@ export const BalancePage: React.FC = () => {
         setLogs(newLogs);
       }
       setTotal(logsRes?.total || 0);
-      setHasMore(newLogs.length === 10 && logs.length + newLogs.length < (logsRes?.total || 0));
+      setHasMore(newLogs.length === 10);
     } catch (err) {
       console.error('Failed to fetch balance:', err);
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [balance]);
 
   useEffect(() => {
     fetchData(1, false);
@@ -137,7 +138,7 @@ export const BalancePage: React.FC = () => {
   };
 
   const handleRecharge = async () => {
-    const amount = parseFloat(rechargeAmount);
+    const amount = Number.parseFloat(rechargeAmount);
     // 添加显式 NaN 检查
     if (isNaN(amount) || amount <= 0) {
       error('请输入正确的金额');
@@ -148,7 +149,7 @@ export const BalancePage: React.FC = () => {
     try {
       const result = await balanceApi.recharge(amount, paymentMethod);
       if (result.payUrl) {
-        window.location.href = result.payUrl;
+        globalThis.location.href = result.payUrl;
       } else {
         success('充值成功');
         setShowRecharge(false);

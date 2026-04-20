@@ -138,8 +138,11 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ title, adminInfo, onLogout, onMen
   const currentTime = new Date();
   const hour = currentTime.getHours();
   let greeting = '早上好';
-  if (hour >= 12 && hour < 18) greeting = '下午好';
-  else if (hour >= 18) greeting = '晚上好';
+  if (hour >= 12 && hour < 18) {
+    greeting = '下午好';
+  } else if (hour >= 18) {
+    greeting = '晚上好';
+  }
 
   return (
     <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-6 sticky top-0 z-40">

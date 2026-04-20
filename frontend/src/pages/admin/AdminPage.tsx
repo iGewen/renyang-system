@@ -8,6 +8,12 @@ import type { Livestock, LivestockType, AdoptionOrder, FeedBill, User, Dashboard
 import { OrderStatus, UserStatus, FeedBillStatus, RedemptionStatus, getOrderStatusText, getUserStatusText, getFeedBillStatusText, getRedemptionStatusText } from '../../types/enums';
 import { AdminLayout } from './AdminLayout';
 
+// 状态标签变体类型
+type StatusVariant = 'success' | 'warning' | 'danger' | 'info' | 'default';
+
+// 详情标签类型
+type DetailTab = 'orders' | 'payments' | 'balance';
+
 // ==================== 防抖 Hook ====================
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -285,7 +291,7 @@ export const AdminDashboard: React.FC = () => {
                 key={index}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: item.menu }))}
+                onClick={() => globalThis.dispatchEvent(new CustomEvent('navigate', { detail: item.menu }))}
                 className={cn(
                   "p-4 rounded-xl text-left transition-all cursor-pointer border border-transparent hover:border-slate-200",
                   colors.bg
@@ -393,7 +399,7 @@ export const AdminDashboard: React.FC = () => {
               key={index}
               whileHover={{ scale: 1.03, y: -2 }}
               whileTap={{ scale: 0.97 }}
-              onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: item.menu }))}
+              onClick={() => globalThis.dispatchEvent(new CustomEvent('navigate', { detail: item.menu }))}
               className={cn(
                 "flex flex-col items-center gap-2 p-4 rounded-xl transition-all cursor-pointer",
                 item.bg,
@@ -532,7 +538,7 @@ export const AdminLivestock: React.FC = () => {
 
   const handleDeleteLivestock = async (id: string) => {
     // TODO (F-M09): 后续改进为自定义确认对话框，提升用户体验
-    if (!window.confirm('确定要删除这个活体吗？')) return;
+    if (!globalThis.confirm('确定要删除这个活体吗？')) return;
     try {
       await adminApi.deleteLivestock(id);
       setLivestock(livestock.filter(l => l.id !== id));
@@ -776,7 +782,7 @@ export const AdminOrders: React.FC = () => {
   };
 
   // 订单状态映射
-  const orderStatusMap: Record<number, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
+  const orderStatusMap: Record<number, { label: string; variant: StatusVariant }> = {
     [OrderStatus.PENDING_PAYMENT]: { label: '待支付', variant: 'warning' },
     [OrderStatus.PAID]: { label: '已支付', variant: 'success' },
     [OrderStatus.CANCELLED]: { label: '已取消', variant: 'default' },
@@ -1221,7 +1227,7 @@ export const AdminUsers: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
 
   // 用户详情数据
-  const [detailTab, setDetailTab] = useState<'orders' | 'payments' | 'balance'>('orders');
+  const [detailTab, setDetailTab] = useState<DetailTab>('orders');
   const [detailOrders, setDetailOrders] = useState<any[]>([]);
   const [detailPayments, setDetailPayments] = useState<any[]>([]);
   const [detailBalanceLogs, setDetailBalanceLogs] = useState<any[]>([]);
@@ -2475,7 +2481,7 @@ export const AdminAgreements: React.FC = () => {
 
   const handleDelete = async (key: string) => {
     // TODO (F-M09): 后续改进为自定义确认对话框，提升用户体验
-    if (!window.confirm('确定要删除该协议吗？')) return;
+    if (!globalThis.confirm('确定要删除该协议吗？')) return;
 
     try {
       await adminApi.deleteAgreement(key);
@@ -2529,7 +2535,7 @@ export const AdminAgreements: React.FC = () => {
       {editingKey !== undefined && (
         <Card className="p-6 mb-6">
           <h3 className="text-lg font-bold text-slate-900 mb-4">
-            {agreements.find(a => a.agreementKey === editingKey) ? '编辑协议' : '添加协议'}
+            {agreements.some(a => a.agreementKey === editingKey) ? '编辑协议' : '添加协议'}
           </h3>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -2538,7 +2544,7 @@ export const AdminAgreements: React.FC = () => {
                 value={formData.agreementKey}
                 onChange={e => setFormData({ ...formData, agreementKey: e.target.value })}
                 placeholder="如：user_agreement"
-                disabled={!!agreements.find(a => a.agreementKey === editingKey)}
+                disabled={agreements.some(a => a.agreementKey === editingKey)}
               />
               <Input
                 label="协议标题"
@@ -3195,7 +3201,7 @@ const AdminPage: React.FC<AdminPageProps> = () => {
   const handleLogout = () => {
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_info');
-    window.location.href = '/admin-login';
+    globalThis.location.href = '/admin-login';
   };
 
   const handleMenuChange = (menu: string) => {

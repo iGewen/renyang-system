@@ -467,7 +467,7 @@ export class AdminController {
     @CurrentUser('username') adminName: string,
     @Req() req: Request,
   ) {
-    const ip = req.ip || req.connection.remoteAddress || '';
+    const ip = req.ip || req.socket?.remoteAddress || '';
     return this.adminService.deleteOrder(id, adminId, adminName, ip);
   }
 

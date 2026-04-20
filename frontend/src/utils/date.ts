@@ -78,7 +78,7 @@ export const formatRelativeTime = (dateStr: string | Date): string => {
  * @returns 格式化后的金额字符串
  */
 export const formatAmount = (amount: number | string): string => {
-  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-  if (isNaN(num)) return '0.00';
+  const num = typeof amount === 'string' ? Number.parseFloat(amount) : amount;
+  if (Number.isNaN(num)) return '0.00';
   return num.toFixed(2);
 };

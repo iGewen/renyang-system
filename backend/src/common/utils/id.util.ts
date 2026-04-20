@@ -1,12 +1,12 @@
 import { v4 as uuidv4 } from 'uuid';
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
 
 export class IdUtil {
   /**
    * 生成带前缀的ID
    */
   static generate(prefix: string): string {
-    const uuid = uuidv4().replace(/-/g, '').toUpperCase();
+    const uuid = uuidv4().replaceAll('-', '').toUpperCase();
     return `${prefix}${uuid.substring(0, 12)}`;
   }
 

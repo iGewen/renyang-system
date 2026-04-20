@@ -63,7 +63,7 @@ export class LivestockService {
     const cachedStock = await this.redisService.get(stockKey);
 
     if (cachedStock) {
-      return parseInt(cachedStock, 10);
+      return Number.parseInt(cachedStock, 10);
     }
 
     const livestock = await this.livestockRepository.findOne({ where: { id } });
@@ -91,35 +91,52 @@ export class LivestockService {
 
     const stockKey = `livestock:stock:${id}`;
 
-    // 支持事务管理器
-    if (manager) {
-      await manager
-        .createQueryBuilder()
-        .update(Livestock)
-        .set({
-          stock: () => `stock + ${quantity}`,
-          soldCount: quantity > 0 ? () => `soldCount + ${Math.abs(quantity)}` : () => `soldCount`,
-        })
-        .where('id = :id', { id })
-        .execute();
-    } else {
-      await this.livestockRepository
-        .createQueryBuilder()
-        .update(Livestock)
-        .set({
-          stock: () => `stock + ${quantity}`,
-          soldCount: quantity > 0 ? () => `soldCount + ${Math.abs(quantity)}` : () => `soldCount`,
-        })
-        .where('id = :id', { id })
-        .execute();
-    }
+    // 执行库存更新
+    await this.executeStockUpdate(id, quantity, manager);
 
     // 更新缓存
+    await this.refreshStockCache(id, stockKey);
+
+    return true;
+  }
+
+  /**
+   * 执行库存更新操作
+   * 提取自 updateStock 以降低认知复杂度
+   */
+  private async executeStockUpdate(id: string, quantity: number, manager?: any): Promise<void> {
+    // 根据是否有事务管理器选择更新方式
+    let updateBuilder: any;
+    if (manager) {
+      updateBuilder = manager.createQueryBuilder().update(Livestock);
+    } else {
+      updateBuilder = this.livestockRepository.createQueryBuilder().update(Livestock);
+    }
+
+    // 根据数量正负决定是否更新已售数量
+    let soldCountUpdate: () => string;
+    if (quantity > 0) {
+      soldCountUpdate = () => `soldCount + ${Math.abs(quantity)}`;
+    } else {
+      soldCountUpdate = () => `soldCount`;
+    }
+
+    updateBuilder
+      .set({
+        stock: () => `stock + ${quantity}`,
+        soldCount: soldCountUpdate,
+      })
+      .where('id = :id', { id })
+      .execute();
+  }
+
+  /**
+   * 刷新库存缓存
+   */
+  private async refreshStockCache(id: string, stockKey: string): Promise<void> {
     const livestock = await this.livestockRepository.findOne({ where: { id } });
     if (livestock) {
       await this.redisService.set(stockKey, livestock.stock.toString());
     }
-
-    return true;
   }
 }

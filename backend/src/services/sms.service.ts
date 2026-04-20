@@ -84,7 +84,7 @@ export class SmsService {
     // 检查IP限制（防刷）
     if (clientIp) {
       const ipCountKey = `sms:ip:${clientIp}`;
-      const ipCount = parseInt(await this.redisService.get(ipCountKey) || '0', 10);
+      const ipCount = Number.parseInt(await this.redisService.get(ipCountKey) || '0', 10);
       if (ipCount >= SMS_IP_MAX_COUNT_PER_HOUR) {
         throw new BadRequestException('发送次数过多，请稍后再试');
       }
@@ -102,7 +102,7 @@ export class SmsService {
     // 检查60秒内发送次数
     const countKey = `sms:count:${phone}`;
     const countStr = await this.redisService.get(countKey);
-    const count = parseInt(countStr || '0', 10);
+    const count = Number.parseInt(countStr || '0', 10);
 
     if (count >= SMS_MAX_COUNT_PER_MINUTE) {
       // 超过5次，拉黑10分钟

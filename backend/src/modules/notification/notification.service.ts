@@ -327,12 +327,14 @@ export class NotificationService {
     remark?: string;
   }) {
     // 发送站内信
+    // 构建通知内容
+    const approvedContent = `您的买断申请（${params.livestockName}）已通过审核，金额¥${params.amount?.toFixed(2) || '-'}，请尽快完成支付。`;
+    const rejectedContent = `您的买断申请（${params.livestockName}）未通过审核。${params.remark ? `原因：${params.remark}` : ''}`;
+
     await this.sendRedemptionNotification(
       params.userId,
       params.approved ? '买断申请已通过' : '买断申请已拒绝',
-      params.approved
-        ? `您的买断申请（${params.livestockName}）已通过审核，金额¥${params.amount?.toFixed(2) || '-'}，请尽快完成支付。`
-        : `您的买断申请（${params.livestockName}）未通过审核。${params.remark ? `原因：${params.remark}` : ''}`,
+      params.approved ? approvedContent : rejectedContent,
       params.redemptionId,
     );
 

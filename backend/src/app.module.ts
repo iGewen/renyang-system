@@ -200,7 +200,7 @@ export class AppModule implements NestModule, OnModuleInit {
         const hashedPassword = await bcrypt.hash(defaultPassword, 10);
         // 生成32字符的UUID（不带横线）
         const crypto = require('crypto');
-        const adminId = crypto.randomUUID().replace(/-/g, '');
+        const adminId = crypto.randomUUID().replaceAll('-', '');
         await this.dataSource.query(
           'INSERT INTO admins (id, username, password, name, role, status, force_change_password, created_at, updated_at) VALUES (?, ?, ?, ?, 1, 1, 1, NOW(), NOW())',
           [adminId, 'admin', hashedPassword, '超级管理员']

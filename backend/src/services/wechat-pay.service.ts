@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 import { RedisService } from '@/common/utils/redis.service';
 import { CryptoUtil } from '@/common/utils/crypto.util';
 import { SystemConfig } from '@/entities';
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
 
 /**
  * 微信支付服务 (V3版本)
@@ -219,12 +219,12 @@ export class WechatPayService {
     }
 
     // 安全修复：验证时间戳有效期（5分钟内）
-    const timestampNum = parseInt(timestamp, 10);
+    const timestampNum = Number.parseInt(timestamp, 10);
     const currentTime = Math.floor(Date.now() / 1000);
     const maxTimeDiff = 5 * 60; // 5分钟
 
     // 安全修复：检查整数溢出和负数
-    if (isNaN(timestampNum) || timestampNum <= 0 || timestampNum > currentTime + maxTimeDiff) {
+    if (Number.isNaN(timestampNum) || timestampNum <= 0 || timestampNum > currentTime + maxTimeDiff) {
       this.logger.error('[WechatPay] 回调时间戳无效', {
         receivedTimestamp: timestamp,
         currentTimestamp: currentTime,
@@ -760,7 +760,7 @@ export class WechatPayService {
     } catch (error: any) {
       // 如果 PKCS#8 格式失败，尝试 PKCS#1 格式
       this.logger.warn('[WechatPay] PKCS#8 格式签名失败，尝试 PKCS#1 格式');
-      const cleanKey = privateKey.replace(/\s+/g, '');
+      const cleanKey = privateKey.replaceAll(/\s+/g, '');
       if (!cleanKey.includes('-----BEGIN')) {
         const formattedKeyPKCS1 = `-----BEGIN RSA PRIVATE KEY-----\n${cleanKey.match(/.{1,64}/g)?.join('\n') || cleanKey}\n-----END RSA PRIVATE KEY-----`;
         try {
@@ -786,7 +786,7 @@ export class WechatPayService {
       return key;
     }
     // 移除所有空白字符并格式化
-    const cleanKey = key.replace(/\s+/g, '');
+    const cleanKey = key.replaceAll(/\s+/g, '');
     const formattedKey = cleanKey.match(/.{1,64}/g)?.join('\n') || cleanKey;
     // 使用 PKCS#8 格式（兼容 OpenSSL 3.x）
     return `-----BEGIN PRIVATE KEY-----\n${formattedKey}\n-----END PRIVATE KEY-----`;
@@ -799,7 +799,7 @@ export class WechatPayService {
     if (key.includes('-----BEGIN')) {
       return key;
     }
-    const cleanKey = key.replace(/\s+/g, '');
+    const cleanKey = key.replaceAll(/\s+/g, '');
     return `-----BEGIN CERTIFICATE-----\n${cleanKey}\n-----END CERTIFICATE-----`;
   }
 }

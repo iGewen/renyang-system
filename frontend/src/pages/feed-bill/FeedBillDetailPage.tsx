@@ -60,7 +60,7 @@ const FeedBillDetailPage: React.FC = () => {
     try {
       const result = await adoptionApi.payFeedBill(id, paymentMethod);
       if (result.payUrl) {
-        window.location.href = result.payUrl;
+        globalThis.location.href = result.payUrl;
       } else {
         success('支付成功');
         navigate(-1);

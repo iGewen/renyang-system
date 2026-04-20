@@ -32,11 +32,17 @@ const OrdersPage: React.FC = () => {
       setLoading(true);
       try {
         // 状态过滤：前端使用字符串，API需要数字
-        const statusNumber = activeTab === 'all' ? undefined :
-          activeTab === 'pending_payment' ? OrderStatus.PENDING_PAYMENT :
-          activeTab === 'paid' ? OrderStatus.PAID :
-          activeTab === 'cancelled' ? OrderStatus.CANCELLED :
-          activeTab === 'refunded' ? OrderStatus.REFUNDED : undefined;
+        let statusNumber: OrderStatus | undefined;
+        if (activeTab === 'pending_payment') {
+          statusNumber = OrderStatus.PENDING_PAYMENT;
+        } else if (activeTab === 'paid') {
+          statusNumber = OrderStatus.PAID;
+        } else if (activeTab === 'cancelled') {
+          statusNumber = OrderStatus.CANCELLED;
+        } else if (activeTab === 'refunded') {
+          statusNumber = OrderStatus.REFUNDED;
+        }
+        // activeTab === 'all' 时 statusNumber 为 undefined
 
         const data = await orderApi.getMyOrders({
           status: statusNumber

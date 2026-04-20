@@ -98,14 +98,14 @@ export class FeedService {
    */
   async calculateLateFees() {
     // 修复 B-BIZ-010：使用正确的 Redis Key 格式分别读取配置
-    const lateFeeStartDays = parseInt(
+    const lateFeeStartDays = Number.parseInt(
       await this.redisService.get('system:config:late_fee_start_days') || '3',
       10
     );
-    const lateFeeRate = parseFloat(
+    const lateFeeRate = Number.parseFloat(
       await this.redisService.get('system:config:late_fee_rate') || '0.001'
     );
-    const lateFeeCapRate = parseFloat(
+    const lateFeeCapRate = Number.parseFloat(
       await this.redisService.get('system:config:late_fee_cap_rate') || '0.5'
     );
 

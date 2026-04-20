@@ -13,6 +13,7 @@ import {
   Req,
   Res,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import {
@@ -29,7 +30,7 @@ import { UploadService } from './upload.service';
 import { IsString, IsOptional, IsIn } from 'class-validator';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { join, resolve } from 'path';
+import { join, resolve } from 'node:path';
 
 class DeleteFileDto {
   @ApiProperty({ description: '文件名' })
@@ -45,6 +46,8 @@ class DeleteFileDto {
 @ApiTags('文件上传')
 @Controller('upload')
 export class UploadController {
+  private readonly logger = new Logger(UploadController.name);
+
   constructor(
     private readonly uploadService: UploadService,
     private readonly jwtService: JwtService,
@@ -239,6 +242,9 @@ export class UploadController {
         }
       });
     } catch (error) {
+      // 处理签名验证失败的情况
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      this.logger.warn(`文件访问失败: ${errorMessage}`);
       return res.status(403).json({ message: '链接已过期或无效' });
     }
   }

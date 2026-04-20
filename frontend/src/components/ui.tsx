@@ -7,6 +7,9 @@ import logger from '../utils/logger';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 
+// 加载状态尺寸类型
+type LoadingSize = 'sm' | 'md' | 'lg';
+
 interface Toast {
   id: string;
   type: ToastType;
@@ -816,7 +819,7 @@ export const SkeletonTable: React.FC<{ rows?: number; cols?: number }> = ({ rows
 
 // ==================== 加载状态组件 ====================
 
-export const LoadingSpinner: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = ({ size = 'md' }) => {
+export const LoadingSpinner: React.FC<{ size?: LoadingSize }> = ({ size = 'md' }) => {
   const sizeClass = {
     sm: 'w-4 h-4 border-2',
     md: 'w-8 h-8 border-4',

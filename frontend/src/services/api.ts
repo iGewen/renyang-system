@@ -17,6 +17,9 @@ import type {
   PaginatedResponse
 } from '../types';
 
+// 支付方式类型
+type PaymentMethod = 'alipay' | 'wechat' | 'balance';
+
 const API_BASE = '/api';
 const REQUEST_TIMEOUT = 30000; // 30秒超时
 
@@ -139,12 +142,12 @@ async function request<T>(url: string, options?: RequestInit, isAdminRequest: bo
           sessionStorage.removeItem('admin_info');
           // 修复 F-003/F-004：使用 React Router 替代硬跳转
           // 通过事件通知 App 组件进行路由跳转，保持 SPA 状态
-          window.dispatchEvent(new CustomEvent('auth:admin-expired'));
+          globalThis.dispatchEvent(new CustomEvent('auth:admin-expired'));
         } else if (!isAdminRequest && !isLoginRequest) {
           sessionStorage.removeItem('token');
           sessionStorage.removeItem('user');
           // 修复 F-003/F-004：通过事件通知，避免硬跳转
-          window.dispatchEvent(new CustomEvent('auth:user-expired'));
+          globalThis.dispatchEvent(new CustomEvent('auth:user-expired'));
         }
       }
       throw new Error(data.message || '请求失败');
@@ -341,7 +344,7 @@ export const adoptionApi = {
   },
 
   // 支付饲料费
-  payFeedBill: async (billId: string, paymentMethod: 'alipay' | 'wechat' | 'balance'): Promise<PaymentResult> => {
+  payFeedBill: async (billId: string, paymentMethod: PaymentMethod): Promise<PaymentResult> => {
     return request(`/adoptions/feed-bills/${billId}/pay`, {
       method: 'POST',
       body: JSON.stringify({ paymentMethod }),
@@ -445,7 +448,7 @@ export const balanceApi = {
 
 export const agreementApi = {
   // 获取协议内容
-  get: async (type: 'user' | 'adoption' | 'privacy' | 'disclaimer' | string): Promise<{ title: string; content: string; updatedAt: string }> => {
+  get: async (type: string): Promise<{ title: string; content: string; updatedAt: string }> => {
     return request(`/users/agreements/${type}`);
   },
 

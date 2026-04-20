@@ -595,7 +595,7 @@ const HomePage: React.FC = () => {
               title="暂无可领养的活体"
               description="我们正在为您寻找更多优质活体，请稍后再来查看"
               action={
-                <Button variant="outline" onClick={() => window.location.reload()}>
+                <Button variant="outline" onClick={() => globalThis.location.reload()}>
                   刷新页面
                 </Button>
               }
@@ -790,7 +790,8 @@ const DetailsPage: React.FC = () => {
       const data = await agreementApi.get('adoption');
       setAgreementContent(data);
     } catch (error) {
-      // 如果没有配置协议，显示默认内容
+      // 如果没有配置协议，显示默认内容（记录错误用于调试）
+      console.debug('获取协议失败，使用默认内容:', error);
       setAgreementContent({
         title: '云端牧场领养协议',
         content: '暂无协议内容，请联系管理员配置。',
@@ -806,7 +807,7 @@ const DetailsPage: React.FC = () => {
     try {
       // 安全修复 F-009：使用 crypto.randomUUID() 替代 Date.now()
     // Date.now() 是可预测的，攻击者可能伪造 clientOrderId
-    const clientOrderId = `CLIENT-${crypto.randomUUID().replace(/-/g, '').substring(0, 16).toUpperCase()}`;
+    const clientOrderId = `CLIENT-${crypto.randomUUID().replaceAll('-', '').substring(0, 16).toUpperCase()}`;
     const order = await orderApi.create({ livestockId: id, clientOrderId });
       // 后端返回完整的 order 对象，ID 字段是 id
       // 使用 URL 参数传递 orderId，避免刷新后 state 丢失
@@ -1027,7 +1028,7 @@ const PaymentPage: React.FC = () => {
 
       if (result.payUrl) {
         // 跳转到支付页面
-        window.location.href = result.payUrl;
+        globalThis.location.href = result.payUrl;
       } else {
         // 余额支付成功，跳转到成功页，使用 replace 避免返回到支付页
         success('支付成功');
@@ -1195,7 +1196,8 @@ const PaymentResultPage: React.FC = () => {
                 }
               }
             } catch (e) {
-              // 静默处理轮询错误
+              // 轮询失败时静默处理，不影响用户流程
+              console.debug('支付状态轮询:', e);
             }
           }, 2000);
         } else {
@@ -1915,6 +1917,18 @@ const SecurityPage: React.FC = () => {
   const [phoneLoading, setPhoneLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
+  // 使用 ref 保存定时器引用，用于清理
+  const countdownTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // 组件卸载时清理定时器
+  useEffect(() => {
+    return () => {
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+      }
+    };
+  }, []);
+
   // 发送验证码
   const handleSendCode = async () => {
     if (!phoneForm.newPhone || !/^1\d{10}$/.test(phoneForm.newPhone)) {
@@ -1927,10 +1941,17 @@ const SecurityPage: React.FC = () => {
       // 使用 reset_password 类型发送换绑手机验证码
       await authApi.sendSmsCode(phoneForm.newPhone, 'reset_password');
       setCountdown(60);
-      const timer = setInterval(() => {
+      // 清理之前的定时器
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+      }
+      countdownTimerRef.current = setInterval(() => {
         setCountdown(prev => {
           if (prev <= 1) {
-            clearInterval(timer);
+            if (countdownTimerRef.current) {
+              clearInterval(countdownTimerRef.current);
+              countdownTimerRef.current = null;
+            }
             return 0;
           }
           return prev - 1;
@@ -2172,7 +2193,7 @@ const NotificationPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = React.useCallback(async () => {
     try {
       const [listRes, countRes] = await Promise.all([
         notificationApi.getList({ isRead: activeTab === 'unread' ? 0 : undefined }),
@@ -2183,11 +2204,11 @@ const NotificationPage: React.FC = () => {
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
     }
-  };
+  }, [activeTab]);
 
   useEffect(() => {
     fetchData();
-  }, [activeTab]);
+  }, [fetchData]);
 
   const markAsRead = async (id: string) => {
     try {

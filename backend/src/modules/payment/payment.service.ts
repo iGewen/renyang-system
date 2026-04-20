@@ -43,54 +43,7 @@ export class PaymentService {
     paymentMethod: string,
   ) {
     // 安全修复：验证支付金额与实际订单金额是否一致
-    let expectedAmount: number;
-
-    switch (orderType) {
-      case 'adoption': {
-        // 安全修复：使用 getByIdForUser 强制验证用户归属
-        const order = await this.orderService.getByIdForUser(orderId, userId);
-        // 检查订单状态是否为待支付
-        if (order.status !== OrderStatus.PENDING_PAYMENT) {
-          throw new BadRequestException('订单已过期或已支付，请返回订单列表查看');
-        }
-        expectedAmount = Number(order.totalAmount) - Number(order.paidAmount || 0);
-        break;
-      }
-      case 'redemption': {
-        const redemption = await this.redemptionService.getRedemptionDetail(orderId, userId);
-        if (!redemption) {
-          throw new BadRequestException('买断订单不存在');
-        }
-        expectedAmount = Number(redemption.finalAmount) || 0;
-        break;
-      }
-      case 'feed': {
-        // 饲料费需要从饲料账单中获取金额
-        const feedBill = await this.paymentRepository.manager.findOne('FeedBill' as any, {
-          where: { id: orderId },
-        }) as any;
-        if (!feedBill) {
-          throw new BadRequestException('饲料账单不存在');
-        }
-        // 安全修复 B-BIZ-035：校验饲料账单归属
-        if (feedBill.userId !== userId) {
-          throw new BadRequestException('无权支付该饲料账单');
-        }
-        // 使用 adjustedAmount 或 originalAmount，而非 amount
-        expectedAmount = Number(feedBill.adjustedAmount || feedBill.originalAmount) + Number(feedBill.lateFeeAmount || 0);
-        break;
-      }
-      case 'recharge': {
-        // 充值金额由用户指定，但需要验证最小金额
-        if (amount <= 0) {
-          throw new BadRequestException('充值金额必须大于0');
-        }
-        expectedAmount = amount;
-        break;
-      }
-      default:
-        throw new BadRequestException('不支持的订单类型');
-    }
+    const expectedAmount = await this.getExpectedAmount(orderType, orderId, userId, amount);
 
     // 验证金额（允许0.01的误差，处理浮点数精度问题）
     if (orderType !== 'recharge' && Math.abs(amount - expectedAmount) > 0.01) {
@@ -113,15 +66,99 @@ export class PaymentService {
     await this.paymentRepository.save(payment);
 
     // 根据支付方式返回支付URL
-    if (paymentMethod === 'balance') {
-      return this.payWithBalance(payment);
-    } else if (paymentMethod === 'alipay') {
-      return this.createAlipayPayment(payment);
-    } else if (paymentMethod === 'wechat') {
-      return this.createWechatPayment(payment);
+    return this.processPaymentByMethod(payment, paymentMethod);
+  }
+
+  /**
+   * 根据订单类型获取预期支付金额
+   * 提取自 createPayment 以降低认知复杂度
+   */
+  private async getExpectedAmount(
+    orderType: string,
+    orderId: string,
+    userId: string,
+    amount: number,
+  ): Promise<number> {
+    const orderHandlers: Record<string, () => Promise<number>> = {
+      adoption: () => this.getAdoptionOrderAmount(orderId, userId),
+      redemption: () => this.getRedemptionOrderAmount(orderId, userId),
+      feed: () => this.getFeedBillAmount(orderId, userId),
+      recharge: () => this.getRechargeAmount(amount),
+    };
+
+    const handler = orderHandlers[orderType];
+    if (!handler) {
+      throw new BadRequestException('不支持的订单类型');
     }
 
-    throw new BadRequestException('不支持的支付方式');
+    return handler();
+  }
+
+  /**
+   * 获取领养订单金额
+   */
+  private async getAdoptionOrderAmount(orderId: string, userId: string): Promise<number> {
+    const order = await this.orderService.getByIdForUser(orderId, userId);
+    if (order.status !== OrderStatus.PENDING_PAYMENT) {
+      throw new BadRequestException('订单已过期或已支付，请返回订单列表查看');
+    }
+    return Number(order.totalAmount) - Number(order.paidAmount || 0);
+  }
+
+  /**
+   * 获取买断订单金额
+   */
+  private async getRedemptionOrderAmount(orderId: string, userId: string): Promise<number> {
+    const redemption = await this.redemptionService.getRedemptionDetail(orderId, userId);
+    if (!redemption) {
+      throw new BadRequestException('买断订单不存在');
+    }
+    return Number(redemption.finalAmount) || 0;
+  }
+
+  /**
+   * 获取饲料账单金额
+   */
+  private async getFeedBillAmount(orderId: string, userId: string): Promise<number> {
+    const feedBill = await this.paymentRepository.manager.findOne('FeedBill' as any, {
+      where: { id: orderId },
+    }) as any;
+    if (!feedBill) {
+      throw new BadRequestException('饲料账单不存在');
+    }
+    // 安全修复 B-BIZ-035：校验饲料账单归属
+    if (feedBill.userId !== userId) {
+      throw new BadRequestException('无权支付该饲料账单');
+    }
+    return Number(feedBill.adjustedAmount || feedBill.originalAmount) + Number(feedBill.lateFeeAmount || 0);
+  }
+
+  /**
+   * 获取充值金额
+   */
+  private getRechargeAmount(amount: number): Promise<number> {
+    if (amount <= 0) {
+      throw new BadRequestException('充值金额必须大于0');
+    }
+    return Promise.resolve(amount);
+  }
+
+  /**
+   * 根据支付方式处理支付
+   */
+  private processPaymentByMethod(payment: PaymentRecord, paymentMethod: string) {
+    const paymentHandlers: Record<string, () => Promise<any>> = {
+      balance: () => this.payWithBalance(payment),
+      alipay: () => this.createAlipayPayment(payment),
+      wechat: () => this.createWechatPayment(payment),
+    };
+
+    const handler = paymentHandlers[paymentMethod];
+    if (!handler) {
+      throw new BadRequestException('不支持的支付方式');
+    }
+
+    return handler();
   }
 
   /**
@@ -141,7 +178,7 @@ export class PaymentService {
       const userBalance = Number(user.balance);
       const paymentAmount = Number(payment.amount);
 
-      if (isNaN(userBalance) || isNaN(paymentAmount)) {
+      if (Number.isNaN(userBalance) || Number.isNaN(paymentAmount)) {
         throw new BadRequestException('余额数据异常');
       }
 
@@ -406,9 +443,9 @@ export class PaymentService {
 
     // 安全修复：验证金额一致性
     if (totalAmount) {
-      const receivedAmount = parseFloat(totalAmount);
+      const receivedAmount = Number.parseFloat(totalAmount);
       const expectedAmount = Number(payment.amount);
-      if (isNaN(receivedAmount) || Math.abs(receivedAmount - expectedAmount) > 0.01) {
+      if (Number.isNaN(receivedAmount) || Math.abs(receivedAmount - expectedAmount) > 0.01) {
         this.logger.error('[PaymentService] 支付宝回调金额不一致', {
           paymentNo: payment.paymentNo,
           expected: expectedAmount,

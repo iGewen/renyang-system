@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 import { RedisService } from '@/common/utils/redis.service';
 import { CryptoUtil } from '@/common/utils/crypto.util';
 import { SystemConfig } from '@/entities';
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
 
 /**
  * 支付宝支付服务
@@ -391,7 +391,7 @@ export class AlipayService {
     } catch (error: any) {
       // 如果 PKCS#8 格式失败，尝试 PKCS#1 格式
       this.logger.warn('[Alipay] PKCS#8 格式签名失败，尝试 PKCS#1 格式');
-      const cleanKey = privateKey.replace(/\s+/g, '');
+      const cleanKey = privateKey.replaceAll(/\s+/g, '');
       if (!cleanKey.startsWith('-----BEGIN')) {
         const formattedKeyPKCS1 = `-----BEGIN RSA PRIVATE KEY-----\n${cleanKey.match(/.{1,64}/g)?.join('\n') || cleanKey}\n-----END RSA PRIVATE KEY-----`;
         try {
@@ -415,7 +415,7 @@ export class AlipayService {
    */
   private formatPrivateKey(key: string): string {
     // 移除所有空白字符
-    const cleanKey = key.replace(/\s+/g, '');
+    const cleanKey = key.replaceAll(/\s+/g, '');
 
     // 如果已经是 PEM 格式，直接返回
     if (cleanKey.startsWith('-----BEGIN')) {
@@ -437,7 +437,7 @@ export class AlipayService {
    */
   private formatPublicKey(key: string): string {
     // 移除所有空白字符
-    const cleanKey = key.replace(/\s+/g, '');
+    const cleanKey = key.replaceAll(/\s+/g, '');
 
     if (cleanKey.startsWith('-----BEGIN')) {
       return key;

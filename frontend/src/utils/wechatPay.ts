@@ -101,7 +101,7 @@ export function invokeWechatJsapiPay(payParams: WechatPayParams): Promise<Wechat
  */
 export function isWechatBrowser(): boolean {
   const ua = navigator.userAgent.toLowerCase();
-  return ua.indexOf('micromessenger') !== -1;
+  return ua.includes('micromessenger');
 }
 
 /**
@@ -110,9 +110,9 @@ export function isWechatBrowser(): boolean {
 export function getWechatEnv(): 'wechat' | 'miniprogram' | 'other' {
   const ua = navigator.userAgent.toLowerCase();
 
-  if (ua.indexOf('miniprogram') !== -1) {
+  if (ua.includes('miniprogram')) {
     return 'miniprogram';
-  } else if (ua.indexOf('micromessenger') !== -1) {
+  } else if (ua.includes('micromessenger')) {
     return 'wechat';
   }
 

@@ -148,7 +148,7 @@ export class RefundController {
     @Body() dto: AdminRefundDto,
     @Req() req: Request,
   ) {
-    const ip = req.ip || req.connection.remoteAddress || '';
+    const ip = req.ip || req.socket?.remoteAddress || '';
     return this.refundService.adminRefund(
       adminId,
       dto.userId,

@@ -141,7 +141,7 @@ export class AuthService {
     const isPasswordValid = await PasswordUtil.compare(password, user.password);
     if (!isPasswordValid) {
       // 记录登录失败
-      const failCount = parseInt(await this.redisService.get(failKey) || '0', 10) + 1;
+      const failCount = Number.parseInt(await this.redisService.get(failKey) || '0', 10) + 1;
       await this.redisService.set(failKey, failCount.toString(), 3600); // 1小时内有效
 
       if (failCount >= LOGIN_FAIL_MAX_ATTEMPTS) {

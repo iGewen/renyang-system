@@ -34,7 +34,7 @@ export class PaymentController {
     let orderId = dto.orderId;
 
     if (dto.orderType === 'recharge') {
-      orderId = `recharge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      orderId = `recharge_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     }
 
     if (!orderId) {
@@ -68,7 +68,7 @@ export class PaymentController {
     @Body() dto: CreateRechargeDto,
   ) {
     // 后端生成订单ID，防止客户端伪造
-    const orderId = `recharge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const orderId = `recharge_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
     return this.paymentService.createPayment(
       userId,

@@ -11,5 +11,5 @@ export function cn(...inputs: ClassValue[]) {
  */
 export const generateId = (prefix: string) => {
   // 使用密码学安全的 UUID 生成器
-  return `${prefix}${crypto.randomUUID().replace(/-/g, '').substring(0, 9).toUpperCase()}`;
+  return `${prefix}${crypto.randomUUID().replaceAll('-', '').substring(0, 9).toUpperCase()}`;
 };

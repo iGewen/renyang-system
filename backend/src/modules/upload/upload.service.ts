@@ -1,8 +1,8 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as crypto from 'crypto';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as crypto from 'node:crypto';
 
 export interface UploadResult {
   url: string;
@@ -41,7 +41,7 @@ export class UploadService {
   private generateFilename(originalname: string): string {
     const ext = path.extname(originalname);
     const hash = crypto.randomBytes(16).toString('hex');
-    const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    const date = new Date().toISOString().split('T')[0].replaceAll('-', '');
     return `${date}_${hash}${ext}`;
   }
 
@@ -52,7 +52,7 @@ export class UploadService {
   private getFilePath(filename: string, subDir?: string): string {
     // 防止路径遍历攻击
     const sanitizedFilename = path.basename(filename);
-    const sanitizedSubDir = subDir ? subDir.replace(/\.\./g, '').replace(/[\/\\]/g, '') : undefined;
+    const sanitizedSubDir = subDir ? subDir.replaceAll('..', '').replaceAll(/[\/\\]/g, '') : undefined;
 
     const dir = sanitizedSubDir ? path.join(this.uploadDir, sanitizedSubDir) : this.uploadDir;
 
