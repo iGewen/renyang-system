@@ -26,56 +26,6 @@ export const AdminLoginPage: React.FC = () => {
   // 密码强度指示器
   const [passwordStrength, setPasswordStrength] = useState(0);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!username.trim()) {
-      setError('请输入用户名');
-      return;
-    }
-    if (!password.trim()) {
-      setError('请输入密码');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const result = await adminApi.login({ username, password });
-
-      // 检查是否需要强制修改密码
-      if (result.admin?.forceChangePassword) {
-        setAdminData(result);
-        setNeedChangePassword(true);
-        setOldPassword(password); // 预填原密码
-      } else {
-        // 保存登录信息 - 使用 sessionStorage 替代 localStorage（关闭浏览器标签页即清除）
-        sessionStorage.setItem('admin_token', result.token);
-        sessionStorage.setItem('admin_info', JSON.stringify({
-          id: result.admin.id,
-          username: result.admin.username,
-          name: result.admin.name,
-          role: result.admin.role,
-          // 不存储敏感字段如 avatar 等
-        }));
-
-        // 如果选择了记住我，保存用户名
-        if (rememberMe) {
-          localStorage.setItem('admin_remembered_username', username);
-        } else {
-          localStorage.removeItem('admin_remembered_username');
-        }
-
-        // 跳转到管理后台
-        navigate('/admin');
-      }
-    } catch (err: any) {
-      setError(err.message || '登录失败，请检查用户名和密码');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // 计算密码强度 - 使用 useCallback 避免每次渲染创建新函数
   const calculatePasswordStrength = React.useCallback((pwd: string) => {
     let strength = 0;
@@ -109,19 +59,81 @@ export const AdminLoginPage: React.FC = () => {
     return '强';
   };
 
-  const handleChangePassword = async () => {
+  // 保存登录信息
+  const saveLoginInfo = (result: any) => {
+    sessionStorage.setItem('admin_token', result.token);
+    sessionStorage.setItem('admin_info', JSON.stringify({
+      id: result.admin.id,
+      username: result.admin.username,
+      name: result.admin.name,
+      role: result.admin.role,
+    }));
+
+    if (rememberMe) {
+      localStorage.setItem('admin_remembered_username', username);
+    } else {
+      localStorage.removeItem('admin_remembered_username');
+    }
+  };
+
+  // 验证登录表单
+  const validateLoginForm = (): boolean => {
+    if (!username.trim()) {
+      setError('请输入用户名');
+      return false;
+    }
+    if (!password.trim()) {
+      setError('请输入密码');
+      return false;
+    }
+    return true;
+  };
+
+  // 验证密码修改表单
+  const validatePasswordForm = (): boolean => {
     if (!newPassword || !confirmPassword) {
       setError('请填写完整信息');
-      return;
+      return false;
     }
     if (newPassword !== confirmPassword) {
       setError('两次密码输入不一致');
-      return;
+      return false;
     }
     if (newPassword.length < 6) {
       setError('密码长度至少6位');
-      return;
+      return false;
     }
+    return true;
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!validateLoginForm()) return;
+
+    setLoading(true);
+    try {
+      const result = await adminApi.login({ username, password });
+
+      // 检查是否需要强制修改密码
+      if (result.admin?.forceChangePassword) {
+        setAdminData(result);
+        setNeedChangePassword(true);
+        setOldPassword(password); // 预填原密码
+      } else {
+        saveLoginInfo(result);
+        navigate('/admin');
+      }
+    } catch (err: any) {
+      setError(err.message || '登录失败，请检查用户名和密码');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!validatePasswordForm()) return;
 
     setChangingPassword(true);
     try {

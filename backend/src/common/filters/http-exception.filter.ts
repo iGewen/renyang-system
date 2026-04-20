@@ -95,60 +95,75 @@ function translateMessage(message: string): string {
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
 
+  // 处理 BadRequestException
+  private handleBadRequest(exception: BadRequestException): { status: number; message: string; code: number } {
+    const status = HttpStatus.BAD_REQUEST;
+    const exceptionResponse = exception.getResponse();
+
+    if (typeof exceptionResponse !== 'object' || exceptionResponse === null) {
+      return { status, message: '请求参数错误', code: 400 };
+    }
+
+    const res = exceptionResponse as any;
+    let message: string;
+
+    // 处理 class-validator 的验证错误
+    if (res.message && Array.isArray(res.message)) {
+      const messages = res.message.map((msg: string) => translateMessage(msg));
+      message = messages[0]; // 只返回第一个错误
+    } else if (res.message) {
+      message = translateMessage(res.message);
+    } else {
+      message = '请求参数错误';
+    }
+
+    return { status, message, code: res.code || 400 };
+  }
+
+  // 处理普通 HttpException
+  private handleHttp(exception: HttpException): { status: number; message: string; code: number } {
+    const status = exception.getStatus();
+    const exceptionResponse = exception.getResponse();
+
+    if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+      const res = exceptionResponse as any;
+      return { status, message: translateMessage(res.message || exception.message), code: res.code || status };
+    }
+
+    return { status, message: translateMessage(exception.message), code: status };
+  }
+
+  // 处理未知错误
+  private handleError(exception: Error): { status: number; message: string; code: number } {
+    this.logger.error('Unhandled exception', exception.stack);
+    return { status: HttpStatus.INTERNAL_SERVER_ERROR, message: translateMessage(exception.message), code: -1 };
+  }
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest();
 
-    let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = '服务器内部错误';
-    let code = -1;
+    let result: { status: number; message: string; code: number };
 
     if (exception instanceof BadRequestException) {
-      status = HttpStatus.BAD_REQUEST;
-      const exceptionResponse = exception.getResponse();
-
-      if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
-        const res = exceptionResponse as any;
-
-        // 处理 class-validator 的验证错误
-        if (res.message && Array.isArray(res.message)) {
-          // 提取并翻译所有验证错误
-          const messages = res.message.map((msg: string) => translateMessage(msg));
-          message = messages[0]; // 只返回第一个错误
-        } else if (res.message) {
-          message = translateMessage(res.message);
-        } else {
-          message = '请求参数错误';
-        }
-        code = res.code || 400;
-      } else {
-        message = '请求参数错误';
-      }
+      result = this.handleBadRequest(exception);
     } else if (exception instanceof HttpException) {
-      status = exception.getStatus();
-      const exceptionResponse = exception.getResponse();
-
-      if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
-        const res = exceptionResponse as any;
-        message = translateMessage(res.message || exception.message);
-        code = res.code || status;
-      } else {
-        message = translateMessage(exception.message);
-      }
+      result = this.handleHttp(exception);
     } else if (exception instanceof Error) {
-      message = translateMessage(exception.message);
-      this.logger.error('Unhandled exception', exception.stack);
+      result = this.handleError(exception);
+    } else {
+      result = { status: HttpStatus.INTERNAL_SERVER_ERROR, message: '服务器内部错误', code: -1 };
     }
 
     // 记录错误日志
-    if (status >= 500) {
-      this.logger.error(`${request.method} ${request.url} - ${status}: ${message}`);
+    if (result.status >= 500) {
+      this.logger.error(`${request.method} ${request.url} - ${result.status}: ${result.message}`);
     }
 
-    response.status(status).json({
-      code,
-      message,
+    response.status(result.status).json({
+      code: result.code,
+      message: result.message,
       data: null,
       timestamp: Date.now(),
       path: request.url,

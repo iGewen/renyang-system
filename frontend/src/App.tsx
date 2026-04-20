@@ -198,12 +198,51 @@ const AuthPage: React.FC = () => {
     }
   };
 
-  const handleLogin = async () => {
+  // 验证手机号
+  const validatePhone = (phoneNum: string): string | null => {
+    if (!phoneNum || !/^1\d{10}$/.test(phoneNum)) {
+      return '请输入正确的手机号';
+    }
+    return null;
+  };
+
+  // 验证登录表单
+  const validateLoginForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!phone || !/^1\d{10}$/.test(phone)) newErrors.phone = '请输入正确的手机号';
+    const phoneError = validatePhone(phone);
+    if (phoneError) newErrors.phone = phoneError;
     if (loginType === 'password' && !password) newErrors.password = '请输入密码';
     if (loginType === 'code' && !code) newErrors.code = '请输入验证码';
-    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // 验证注册表单
+  const validateRegisterForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    const phoneError = validatePhone(phone);
+    if (phoneError) newErrors.phone = phoneError;
+    if (!code) newErrors.code = '请输入验证码';
+    if (!password || password.length < 6) newErrors.password = '密码至少6位';
+    if (password !== confirmPassword) newErrors.confirmPassword = '两次密码不一致';
+    if (!agreed) newErrors.agreed = '请阅读并同意用户协议和隐私政策';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // 验证重置密码表单
+  const validateResetForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    const phoneError = validatePhone(phone);
+    if (phoneError) newErrors.phone = phoneError;
+    if (!code) newErrors.code = '请输入验证码';
+    if (!password || password.length < 6) newErrors.password = '密码至少6位';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleLogin = async () => {
+    if (!validateLoginForm()) return;
 
     setLoading(true);
     try {
@@ -220,13 +259,7 @@ const AuthPage: React.FC = () => {
   };
 
   const handleRegister = async () => {
-    const newErrors: Record<string, string> = {};
-    if (!phone || !/^1\d{10}$/.test(phone)) newErrors.phone = '请输入正确的手机号';
-    if (!code) newErrors.code = '请输入验证码';
-    if (!password || password.length < 6) newErrors.password = '密码至少6位';
-    if (password !== confirmPassword) newErrors.confirmPassword = '两次密码不一致';
-    if (!agreed) newErrors.agreed = '请阅读并同意用户协议和隐私政策';
-    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
+    if (!validateRegisterForm()) return;
 
     setLoading(true);
     try {
@@ -254,11 +287,7 @@ const AuthPage: React.FC = () => {
   };
 
   const handleResetPassword = async () => {
-    const newErrors: Record<string, string> = {};
-    if (!phone || !/^1\d{10}$/.test(phone)) newErrors.phone = '请输入正确的手机号';
-    if (!code) newErrors.code = '请输入验证码';
-    if (!password || password.length < 6) newErrors.password = '密码至少6位';
-    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
+    if (!validateResetForm()) return;
 
     setLoading(true);
     try {
