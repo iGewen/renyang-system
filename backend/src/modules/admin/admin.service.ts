@@ -152,7 +152,7 @@ export class AdminService {
   /**
    * 记录登录失败（暴力破解防护）
    */
-  private async recordLoginFailure(username: string, ip: string): Promise<void> {
+  private async recordLoginFailure(username: string, _ip: string): Promise<void> {
     const failKey = `admin:login:fail:${username}`;
     const failCount = Number.parseInt(await this.redisService.get(failKey) || '0', 10) + 1;
     await this.redisService.set(failKey, failCount.toString(), this.ADMIN_LOGIN_FAIL_LOCK_DURATION);
@@ -1068,7 +1068,7 @@ export class AdminService {
    * 更新系统配置
    * 安全修复：添加配置键白名单验证，防止任意键创建
    */
-  async updateSystemConfig(configKey: string, configValue: any, adminId: string, adminName: string, ip?: string) {
+  async updateSystemConfig(configKey: string, configValue: any, adminId: string, adminName: string, _ip?: string) {
     // 安全修复：验证配置键是否在白名单中
     if (!this.SYSTEM_CONFIG_ALLOWED_KEYS.includes(configKey)) {
       throw new BadRequestException(`不支持的配置项: ${configKey}。请联系开发人员添加新的配置键。`);

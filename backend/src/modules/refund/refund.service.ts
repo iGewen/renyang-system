@@ -287,7 +287,6 @@ export class RefundService {
     });
 
     let refundMethod = 'balance';
-    let refundSuccess = true;
     let refundMessage = '';
 
     // 安全修复：先执行外部API退款（在事务外）

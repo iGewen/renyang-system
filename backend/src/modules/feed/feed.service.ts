@@ -357,7 +357,7 @@ export class FeedService {
   /**
    * 处理异常领养
    */
-  async resolveException(adoptionId: string, action: 'contact' | 'terminate' | 'continue', remark: string) {
+  async resolveException(adoptionId: string, action: 'contact' | 'terminate' | 'continue', _remark: string) {
     const adoption = await this.adoptionRepository.findOne({ where: { id: adoptionId } });
     if (!adoption) {
       throw new NotFoundException('领养记录不存在');

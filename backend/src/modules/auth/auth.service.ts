@@ -268,7 +268,7 @@ export class AuthService {
   /**
    * 绑定手机号
    */
-  async bindPhone(dto: BindPhoneDto) {
+  async bindPhone(_dto: BindPhoneDto) {
     // TODO: 实现绑定手机号功能
     throw new BadRequestException('绑定手机号功能暂未开放');
   }

@@ -157,6 +157,7 @@ export class AlipayService {
     }
 
     // 移除sign和sign_type
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { sign: _, sign_type: __, ...data } = params;
 
     // 排序并构建待签名字符串
@@ -370,6 +371,7 @@ export class AlipayService {
    */
   private sign(params: Record<string, string>, privateKey: string): string {
     // 移除sign字段
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { sign: _, ...data } = params;
 
     // 排序并构建待签名字符串

@@ -110,7 +110,7 @@ export class AdoptionService {
   /**
    * 支付饲料费
    */
-  async payFeedBill(billId: string, userId: string, paymentMethod: string) {
+  async payFeedBill(billId: string, userId: string, _paymentMethod: string) {
     const bill = await this.feedBillRepository.findOne({
       where: { id: billId, userId },
       relations: ['adoption'],

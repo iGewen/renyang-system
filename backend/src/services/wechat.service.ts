@@ -130,7 +130,7 @@ export class WechatService {
   /**
    * 绑定手机号
    */
-  async bindPhone(tempToken: string, phone: string, code: string): Promise<{ token: string; user: any }> {
+  async bindPhone(tempToken: string, phone: string, _code: string): Promise<{ token: string; user: any }> {
     // 验证临时token
     const tempData = await this.redisService.get(`wechat:temp:${tempToken}`);
     if (!tempData) {
@@ -299,6 +299,7 @@ export class WechatService {
    * 移除敏感信息
    */
   private sanitizeUser(user: User) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...result } = user;
     return result;
   }
