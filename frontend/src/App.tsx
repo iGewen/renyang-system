@@ -430,8 +430,8 @@ const AuthPage: React.FC = () => {
 
 const HomePageSkeleton: React.FC = () => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-    {Array.from({ length: 6 }).map((_, i) => (
-      <div key={`skeleton-home-card-${i}`} className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+    {[1, 2, 3, 4, 5, 6].map((id) => (
+      <div key={`skeleton-home-card-${id}`} className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
         <div className="relative h-64 bg-slate-200 animate-pulse" />
         <div className="p-6 space-y-4">
           <div className="h-4 bg-slate-200 rounded animate-pulse w-3/4" />
@@ -1495,8 +1495,11 @@ const MyAdoptionsPage: React.FC = () => {
     return redemptions.find(r => r.adoptionId === adoptionId && (r.status === 1 || r.status === 2));
   };
 
+  // Badge variant 类型
+  type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'default';
+
   // 获取领养状态的 Badge variant
-  const getAdoptionBadgeVariant = (status: number): 'success' | 'warning' | 'danger' | 'info' | 'default' => {
+  const getAdoptionBadgeVariant = (status: number): BadgeVariant => {
     if (status === AdoptionStatus.ACTIVE) return 'success';
     if (status === AdoptionStatus.FEED_OVERDUE || status === AdoptionStatus.EXCEPTION) return 'danger';
     if (status === AdoptionStatus.REDEEMABLE) return 'info';

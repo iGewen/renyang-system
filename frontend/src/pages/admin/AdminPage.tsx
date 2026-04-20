@@ -1060,7 +1060,7 @@ export const AdminFeedBills: React.FC = () => {
   }, [statusFilter]);
 
   // 饲料费状态映射 - 使用数字枚举
-  const feedBillStatusMap: Record<number, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
+  const feedBillStatusMap: Record<number, { label: string; variant: StatusVariant }> = {
     [FeedBillStatus.PENDING]: { label: '待支付', variant: 'warning' },
     [FeedBillStatus.PAID]: { label: '已支付', variant: 'success' },
     [FeedBillStatus.OVERDUE]: { label: '已逾期', variant: 'danger' },
