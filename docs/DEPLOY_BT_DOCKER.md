@@ -2,16 +2,18 @@
 
 本文档详细介绍如何使用宝塔面板 + Docker 部署云端牧场系统。
 
+---
+
 ## 目录
 
-1. [环境准备](#1-环境准备)
-2. [安装 Docker](#2-安装-docker)
-3. [上传代码](#3-上传代码)
-4. [配置环境变量](#4-配置环境变量)
-5. [启动服务](#5-启动服务)
-6. [配置网站](#6-配置网站)
-7. [配置 SSL 证书](#7-配置-ssl-证书)
-8. [常见问题](#8-常见问题)
+- [1. 环境准备](#1-环境准备)
+- [2. 安装 Docker](#2-安装-docker)
+- [3. 上传代码](#3-上传代码)
+- [4. 配置环境变量](#4-配置环境变量)
+- [5. 启动服务](#5-启动服务)
+- [6. 使用宝塔管理数据库](#6-使用宝塔管理数据库)
+- [7. 配置网站（可选）](#7-配置网站可选)
+- [8. 常见问题](#8-常见问题)
 
 ---
 
@@ -30,148 +32,99 @@
 
 ```bash
 # CentOS 安装命令
-yum install -y wget && wget -O install.sh https://download.bt.cn/install/install_6.0.sh && sh install.sh ed8484bec
+yum install -y wget && wget -O install.sh https://download.bt.cn/install/install_6.0.sh && sh install.sh
 
 # Ubuntu/Deepin 安装命令
-wget -O install.sh https://download.bt.cn/install/install-ubuntu_6.0.sh && sudo bash install.sh ed8484bec
+wget -O install.sh https://download.bt.cn/install/install-ubuntu_6.0.sh && sudo bash install.sh
 ```
 
 安装完成后，记录面板登录地址、用户名和密码。
-
-### 1.3 登录宝塔面板
-
-1. 浏览器访问面板地址（如 `http://你的IP:8888`）
-2. 输入用户名和密码登录
-3. 首次登录会推荐安装套件，选择 **LNMP** 或 **LAMP**（可选，因为我们将使用 Docker）
 
 ---
 
 ## 2. 安装 Docker
 
-### 2.1 通过宝塔应用商店安装
+### 方式一：宝塔应用商店（推荐）
 
 1. 登录宝塔面板
 2. 点击左侧菜单 **Docker**
-3. 点击 **安装** 按钮
-4. 等待安装完成（约 3-5 分钟）
+3. 点击 **安装**
+4. 等待安装完成
 
-### 2.2 命令行安装（备用）
-
-如果宝塔应用商店没有 Docker，可以通过命令行安装：
+### 方式二：命令行安装
 
 ```bash
 # 安装 Docker
 curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun
 
-# 启动 Docker 服务
-systemctl start docker
-systemctl enable docker
+# 启动服务
+systemctl start docker && systemctl enable docker
 
 # 安装 Docker Compose
 curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
-
-# 验证安装
-docker --version
-docker-compose --version
 ```
 
 ---
 
 ## 3. 上传代码
 
-### 3.1 创建项目目录
+### 3.1 创建目录
 
 ```bash
-# SSH 登录服务器
-ssh root@你的服务器IP
-
-# 创建项目目录
 mkdir -p /www/wwwroot/renyang-system
 cd /www/wwwroot/renyang-system
 ```
 
-### 3.2 上传代码文件
+### 3.2 上传方式
 
-**方式一：Git 克隆（推荐）**
-
+**Git 克隆（推荐）：**
 ```bash
 cd /www/wwwroot
 git clone https://github.com/iGewen/renyang-system.git renyang-system
-cd renyang-system
 ```
 
-**方式二：宝塔文件管理上传**
-
-1. 宝塔面板 -> 文件
-2. 进入 `/www/wwwroot/renyang-system`
-3. 点击 **上传**，上传项目压缩包
-4. 右键解压
-
-### 3.3 设置目录权限
-
-```bash
-# 设置目录所有者
-chown -R www:www /www/wwwroot/renyang-system
-
-# 设置权限
-chmod -R 755 /www/wwwroot/renyang-system
-```
+**宝塔文件管理：**
+1. 宝塔面板 → 文件 → 进入 `/www/wwwroot/renyang-system`
+2. 上传项目压缩包 → 右键解压
 
 ---
 
 ## 4. 配置环境变量
 
-### 4.1 创建环境配置文件
+### 4.1 创建配置文件
 
 ```bash
 cd /www/wwwroot/renyang-system
-
-# 复制示例配置
 cp .env.docker .env
 ```
 
-### 4.2 编辑配置文件
-
-使用宝塔文件管理器或命令行编辑 `.env` 文件：
+### 4.2 编辑配置
 
 ```bash
 nano .env
 ```
 
-**必须修改的配置项：**
+**必须修改以下配置：**
 
 ```ini
 # ==================== 域名配置 ====================
-# 你的网站域名（不含 http://）
-DOMAIN=your-domain.com
-
-# Let's Encrypt 邮箱（用于证书到期提醒）
-EMAIL=your-email@example.com
+DOMAIN=your-domain.com          # 你的域名
+EMAIL=your-email@example.com    # 证书提醒邮箱
 
 # ==================== 数据库配置 ====================
-# MySQL root 密码（务必修改为强密码！）
-MYSQL_ROOT_PASSWORD=YourStrongPassword123!
-
-# Redis 密码（务必修改！）
-REDIS_PASSWORD=YourRedisPassword456!
+MYSQL_ROOT_PASSWORD=YourStrongPassword123!    # MySQL 密码（务必修改）
+REDIS_PASSWORD=YourRedisPassword456!          # Redis 密码（务必修改）
 
 # ==================== 安全配置 ====================
-# JWT 密钥（务必修改为32位以上的随机字符串！）
-JWT_SECRET=your-super-secret-jwt-key-at-least-32-characters-long
-
-# 管理员默认密码（首次启动生效，登录后强制修改）
-ADMIN_DEFAULT_PASSWORD=Admin@123456
+JWT_SECRET=your-super-secret-key-at-least-32-chars  # JWT 密钥（务必修改）
+ADMIN_DEFAULT_PASSWORD=Admin@123456                  # 管理员初始密码
 ```
 
-### 4.3 生成安全的密钥
-
+**生成安全密钥：**
 ```bash
-# 生成 JWT 密钥（32位随机字符串）
+# 生成 32 位随机密钥
 openssl rand -base64 32
-
-# 生成 MySQL 密码
-openssl rand -base64 16
 ```
 
 ---
@@ -183,17 +136,17 @@ openssl rand -base64 16
 ```bash
 cd /www/wwwroot/renyang-system
 
-# 启动所有服务（HTTP 版本，用于测试）
-docker compose up -d
-
-# 或启动 HTTPS 版本（生产环境推荐）
+# 方式一：HTTP 部署（测试用，自动申请 SSL）
 docker compose -f docker-compose.https.yml up -d
+
+# 方式二：HTTP 部署（配合宝塔 Nginx 使用）
+docker compose up -d
 ```
 
-### 5.2 查看服务状态
+### 5.2 查看状态
 
 ```bash
-# 查看运行中的容器
+# 查看运行容器
 docker ps
 
 # 查看日志
@@ -202,134 +155,222 @@ docker compose logs -f
 
 ### 5.3 验证服务
 
-| 服务 | 默认端口 | 验证方式 |
-|------|----------|----------|
-| 前端 | 80/443 | 浏览器访问 `http://你的域名` |
-| 后端 | 3001 | 浏览器访问 `http://你的域名:3001/health` |
-| MySQL | 3306 | 仅容器内部访问 |
-| Redis | 6379 | 仅容器内部访问 |
+| 服务 | 访问地址 | 说明 |
+|------|----------|------|
+| 前端 | `http://你的IP` | 网站首页 |
+| 后端 | `http://你的IP:3001/health` | 健康检查 |
 
 ---
 
-## 6. 配置网站
+## 6. 使用宝塔管理数据库
 
-### 6.1 宝塔面板添加网站
+### 6.1 暴露数据库端口
 
-1. 宝塔面板 -> 网站 -> 添加站点
-2. 配置如下：
+**修改 `docker-compose.yml`，添加端口映射：**
 
-| 配置项 | 值 |
-|--------|-----|
-| 域名 | `your-domain.com` |
-| 根目录 | `/www/wwwroot/renyang-system` |
-| PHP版本 | 纯静态（使用 Docker） |
-| 数据库 | 不创建（使用 Docker MySQL） |
+```yaml
+services:
+  # ... 其他服务 ...
 
-### 6.2 配置 Nginx 反向代理（可选）
+  mysql:
+    image: mysql:8.0
+    # ... 其他配置 ...
+    ports:
+      - "127.0.0.1:3306:3306"    # 添加这行，只允许本地访问
+    # ... 其他配置 ...
 
-如果需要通过宝塔管理 Nginx：
+  redis:
+    image: redis:7-alpine
+    # ... 其他配置 ...
+    ports:
+      - "127.0.0.1:6379:6379"    # 添加这行，只允许本地访问
+    # ... 其他配置 ...
+```
 
-1. 网站 -> 点击域名 -> 设置
-2. 反向代理 -> 添加反向代理
+> ⚠️ 使用 `127.0.0.1` 绑定只允许本地访问，更安全！
 
-**前端代理配置：**
+**重启容器使配置生效：**
+```bash
+docker compose down
+docker compose up -d
+```
 
-| 配置项 | 值 |
-|--------|-----|
-| 代理名称 | `renyang-frontend` |
-| 目标URL | `http://127.0.0.1:80` |
-| 发送域名 | `$host` |
+### 6.2 宝塔连接 MySQL
 
-> 注意：如果 Docker 已经占用 80 端口，需要修改 Docker 映射端口或停止 Docker 的端口映射，改用宝塔 Nginx。
+**步骤：**
 
-### 6.3 推荐的端口分配方案
+1. 宝塔面板 → **数据库** → **添加数据库服务器**
 
-修改 `docker-compose.yml` 或 `docker-compose.https.yml`：
+2. 填写连接信息：
+
+   | 配置项 | 值 |
+   |--------|-----|
+   | 服务器名称 | `renyang-mysql` |
+   | 服务器地址 | `127.0.0.1` |
+   | 端口 | `3306` |
+   | 用户名 | `root` |
+   | 密码 | `.env` 文件中的 `MYSQL_ROOT_PASSWORD` |
+
+3. 点击 **提交**
+
+4. 连接成功后，可以：
+   - 查看所有数据库
+   - 执行 SQL 语句
+   - 导入/导出数据
+   - 修改表结构
+
+**管理项目数据库：**
+
+连接成功后，找到 `cloud_ranch` 数据库，这就是项目的业务数据库。
+
+### 6.3 宝塔连接 Redis
+
+**安装 Redis 管理器：**
+
+1. 宝塔面板 → **软件商店**
+2. 搜索 **Redis** → 点击 **安装**
+3. 安装完成后 → 点击 **设置**
+
+**配置连接 Docker Redis：**
+
+由于宝塔内置 Redis 管理器主要用于管理本地 Redis，连接 Docker Redis 有两种方式：
+
+**方式一：使用命令行工具**
+
+```bash
+# 进入 Redis 容器
+docker exec -it renyang-redis redis-cli
+
+# 认证（使用 .env 中的 REDIS_PASSWORD）
+AUTH YourRedisPassword456
+
+# 测试命令
+PING
+KEYS *
+```
+
+**方式二：安装 Redis 可视化工具**
+
+推荐使用 **Another Redis Desktop Manager**（免费）：
+- 下载地址：https://github.com/qishibo/AnotherRedisDesktopManager/releases
+- 连接地址：`127.0.0.1:6379`
+- 密码：`.env` 中的 `REDIS_PASSWORD`
+
+### 6.4 数据库备份
+
+**手动备份：**
+
+```bash
+# 备份 MySQL
+docker exec renyang-mysql mysqldump -u root -p'YourPassword' cloud_ranch > /www/backup/mysql_$(date +%Y%m%d).sql
+
+# 备份 Redis（如果需要）
+docker exec renyang-redis redis-cli -a 'YourPassword' BGSAVE
+docker cp renyang-redis:/data/dump.rdb /www/backup/redis_$(date +%Y%m%d).rdb
+```
+
+**定时备份（宝塔计划任务）：**
+
+1. 宝塔面板 → **计划任务**
+2. 添加任务：
+
+   | 配置项 | 值 |
+   |--------|-----|
+   | 任务类型 | Shell 脚本 |
+   | 任务名称 | MySQL 备份 |
+   | 执行周期 | 每天 03:00 |
+   | 脚本内容 | 见下方 |
+
+```bash
+#!/bin/bash
+BACKUP_DIR="/www/backup"
+MYSQL_PASS="YourPassword"  # 替换为实际密码
+DATE=$(date +%Y%m%d)
+
+# 创建备份目录
+mkdir -p $BACKUP_DIR
+
+# 备份数据库
+docker exec renyang-mysql mysqldump -u root -p"$MYSQL_PASS" cloud_ranch > $BACKUP_DIR/mysql_$DATE.sql
+
+# 删除 7 天前的备份
+find $BACKUP_DIR -name "mysql_*.sql" -mtime +7 -delete
+
+echo "备份完成: mysql_$DATE.sql"
+```
+
+---
+
+## 7. 配置网站（可选）
+
+> 💡 如果使用 `docker-compose.https.yml` 启动，Docker 已经处理了 HTTPS，**跳过此章节**。
+
+### 7.1 两种部署方式对比
+
+| 方式 | 说明 | 适用场景 |
+|------|------|----------|
+| 纯 Docker | 使用 `docker-compose.https.yml` | 简单、一体化部署 |
+| Docker + 宝塔 Nginx | 使用 `docker-compose.yml` + 宝塔反向代理 | 需要宝塔管理网站 |
+
+### 7.2 Docker + 宝塔 Nginx 配置
+
+**第一步：修改 Docker 端口**
+
+编辑 `docker-compose.yml`，避免端口冲突：
 
 ```yaml
 services:
   frontend:
+    # ... 其他配置 ...
     ports:
-      - "8080:80"   # 前端改用 8080 端口
+      - "8080:80"    # 改用 8080 端口
 ```
 
-然后宝塔 Nginx 反向代理到 `http://127.0.0.1:8080`
+**第二步：重启 Docker**
+
+```bash
+docker compose down
+docker compose up -d
+```
+
+**第三步：宝塔添加网站**
+
+1. 宝塔面板 → **网站** → **添加站点**
+
+   | 配置项 | 值 |
+   |--------|-----|
+   | 域名 | `your-domain.com` |
+   | 根目录 | `/www/wwwroot/renyang-system` |
+   | PHP 版本 | 纯静态 |
+   | 数据库 | 不创建 |
+
+2. 点击 **提交**
+
+**第四步：配置反向代理**
+
+1. 网站 → 点击域名 → **设置**
+2. 左侧菜单 → **反向代理** → **添加反向代理**
+
+   | 配置项 | 值 |
+   |--------|-----|
+   | 代理名称 | `renyang-frontend` |
+   | 目标 URL | `http://127.0.0.1:8080` |
+   | 发送域名 | `$host` |
+
+3. 点击 **提交**
+
+**第五步：申请 SSL 证书**
+
+1. 网站 → 点击域名 → **设置**
+2. 左侧菜单 → **SSL** → **Let's Encrypt**
+3. 勾选域名 → 输入邮箱 → **申请**
+4. 申请成功后，开启 **强制 HTTPS**
 
 ---
 
-## 7. 配置 SSL 证书
+## 8. 常见问题
 
-### 7.1 使用 Let's Encrypt 自动申请（推荐）
-
-Docker Compose HTTPS 版本已集成 Certbot，会自动申请和续期：
-
-```bash
-# 确保 .env 中配置了域名和邮箱
-DOMAIN=your-domain.com
-EMAIL=your-email@example.com
-
-# 启动 HTTPS 版本
-docker compose -f docker-compose.https.yml up -d
-```
-
-证书会自动申请并配置，保存在 `certbot/conf/` 目录。
-
-### 7.2 使用宝塔面板申请证书
-
-1. 网站 -> 点击域名 -> SSL
-2. Let's Encrypt -> 申请证书
-3. 输入邮箱，点击申请
-
-### 7.3 使用自有证书
-
-1. 网站 -> 点击域名 -> SSL
-2. 其他证书 -> 粘贴证书内容
-3. 保存并启用
-
----
-
-## 8. 宝塔面板管理
-
-### 8.1 Docker 管理界面
-
-宝塔面板 -> Docker：
-
-- **容器管理**：启动、停止、重启容器
-- **镜像管理**：查看、删除镜像
-- **日志查看**：实时查看容器日志
-- **资源监控**：CPU、内存使用情况
-
-### 8.2 定时任务（备份）
-
-宝塔面板 -> 计划任务：
-
-**数据库备份：**
-
-```bash
-# 每天凌晨 3 点备份 MySQL
-0 3 * * * docker exec renyang-mysql mysqldump -u root -p'YourPassword' cloud_ranch > /www/backup/mysql_$(date +\%Y\%m\%d).sql
-```
-
-**上传目录备份：**
-
-```bash
-# 每天凌晨 4 点备份上传文件
-0 4 * * * tar -czf /www/backup/uploads_$(date +\%Y\%m\%d).tar.gz /www/wwwroot/renyang-system/backend/uploads
-```
-
-### 8.3 监控告警
-
-宝塔面板 -> 监控：
-
-- 开启 CPU、内存、磁盘告警
-- 设置告警阈值（如 CPU > 80%）
-- 配置告警通知方式（微信、邮件）
-
----
-
-## 9. 常见问题
-
-### Q1: 端口被占用
+### Q1: 端口冲突怎么办？
 
 **问题：** 启动 Docker 时提示端口被占用
 
@@ -338,120 +379,112 @@ docker compose -f docker-compose.https.yml up -d
 # 查看端口占用
 netstat -tlnp | grep :80
 
-# 停止占用端口的服务
-systemctl stop nginx  # 如果宝塔 Nginx 占用 80 端口
+# 停止占用服务
+systemctl stop nginx    # 停止宝塔 Nginx
 
-# 或修改 Docker 映射端口
-# 编辑 docker-compose.yml，将 "80:80" 改为 "8080:80"
+# 或修改 Docker 端口
+# 编辑 docker-compose.yml，改用其他端口
 ```
 
-### Q2: 容器无法启动
+### Q2: 宝塔连接 MySQL 失败？
 
-**问题：** Docker 容器启动失败
+**检查步骤：**
 
-**解决：**
-```bash
-# 查看容器日志
-docker compose logs backend
-docker compose logs frontend
-
-# 常见原因：
-# 1. .env 文件未正确配置
-# 2. 目录权限不足：chmod -R 755 /www/wwwroot/renyang-system
-# 3. 内存不足：free -h 查看内存
-```
-
-### Q3: 数据库连接失败
-
-**问题：** 后端无法连接 MySQL
-
-**解决：**
-```bash
-# 检查 MySQL 容器状态
-docker ps | grep mysql
-
-# 检查 MySQL 日志
-docker logs renyang-mysql
-
-# 进入 MySQL 容器测试连接
-docker exec -it renyang-mysql mysql -u root -p
-```
-
-### Q4: SSL 证书申请失败
-
-**问题：** Let's Encrypt 证书申请失败
-
-**解决：**
-1. 确保域名已正确解析到服务器 IP
-2. 确保 80 和 443 端口可从外网访问
-3. 检查防火墙设置：
+1. 确认端口已映射：
    ```bash
-   # 宝塔防火墙放行端口
-   firewall-cmd --permanent --add-port=80/tcp
-   firewall-cmd --permanent --add-port=443/tcp
-   firewall-cmd --reload
+   docker ps | grep mysql
+   # 查看 PORTS 列是否有 0.0.0.0:3306->3306/tcp
    ```
 
-### Q5: 如何更新系统
+2. 确认密码正确：
+   ```bash
+   # 查看环境变量
+   cat .env | grep MYSQL_ROOT_PASSWORD
+   ```
+
+3. 测试连接：
+   ```bash
+   docker exec -it renyang-mysql mysql -u root -p
+   ```
+
+### Q3: 容器无法启动？
+
+**查看日志：**
+```bash
+# 查看所有日志
+docker compose logs
+
+# 查看特定服务
+docker compose logs backend
+docker compose logs mysql
+```
+
+**常见原因：**
+- `.env` 文件未配置
+- 端口被占用
+- 内存不足
+
+### Q4: 如何更新系统？
 
 ```bash
 cd /www/wwwroot/renyang-system
 
-# 拉取最新代码
+# 备份数据库
+docker exec renyang-mysql mysqldump -u root -p'密码' cloud_ranch > backup.sql
+
+# 拉取代码
 git pull origin dev
 
-# 重新构建并启动
+# 重新部署
 docker compose down
 docker compose build --no-cache
 docker compose up -d
-
-# 执行数据库迁移（如有）
-docker exec -it renyang-backend npm run migration:run
 ```
 
-### Q6: 如何重置管理员密码
+### Q5: 如何重置管理员密码？
 
 ```bash
 # 进入后端容器
 docker exec -it renyang-backend bash
 
-# 重置密码
-npm run reset-admin-password
-
-# 或直接修改数据库
+# 或直接连接数据库修改
 docker exec -it renyang-mysql mysql -u root -p
+
+# 执行 SQL
 USE cloud_ranch;
-UPDATE admin SET password = '新的bcrypt哈希值' WHERE username = 'admin';
+-- 需要生成新的 bcrypt 哈希值
+UPDATE admin SET password = '新的bcrypt哈希' WHERE username = 'admin';
 ```
 
 ---
 
-## 10. 性能优化
+## 9. 快速命令参考
 
-### 10.1 开启 Redis 缓存
+```bash
+# 启动服务
+docker compose up -d
 
-系统默认已集成 Redis，会自动缓存：
-- 用户 Session
-- API 响应缓存
-- 微信 access_token
+# 停止服务
+docker compose down
 
-### 10.2 MySQL 调优
+# 查看日志
+docker compose logs -f
 
-编辑 `mysql/my.cnf`（需创建）：
+# 查看容器状态
+docker ps
 
-```ini
-[mysqld]
-innodb_buffer_pool_size = 1G
-innodb_log_file_size = 256M
-max_connections = 200
-query_cache_size = 64M
+# 进入 MySQL
+docker exec -it renyang-mysql mysql -u root -p
+
+# 进入 Redis
+docker exec -it renyang-redis redis-cli -a '密码'
+
+# 重启单个服务
+docker compose restart backend
+
+# 查看资源占用
+docker stats
 ```
-
-### 10.3 开启 Gzip 压缩
-
-前端 Nginx 配置（已在 Docker 中预配置）：
-- Gzip 压缩：已开启
-- 静态资源缓存：已开启
 
 ---
 
