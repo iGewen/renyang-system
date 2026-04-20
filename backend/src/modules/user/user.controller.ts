@@ -91,7 +91,7 @@ export class UserController {
     }
 
     // 安全修复：验证验证码格式
-    if (!body.code || body.code.length !== 6 || !/^\d{6}$/.test(body.code)) {
+    if (!body.code?.length || body.code.length !== 6 || !/^\d{6}$/.test(body.code)) {
       throw new BadRequestException('验证码格式不正确');
     }
 

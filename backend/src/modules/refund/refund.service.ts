@@ -291,7 +291,7 @@ export class RefundService {
     let refundMessage = '';
 
     // 安全修复：先执行外部API退款（在事务外）
-    if (paymentRecord && paymentRecord.paymentMethod && paymentRecord.paymentNo) {
+    if (paymentRecord?.paymentMethod && paymentRecord.paymentNo) {
       const paymentMethod = paymentRecord.paymentMethod;
       const totalAmount = Number(paymentRecord.amount);
       const refundAmount = Number(refund.refundAmount);

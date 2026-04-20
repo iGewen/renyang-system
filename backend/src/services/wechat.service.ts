@@ -556,7 +556,7 @@ export class WechatService {
       where: { configKey },
     });
 
-    if (config && config.configValue) {
+    if (config?.configValue) {
       // 缓存1小时
       await this.redisService.set(cacheKey, config.configValue, 3600);
       return config.configValue;
