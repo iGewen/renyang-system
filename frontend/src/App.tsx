@@ -2454,7 +2454,12 @@ const GrowthRecordsPage: React.FC = () => {
                         <h3 className="font-bold text-slate-900 truncate">{livestock?.name || '未知活体'}</h3>
                         <p className="text-xs text-slate-400 font-mono mt-1">{adoption.adoptionNo}</p>
                         <div className="flex items-center gap-2 mt-2">
-                          <Badge variant={adoption.status === 1 ? 'success' : adoption.status === 2 ? 'danger' : adoption.status === 3 ? 'danger' : adoption.status === 4 ? 'info' : adoption.status === 5 ? 'warning' : 'default'}>
+                          <Badge variant={
+                            adoption.status === 1 ? 'success' :
+                            adoption.status === 2 || adoption.status === 3 ? 'danger' :
+                            adoption.status === 4 ? 'info' :
+                            adoption.status === 5 ? 'warning' : 'default'
+                          }>
                             {getAdoptionStatusText(adoption.status)}
                           </Badge>
                         </div>

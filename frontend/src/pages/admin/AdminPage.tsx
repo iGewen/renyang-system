@@ -862,11 +862,22 @@ export const AdminOrders: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-2">
-          {[0, OrderStatus.PENDING_PAYMENT, OrderStatus.PAID, OrderStatus.CANCELLED, OrderStatus.REFUNDED].map(status => (
-            <button key={status} onClick={() => setStatusFilter(status === 0 ? '' : String(status))} className={cn('px-4 py-2 rounded-lg text-sm font-medium transition-colors', statusFilter === (status === 0 ? '' : String(status)) ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}>
-              {status === 0 ? '全部' : orderStatusMap[status]?.label || '未知'}
-            </button>
-          ))}
+          {[0, OrderStatus.PENDING_PAYMENT, OrderStatus.PAID, OrderStatus.CANCELLED, OrderStatus.REFUNDED].map(status => {
+            const filterValue = status === 0 ? '' : String(status);
+            const isActive = statusFilter === filterValue;
+            return (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(filterValue)}
+                className={cn(
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                  isActive ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                )}
+              >
+                {status === 0 ? '全部' : orderStatusMap[status]?.label || '未知'}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -953,7 +964,12 @@ export const AdminOrders: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-slate-500">支付方式</p>
-                <p>{selectedOrder.paymentMethod === 'alipay' ? '支付宝' : selectedOrder.paymentMethod === 'wechat' ? '微信支付' : selectedOrder.paymentMethod === 'balance' ? '余额支付' : selectedOrder.paymentMethod || '-'}</p>
+                <p>{
+                  selectedOrder.paymentMethod === 'alipay' ? '支付宝' :
+                  selectedOrder.paymentMethod === 'wechat' ? '微信支付' :
+                  selectedOrder.paymentMethod === 'balance' ? '余额支付' :
+                  selectedOrder.paymentMethod || '-'
+                }</p>
               </div>
               <div>
                 <p className="text-sm text-slate-500">支付时间</p>
@@ -1054,11 +1070,22 @@ export const AdminFeedBills: React.FC = () => {
     <div className="p-6">
       <div className="flex justify-end items-center mb-6">
         <div className="flex gap-2">
-          {[0, FeedBillStatus.PENDING, FeedBillStatus.PAID, FeedBillStatus.OVERDUE].map(status => (
-            <button key={status} onClick={() => setStatusFilter(status === 0 ? '' : String(status))} className={cn('px-4 py-2 rounded-lg text-sm font-medium transition-colors', statusFilter === (status === 0 ? '' : String(status)) ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}>
-              {status === 0 ? '全部' : feedBillStatusMap[status]?.label || '未知'}
-            </button>
-          ))}
+          {[0, FeedBillStatus.PENDING, FeedBillStatus.PAID, FeedBillStatus.OVERDUE].map(status => {
+            const filterValue = status === 0 ? '' : String(status);
+            const isActive = statusFilter === filterValue;
+            return (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(filterValue)}
+                className={cn(
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                  isActive ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                )}
+              >
+                {status === 0 ? '全部' : feedBillStatusMap[status]?.label || '未知'}
+              </button>
+            );
+          })}
         </div>
       </div>
 
