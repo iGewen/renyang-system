@@ -656,7 +656,7 @@ export class WechatPayService {
       // 跳过表头和汇总行，解析交易记录
       const records = [];
       for (let i = 1; i < lines.length - 2; i++) {
-        const fields = lines[i].split('`').filter(f => f);
+        const fields = lines[i].split('`').filter(Boolean);
         if (fields.length >= 20) {
           records.push({
             transactionId: fields[0],      // 微信订单号

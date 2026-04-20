@@ -1783,10 +1783,10 @@ export class AdminService {
 
     if (data.userIds && data.userIds.length > 0) {
       // 发送给指定用户
-      for (let i = 0; i < data.userIds.length; i++) {
+      for (const userId of data.userIds) {
         const notification = this.notificationRepository.create({
           id: IdUtil.generate('N'), // 安全修复：使用 IdUtil 替代 Date.now()
-          userId: data.userIds[i],
+          userId,
           title: data.title,
           content: data.content,
           type: data.type,

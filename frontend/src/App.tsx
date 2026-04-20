@@ -862,7 +862,7 @@ const DetailsPage: React.FC = () => {
                 <div className="mb-8">
                   <h3 className="text-4xl font-display font-bold text-brand-primary mb-2">{livestock.name}</h3>
                   <div className="flex items-center gap-1 text-brand-accent">
-                    {[...Array(5)].map((_, i) => <Icons.Star key={`star-${livestock.id}-${i}`} className="w-4 h-4 fill-current" />)}
+                    {Array.from({ length: 5 }).map((_, i) => <Icons.Star key={`star-${livestock.id}-${i}`} className="w-4 h-4 fill-current" />)}
                     <span className="text-xs font-bold ml-2">5.0 优质品种</span>
                   </div>
                 </div>

@@ -280,8 +280,8 @@ const AdoptionDetailPage: React.FC = () => {
       if (e.message?.includes('不存在') || e.message?.includes('404')) {
         try {
           return await adoptionApi.getByOrderId(id);
-        } catch (e2) {
-          console.error('Failed to fetch adoption by order id:', e2);
+        } catch (error_) {
+          console.error('Failed to fetch adoption by order id:', error_);
           return null;
         }
       }

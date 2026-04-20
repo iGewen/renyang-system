@@ -82,7 +82,7 @@ export const AdminLoginPage: React.FC = () => {
     if (pwd.length >= 6) strength++;
     if (pwd.length >= 10) strength++;
     if (/[A-Z]/.test(pwd)) strength++;
-    if (/[0-9]/.test(pwd)) strength++;
+    if (/\d/.test(pwd)) strength++;
     if (/[^A-Za-z0-9]/.test(pwd)) strength++;
     return strength;
   }, []);

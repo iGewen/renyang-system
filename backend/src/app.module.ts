@@ -224,11 +224,11 @@ export class AppModule implements NestModule, OnModuleInit {
 
   private generateRandomPassword(length: number = 12): string {
     // 使用密码学安全的随机数生成器
-    const crypto = require('crypto');
+    const nodeCrypto = require('node:crypto');
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
     let password = '';
     for (let i = 0; i < length; i++) {
-      password += chars.charAt(crypto.randomInt(0, chars.length));
+      password += chars.charAt(nodeCrypto.randomInt(0, chars.length));
     }
     return password;
   }
