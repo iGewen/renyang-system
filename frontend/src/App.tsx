@@ -1512,7 +1512,7 @@ const MyAdoptionsPage: React.FC = () => {
     if (redemption?.status === 2) {
       return <Badge variant="info">审核通过待支付</Badge>;
     }
-    const map: Record<number, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
+    const map: Record<number, { label: string; variant: BadgeVariant }> = {
       [AdoptionStatus.ACTIVE]: { label: '领养中', variant: 'success' },
       [AdoptionStatus.FEED_OVERDUE]: { label: '饲料费逾期', variant: 'danger' },
       [AdoptionStatus.EXCEPTION]: { label: '异常', variant: 'danger' },
@@ -1521,7 +1521,7 @@ const MyAdoptionsPage: React.FC = () => {
       [AdoptionStatus.REDEEMED]: { label: '已买断', variant: 'default' },
       [AdoptionStatus.TERMINATED]: { label: '已终止', variant: 'default' }
     };
-    const config = map[status] || { label: getAdoptionStatusText(status), variant: 'default' };
+    const config = map[status] || { label: getAdoptionStatusText(status), variant: getAdoptionBadgeVariant(status) };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
