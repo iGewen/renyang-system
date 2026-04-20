@@ -2,7 +2,7 @@
  * App.tsx - 主应用入口
  *
  * ============================================================================
- * TODO: F-H01 上帝组件重构计划 (约 2700 行，建议拆分)
+ * NOTE: F-H01 上帝组件重构计划 (约 2700 行，建议拆分)
  * ============================================================================
  *
  * 当前文件包含过多组件，建议逐步拆分到独立文件：
@@ -338,9 +338,9 @@ const AuthPage: React.FC = () => {
                   </button>
                   <span className="text-sm text-slate-500">
                     我已阅读并同意
-                    <span onClick={() => handleShowAgreement('user')} onKeyDown={(e) => e.key === 'Enter' && handleShowAgreement('user')} className="text-brand-primary cursor-pointer font-medium" role="button" tabIndex={0}>《用户协议》</span>
+                    <button type="button" onClick={() => handleShowAgreement('user')} className="text-brand-primary cursor-pointer font-medium">《用户协议》</button>
                     和
-                    <span onClick={() => handleShowAgreement('privacy')} onKeyDown={(e) => e.key === 'Enter' && handleShowAgreement('privacy')} className="text-brand-primary cursor-pointer font-medium" role="button" tabIndex={0}>《隐私政策》</span>
+                    <button type="button" onClick={() => handleShowAgreement('privacy')} className="text-brand-primary cursor-pointer font-medium">《隐私政策》</button>
                   </span>
                 </div>
                 {errors.agreed && <p className="text-red-500 text-sm mt-2">{errors.agreed}</p>}
@@ -905,7 +905,7 @@ const DetailsPage: React.FC = () => {
                   <button onClick={() => setAgreed(!agreed)} className={cn("w-5 h-5 rounded flex items-center justify-center border transition-colors", agreed ? "bg-brand-primary border-brand-primary text-white" : "border-slate-300 text-transparent")}>
                     <Icons.Check className="w-3.5 h-3.5" />
                   </button>
-                  <span className="text-xs text-slate-500">同意<span onClick={handleShowAgreement} onKeyDown={(e) => e.key === 'Enter' && handleShowAgreement()} className="text-brand-primary cursor-pointer font-bold" role="button" tabIndex={0}>《领养协议》</span></span>
+                  <span className="text-xs text-slate-500">同意<button type="button" onClick={handleShowAgreement} className="text-brand-primary cursor-pointer font-bold">《领养协议》</button></span>
                 </div>
                 <div className="flex items-baseline gap-0.5">
                   <span className="text-sm font-bold text-brand-primary">¥</span>
@@ -923,7 +923,7 @@ const DetailsPage: React.FC = () => {
                 <button onClick={() => setAgreed(!agreed)} className={cn("w-5 h-5 rounded flex items-center justify-center border transition-colors", agreed ? "bg-brand-primary border-brand-primary text-white" : "border-slate-300 text-transparent")}>
                   <Icons.Check className="w-3.5 h-3.5" />
                 </button>
-                <span className="text-sm text-slate-500">我已阅读并同意 <span onClick={handleShowAgreement} onKeyDown={(e) => e.key === 'Enter' && handleShowAgreement()} className="text-brand-primary cursor-pointer font-bold hover:underline" role="button" tabIndex={0}>《云端牧场领养协议》</span></span>
+                <span className="text-sm text-slate-500">我已阅读并同意 <button type="button" onClick={handleShowAgreement} className="text-brand-primary cursor-pointer font-bold hover:underline">《云端牧场领养协议》</button></span>
               </div>
               <div className="flex items-center gap-8">
                 <div className="text-right">
@@ -987,16 +987,16 @@ const PaymentPage: React.FC = () => {
       try {
         // 获取订单详情
         const order = await orderApi.getById(orderId);
-        if (order.status !== OrderStatus.PENDING_PAYMENT) {
-          setOrderExpired(true);
-          error('订单已过期或已支付，请返回订单列表查看');
-        } else {
+        if (order.status === OrderStatus.PENDING_PAYMENT) {
           // 设置订单数据
           setOrderData({
             orderId: order.id,
             orderNo: order.orderNo,
             livestock: order.livestock,
           });
+        } else {
+          setOrderExpired(true);
+          error('订单已过期或已支付，请返回订单列表查看');
         }
       } catch (err: any) {
         console.error('检查订单状态失败:', err);

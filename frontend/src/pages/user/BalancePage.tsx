@@ -277,7 +277,7 @@ export const BalancePage: React.FC = () => {
 
         {showRecharge && (
           <div className="fixed inset-0 z-50 flex items-end justify-center">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setShowRecharge(false)} onKeyDown={(e) => e.key === 'Escape' && setShowRecharge(false)} role="button" tabIndex={0} aria-label="关闭" />
+            <button type="button" className="absolute inset-0 bg-black/50 cursor-default" onClick={() => setShowRecharge(false)} aria-label="关闭" />
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}

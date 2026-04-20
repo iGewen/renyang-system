@@ -329,7 +329,8 @@ export class NotificationService {
     // 发送站内信
     // 构建通知内容
     const approvedContent = `您的买断申请（${params.livestockName}）已通过审核，金额¥${params.amount?.toFixed(2) || '-'}，请尽快完成支付。`;
-    const rejectedContent = `您的买断申请（${params.livestockName}）未通过审核。${params.remark ? `原因：${params.remark}` : ''}`;
+    const remarkText = params.remark ? `原因：${params.remark}` : '';
+    const rejectedContent = `您的买断申请（${params.livestockName}）未通过审核。${remarkText}`;
 
     await this.sendRedemptionNotification(
       params.userId,

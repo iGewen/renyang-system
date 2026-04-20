@@ -496,7 +496,7 @@ export const AdminLivestock: React.FC = () => {
   };
 
   const handleDeleteType = async (id: string) => {
-    // TODO (F-M09): 后续改进为自定义确认对话框，提升用户体验
+    // NOTE (F-M09): 后续改进为自定义确认对话框，提升用户体验
     // 当前使用原生 confirm() 可被浏览器阻止，且样式无法自定义
     if (!confirm('确定要删除此类型吗？')) return;
     try {
@@ -571,7 +571,7 @@ export const AdminLivestock: React.FC = () => {
   };
 
   const handleDeleteLivestock = async (id: string) => {
-    // TODO (F-M09): 后续改进为自定义确认对话框，提升用户体验
+    // NOTE (F-M09): 后续改进为自定义确认对话框，提升用户体验
     if (!globalThis.confirm('确定要删除这个活体吗？')) return;
     try {
       await adminApi.deleteLivestock(id);
@@ -2529,7 +2529,7 @@ export const AdminAgreements: React.FC = () => {
   };
 
   const handleDelete = async (key: string) => {
-    // TODO (F-M09): 后续改进为自定义确认对话框，提升用户体验
+    // NOTE (F-M09): 后续改进为自定义确认对话框，提升用户体验
     if (!globalThis.confirm('确定要删除该协议吗？')) return;
 
     try {

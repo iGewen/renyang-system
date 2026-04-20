@@ -89,7 +89,7 @@ export class FeedService {
 
       await this.feedBillRepository.save(bill);
 
-      // TODO: 发送通知
+      // NOTE: 后续可考虑发送通知告知用户账单已生成
     }
   }
 

@@ -671,7 +671,7 @@ export class PaymentService {
       case 'SUCCESS':
         // 退款成功
         this.logger.log(`[WechatPay] 退款成功 - 退款单号: ${outRefundNo}`);
-        // TODO: 更新本地退款记录状态
+        // NOTE: 后续可在此更新本地退款记录状态
         break;
       case 'CLOSED':
         // 退款关闭

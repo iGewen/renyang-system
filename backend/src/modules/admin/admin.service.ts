@@ -1607,9 +1607,10 @@ export class AdminService {
     // 发送站内信通知用户
     try {
       // 构建通知内容
-      const amountStr = adjustedAmount !== undefined ? `调整后金额：¥${adjustedAmount}` : `金额：¥${redemption.finalAmount}`;
+      const amountStr = adjustedAmount === undefined ? `金额：¥${redemption.finalAmount}` : `调整后金额：¥${adjustedAmount}`;
       const approvedContent = `您的买断申请（编号：${redemption.redemptionNo}）已通过审核，请尽快完成支付。${amountStr}`;
-      const rejectedContent = `您的买断申请（编号：${redemption.redemptionNo}）未通过审核。${remark ? `原因：${remark}` : ''}`;
+      const remarkText = remark ? `原因：${remark}` : '';
+      const rejectedContent = `您的买断申请（编号：${redemption.redemptionNo}）未通过审核。${remarkText}`;
 
       await this.notificationService.createNotification({
         userId: redemption.userId,

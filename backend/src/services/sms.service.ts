@@ -137,10 +137,10 @@ export class SmsService {
     if (clientIp) {
       const ipCountKey = `sms:ip:${clientIp}`;
       const currentIpCount = await this.redisService.get(ipCountKey);
-      if (!currentIpCount) {
-        await this.redisService.set(ipCountKey, '1', 3600);
-      } else {
+      if (currentIpCount) {
         await this.redisService.incr(ipCountKey);
+      } else {
+        await this.redisService.set(ipCountKey, '1', 3600);
       }
     }
 
@@ -252,7 +252,7 @@ export class SmsService {
 
     // 构建签名字符串
     const queryString = Object.keys(params)
-      .sort()
+      .sort((a, b) => a.localeCompare(b))
       .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(params[key as keyof typeof params])}`)
       .join('&');
 
@@ -345,7 +345,7 @@ export class SmsService {
 
     // 构建签名并发送
     const queryString = Object.keys(smsParams)
-      .sort()
+      .sort((a, b) => a.localeCompare(b))
       .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(smsParams[key as keyof typeof smsParams])}`)
       .join('&');
 

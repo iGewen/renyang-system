@@ -163,7 +163,7 @@ export class AlipayService {
     // 排序并构建待签名字符串
     const signData = Object.keys(data)
       .filter((key) => data[key] !== '' && data[key] !== undefined)
-      .sort()
+      .sort((a, b) => a.localeCompare(b))
       .map((key) => `${key}=${data[key]}`)
       .join('&');
 
@@ -176,13 +176,13 @@ export class AlipayService {
 
       const result = verify.verify(publicKey, sign, 'base64');
 
-      if (!result) {
-        this.logger.error('[Alipay] 验签失败', { signData: signData.substring(0, 100) });
-      } else {
+      if (result) {
         // 验签成功，标记 notify_id 为已处理（24小时）
         if (notifyId) {
           await this.redisService.set(`alipay:notify:${notifyId}`, '1', 86400);
         }
+      } else {
+        this.logger.error('[Alipay] 验签失败', { signData: signData.substring(0, 100) });
       }
 
       return result;
@@ -377,7 +377,7 @@ export class AlipayService {
     // 排序并构建待签名字符串
     const signData = Object.keys(data)
       .filter((key) => data[key] !== '' && data[key] !== undefined)
-      .sort()
+      .sort((a, b) => a.localeCompare(b))
       .map((key) => `${key}=${data[key]}`)
       .join('&');
 

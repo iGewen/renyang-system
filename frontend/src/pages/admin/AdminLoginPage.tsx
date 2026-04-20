@@ -242,7 +242,7 @@ export const AdminLoginPage: React.FC = () => {
               transition={{ delay: 0.2 }}
               className="text-2xl font-bold text-slate-800 mb-2"
             >
-              {!needChangePassword ? '牧场管理后台' : '首次登录'}
+              {needChangePassword ? '首次登录' : '牧场管理后台'}
             </motion.h1>
             <motion.p
               initial={{ opacity: 0 }}
@@ -250,7 +250,7 @@ export const AdminLoginPage: React.FC = () => {
               transition={{ delay: 0.3 }}
               className="text-slate-500 text-sm"
             >
-              {!needChangePassword ? '云端牧场 · 智慧农业管理系统' : '请修改初始密码后继续使用'}
+              {needChangePassword ? '请修改初始密码后继续使用' : '云端牧场 · 智慧农业管理系统'}
             </motion.p>
           </motion.div>
 
@@ -320,6 +320,12 @@ export const AdminLoginPage: React.FC = () => {
                   {/* 记住我 */}
                   <div className="flex items-center">
                     <label className="flex items-center cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={() => setRememberMe(!rememberMe)}
+                        className="sr-only"
+                      />
                       <div
                         className={cn(
                           "w-5 h-5 rounded-md border-2 transition-all duration-200 flex items-center justify-center",
@@ -327,11 +333,6 @@ export const AdminLoginPage: React.FC = () => {
                             ? "bg-brand-primary border-brand-primary"
                             : "border-slate-300 group-hover:border-brand-primary/50"
                         )}
-                        onClick={() => setRememberMe(!rememberMe)}
-                        onKeyDown={(e) => e.key === 'Enter' && setRememberMe(!rememberMe)}
-                        role="checkbox"
-                        tabIndex={0}
-                        aria-checked={rememberMe}
                       >
                         <AnimatePresence>
                           {rememberMe && (

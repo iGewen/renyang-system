@@ -195,7 +195,7 @@ const PaymentMethodModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} onKeyDown={(e) => e.key === 'Escape' && onClose()} role="button" tabIndex={0} aria-label="关闭" />
+      <button type="button" className="absolute inset-0 bg-black/50 cursor-default" onClick={onClose} aria-label="关闭" />
       <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} className="relative w-full max-w-lg bg-white rounded-t-3xl p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold">选择支付方式</h3>

@@ -189,7 +189,7 @@ const FeedBillDetailPage: React.FC = () => {
         {/* Payment Modal */}
         {showPaymentModal && (
           <div className="fixed inset-0 z-50 flex items-end justify-center">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setShowPaymentModal(false)} onKeyDown={(e) => e.key === 'Escape' && setShowPaymentModal(false)} role="button" tabIndex={0} aria-label="关闭" />
+            <button type="button" className="absolute inset-0 bg-black/50 cursor-default" onClick={() => setShowPaymentModal(false)} aria-label="关闭" />
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}

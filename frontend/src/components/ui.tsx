@@ -777,7 +777,7 @@ export const SkeletonCard: React.FC<{ lines?: number }> = ({ lines = 3 }) => (
     </div>
     <div className="space-y-2">
       {Array.from({ length: lines }).map((_, i) => (
-        <Skeleton key={`skeleton-line-${i}`} width={i === lines - 1 ? '80%' : '100%'} height={12} />
+        <Skeleton key={`text-skeleton-line-${i}`} width={i === lines - 1 ? '80%' : '100%'} height={12} />
       ))}
     </div>
   </div>
@@ -787,7 +787,7 @@ export const SkeletonCard: React.FC<{ lines?: number }> = ({ lines = 3 }) => (
 export const SkeletonList: React.FC<{ count?: number }> = ({ count = 5 }) => (
   <div className="space-y-3">
     {Array.from({ length: count }).map((_, i) => (
-      <div key={`skeleton-list-${i}`} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100">
+      <div key={`skeleton-list-item-${i}`} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100">
         <Skeleton variant="circular" width={40} height={40} />
         <div className="flex-1 space-y-2">
           <Skeleton width="70%" height={14} />
@@ -804,13 +804,13 @@ export const SkeletonTable: React.FC<{ rows?: number; cols?: number }> = ({ rows
     {/* 使用内联 style 替代动态 Tailwind 类名，避免 PurgeCSS 问题 */}
     <div className="gap-4 p-4 bg-slate-50 border-b border-slate-100" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
       {Array.from({ length: cols }).map((_, i) => (
-        <Skeleton key={`skeleton-header-${i}`} height={14} />
+        <Skeleton key={`table-header-skeleton-${i}`} height={14} />
       ))}
     </div>
     {Array.from({ length: rows }).map((_, rowIndex) => (
-      <div key={`skeleton-row-${rowIndex}`} className="gap-4 p-4 border-b border-slate-50 last:border-b-0" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+      <div key={`table-row-skeleton-${rowIndex}`} className="gap-4 p-4 border-b border-slate-50 last:border-b-0" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
         {Array.from({ length: cols }).map((_, colIndex) => (
-          <Skeleton key={`skeleton-cell-${rowIndex}-${colIndex}`} height={14} width={colIndex === 0 ? '80%' : '60%'} />
+          <Skeleton key={`table-cell-skeleton-${rowIndex}-${colIndex}`} height={14} width={colIndex === 0 ? '80%' : '60%'} />
         ))}
       </div>
     ))}
@@ -996,7 +996,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} onKeyDown={(e) => e.key === 'Escape' && onClose()} role="button" tabIndex={0} aria-label="关闭对话框" />
+      <button type="button" className="absolute inset-0 bg-black/50 cursor-default" onClick={onClose} aria-label="关闭对话框" />
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -1174,17 +1174,26 @@ interface CardProps {
 }
 
 export const Card: React.FC<CardProps> = ({ children, className, onClick }) => {
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        className={cn(
+          'block w-full text-left bg-white rounded-2xl shadow-sm border border-slate-100 transition-all duration-300 cursor-pointer hover:shadow-md hover:-translate-y-0.5',
+          className
+        )}
+        onClick={onClick}
+      >
+        {children}
+      </button>
+    );
+  }
   return (
     <div
       className={cn(
         'bg-white rounded-2xl shadow-sm border border-slate-100 transition-all duration-300',
-        onClick && 'cursor-pointer hover:shadow-md hover:-translate-y-0.5',
         className
       )}
-      onClick={onClick}
-      onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
     >
       {children}
     </div>

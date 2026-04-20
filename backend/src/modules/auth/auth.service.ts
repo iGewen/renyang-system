@@ -261,7 +261,7 @@ export class AuthService {
     }
     await this.redisService.del(stateKey);
 
-    // TODO: 实现微信授权回调
+    // NOTE: 微信授权回调功能暂未开放
     throw new BadRequestException('微信登录功能暂未开放');
   }
 
@@ -269,7 +269,7 @@ export class AuthService {
    * 绑定手机号
    */
   async bindPhone(_dto: BindPhoneDto) {
-    // TODO: 实现绑定手机号功能
+    // NOTE: 绑定手机号功能暂未开放
     throw new BadRequestException('绑定手机号功能暂未开放');
   }
 

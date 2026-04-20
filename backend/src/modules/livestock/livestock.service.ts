@@ -78,7 +78,7 @@ export class LivestockService {
   async updateStock(id: string, quantity: number, manager?: any): Promise<boolean> {
     // 安全修复 B-SEC-023：验证 quantity 参数类型
     if (!Number.isFinite(quantity)) {
-      throw new Error('库存变更数量必须是有效数字');
+      throw new TypeError('库存变更数量必须是有效数字');
     }
 
     // 验证库存变更后不能为负数
