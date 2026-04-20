@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { Order, OrderStatus, User, Livestock, Adoption, AdoptionStatus } from '@/entities';
+import { Order, OrderStatus, Livestock, Adoption, AdoptionStatus } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
 import { IdUtil } from '@/common/utils/id.util';
 import { LivestockService } from '../livestock/livestock.service';
@@ -15,12 +15,12 @@ const EXPIRED_ORDER_BATCH_SIZE = 100; // 单次最多处理100个过期订单
 export class OrderService {
   constructor(
     @InjectRepository(Order)
-    private orderRepository: Repository<Order>,
+    private readonly orderRepository: Repository<Order>,
     @InjectRepository(Adoption)
-    private adoptionRepository: Repository<Adoption>,
-    private redisService: RedisService,
-    private livestockService: LivestockService,
-    private dataSource: DataSource,
+    private readonly adoptionRepository: Repository<Adoption>,
+    private readonly redisService: RedisService,
+    private readonly livestockService: LivestockService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async create(userId: string, livestockId: string, clientOrderId: string) {

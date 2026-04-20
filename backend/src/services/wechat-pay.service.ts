@@ -13,7 +13,7 @@ import * as crypto from 'node:crypto';
  */
 @Injectable()
 export class WechatPayService {
-  private notifyUrl: string;
+  private readonly notifyUrl: string;
   private readonly logger = new Logger(WechatPayService.name);
 
   constructor(

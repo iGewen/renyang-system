@@ -328,6 +328,10 @@ export const AdminLoginPage: React.FC = () => {
                             : "border-slate-300 group-hover:border-brand-primary/50"
                         )}
                         onClick={() => setRememberMe(!rememberMe)}
+                        onKeyDown={(e) => e.key === 'Enter' && setRememberMe(!rememberMe)}
+                        role="checkbox"
+                        tabIndex={0}
+                        aria-checked={rememberMe}
                       >
                         <AnimatePresence>
                           {rememberMe && (

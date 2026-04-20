@@ -1,10 +1,8 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  Index,
   OneToMany,
 } from 'typeorm';
 import { Livestock } from './livestock.entity';

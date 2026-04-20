@@ -51,11 +51,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import DOMPurify from 'dompurify';
 import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, Modal, Input, EmptyState, useToast } from './components/ui';
 import { cn } from './lib/utils';
-import type { Livestock, Adoption, FeedBill, User } from './types';
+import type { Livestock, Adoption, User } from './types';
 import { AdoptionStatus, OrderStatus, getAdoptionStatusText } from './types/enums';
 import { livestockApi, adoptionApi, orderApi, paymentApi, notificationApi, authApi, agreementApi, redemptionApi } from './services/api';
 import { SiteConfigProvider, usePaymentConfig, useSiteConfig } from './contexts/SiteConfigContext';
-import logger from './utils/logger';
 
 // Lazy load pages for better performance
 const OrdersPage = lazy(() => import('./pages/order/OrdersPage'));
@@ -165,7 +164,14 @@ const AuthPage: React.FC = () => {
     }
     if (countdown > 0) return;
     try {
-      const type = mode === 'register' ? 'register' : mode === 'forgot' ? 'reset_password' : 'login';
+      let type: 'register' | 'reset_password' | 'login';
+      if (mode === 'register') {
+        type = 'register';
+      } else if (mode === 'forgot') {
+        type = 'reset_password';
+      } else {
+        type = 'login';
+      }
       await authApi.sendSmsCode(phone, type);
       const cooldownSeconds = 60;
       const endTime = Date.now() + cooldownSeconds * 1000;
@@ -332,9 +338,9 @@ const AuthPage: React.FC = () => {
                   </button>
                   <span className="text-sm text-slate-500">
                     我已阅读并同意
-                    <span onClick={() => handleShowAgreement('user')} className="text-brand-primary cursor-pointer font-medium">《用户协议》</span>
+                    <span onClick={() => handleShowAgreement('user')} onKeyDown={(e) => e.key === 'Enter' && handleShowAgreement('user')} className="text-brand-primary cursor-pointer font-medium" role="button" tabIndex={0}>《用户协议》</span>
                     和
-                    <span onClick={() => handleShowAgreement('privacy')} className="text-brand-primary cursor-pointer font-medium">《隐私政策》</span>
+                    <span onClick={() => handleShowAgreement('privacy')} onKeyDown={(e) => e.key === 'Enter' && handleShowAgreement('privacy')} className="text-brand-primary cursor-pointer font-medium" role="button" tabIndex={0}>《隐私政策》</span>
                   </span>
                 </div>
                 {errors.agreed && <p className="text-red-500 text-sm mt-2">{errors.agreed}</p>}
@@ -899,7 +905,7 @@ const DetailsPage: React.FC = () => {
                   <button onClick={() => setAgreed(!agreed)} className={cn("w-5 h-5 rounded flex items-center justify-center border transition-colors", agreed ? "bg-brand-primary border-brand-primary text-white" : "border-slate-300 text-transparent")}>
                     <Icons.Check className="w-3.5 h-3.5" />
                   </button>
-                  <span className="text-xs text-slate-500">同意<span onClick={handleShowAgreement} className="text-brand-primary cursor-pointer font-bold">《领养协议》</span></span>
+                  <span className="text-xs text-slate-500">同意<span onClick={handleShowAgreement} onKeyDown={(e) => e.key === 'Enter' && handleShowAgreement()} className="text-brand-primary cursor-pointer font-bold" role="button" tabIndex={0}>《领养协议》</span></span>
                 </div>
                 <div className="flex items-baseline gap-0.5">
                   <span className="text-sm font-bold text-brand-primary">¥</span>
@@ -917,7 +923,7 @@ const DetailsPage: React.FC = () => {
                 <button onClick={() => setAgreed(!agreed)} className={cn("w-5 h-5 rounded flex items-center justify-center border transition-colors", agreed ? "bg-brand-primary border-brand-primary text-white" : "border-slate-300 text-transparent")}>
                   <Icons.Check className="w-3.5 h-3.5" />
                 </button>
-                <span className="text-sm text-slate-500">我已阅读并同意 <span onClick={handleShowAgreement} className="text-brand-primary cursor-pointer font-bold hover:underline">《云端牧场领养协议》</span></span>
+                <span className="text-sm text-slate-500">我已阅读并同意 <span onClick={handleShowAgreement} onKeyDown={(e) => e.key === 'Enter' && handleShowAgreement()} className="text-brand-primary cursor-pointer font-bold hover:underline" role="button" tabIndex={0}>《云端牧场领养协议》</span></span>
               </div>
               <div className="flex items-center gap-8">
                 <div className="text-right">
@@ -1054,13 +1060,14 @@ const PaymentPage: React.FC = () => {
         <Navbar title="收银台" showBack />
         <div className="max-w-md mx-auto flex flex-col items-center py-16 px-8">
           {/* 检查订单状态中 */}
-          {checkingOrder ? (
+          {checkingOrder && (
             <div className="flex flex-col items-center py-16">
               <Icons.Loader2 className="w-8 h-8 text-brand-primary animate-spin mb-4" />
               <p className="text-slate-400">正在检查订单状态...</p>
             </div>
-          ) : orderExpired ? (
-            /* 订单已过期 */
+          )}
+          {/* 订单已过期 */}
+          {!checkingOrder && orderExpired && (
             <div className="flex flex-col items-center py-16">
               <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6">
                 <Icons.AlertTriangle className="w-10 h-10 text-red-500" />
@@ -1069,7 +1076,9 @@ const PaymentPage: React.FC = () => {
               <p className="text-slate-400 mb-6">该订单已超时取消，请重新下单</p>
               <Button onClick={() => navigate('/orders')}>查看订单列表</Button>
             </div>
-          ) : (
+          )}
+          {/* 正常支付界面 */}
+          {!checkingOrder && !orderExpired && (
             <>
               <div className="w-20 h-20 bg-brand-bg rounded-[24px] flex items-center justify-center mb-6 shadow-sm">
                 <Icons.CreditCard className="w-10 h-10 text-brand-primary" />
@@ -1528,11 +1537,12 @@ const MyAdoptionsPage: React.FC = () => {
                     </div>
                     <div className="flex gap-3">
                       <Button variant="outline" size="sm" className="flex-1" onClick={(e) => { e.stopPropagation(); navigate(`/adoption/${item.id}?tab=bills`); }}>饲料费</Button>
-                      {canPayRedemption ? (
+                      {canPayRedemption && (
                         <Button size="sm" className="flex-1" onClick={(e) => { e.stopPropagation(); navigate(`/adoption/${item.id}`); }}>去支付</Button>
-                      ) : (item.status === AdoptionStatus.REDEEMABLE || item.status === AdoptionStatus.ACTIVE) ? (
+                      )}
+                      {!canPayRedemption && (item.status === AdoptionStatus.REDEEMABLE || item.status === AdoptionStatus.ACTIVE) && (
                         <Button size="sm" className="flex-1" onClick={(e) => { e.stopPropagation(); navigate(`/adoption/${item.id}/redemption`); }}>申请买断</Button>
-                      ) : null}
+                      )}
                     </div>
                   </Card>
                 );
@@ -2444,7 +2454,7 @@ const GrowthRecordsPage: React.FC = () => {
                         <h3 className="font-bold text-slate-900 truncate">{livestock?.name || '未知活体'}</h3>
                         <p className="text-xs text-slate-400 font-mono mt-1">{adoption.adoptionNo}</p>
                         <div className="flex items-center gap-2 mt-2">
-                          <Badge variant={getAdoptionBadgeVariant(adoption.status)}>
+                          <Badge variant={adoption.status === 1 ? 'success' : adoption.status === 2 ? 'danger' : adoption.status === 3 ? 'danger' : adoption.status === 4 ? 'info' : adoption.status === 5 ? 'warning' : 'default'}>
                             {getAdoptionStatusText(adoption.status)}
                           </Badge>
                         </div>

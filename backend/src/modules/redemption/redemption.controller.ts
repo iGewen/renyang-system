@@ -5,7 +5,7 @@ import { AdminGuard } from '@/common/guards/admin.guard';
 import { RequireAdmin } from '@/common/decorators/admin-role.decorator';
 import { UserStatusGuard, UserStatus, MIN_STATUS_KEY } from '@/common/guards/user-status.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { IsIn, IsOptional, IsNumber, IsBoolean, IsNumberString } from 'class-validator';
+import { IsIn, IsOptional, IsNumber, IsBoolean } from 'class-validator';
 
 class PayRedemptionDto {
   @IsIn(['alipay', 'wechat', 'balance'])

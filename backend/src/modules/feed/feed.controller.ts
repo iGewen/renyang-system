@@ -4,7 +4,7 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { AdminGuard } from '@/common/guards/admin.guard';
 import { RequireAdmin } from '@/common/decorators/admin-role.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { IsNumber, IsOptional, IsNumberString } from 'class-validator';
+import { IsNumber, IsOptional } from 'class-validator';
 
 class AdjustBillDto {
   @IsNumber()

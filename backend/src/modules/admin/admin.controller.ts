@@ -390,9 +390,12 @@ export class AdminController {
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     // 支持 'on_sale'/'off_sale' 字符串和数字
-    const statusCode = typeof status === 'string'
-      ? (status === 'on_sale' ? 1 : 2)
-      : status;
+    let statusCode: number;
+    if (typeof status === 'string') {
+      statusCode = status === 'on_sale' ? 1 : 2;
+    } else {
+      statusCode = status;
+    }
     return this.adminService.updateLivestockStatus(id, statusCode, adminId, adminName, ip);
   }
 

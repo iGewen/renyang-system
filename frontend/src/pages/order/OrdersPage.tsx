@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Icons, PageTransition, LoadingSpinner, Button, Card, EmptyState, Modal, useToast } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { orderApi, refundApi } from '../../services/api';
@@ -268,8 +268,9 @@ const OrdersPage: React.FC = () => {
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">退款原因 *</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="refund-reason">退款原因 *</label>
               <textarea
+                id="refund-reason"
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none"
                 rows={3}
                 placeholder="请说明退款原因"

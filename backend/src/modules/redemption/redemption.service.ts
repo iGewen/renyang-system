@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { RedemptionOrder, RedemptionType, RedemptionStatus, Adoption, AdoptionStatus, PaymentRecord, PaymentStatus } from '@/entities';
+import { RedemptionOrder, RedemptionType, RedemptionStatus, Adoption, AdoptionStatus } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
 import { IdUtil } from '@/common/utils/id.util';
 import { AdoptionService } from '../adoption/adoption.service';

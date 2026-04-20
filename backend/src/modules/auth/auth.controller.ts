@@ -13,7 +13,6 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
-  ApiBody,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { Public } from '@/common/decorators/public.decorator';

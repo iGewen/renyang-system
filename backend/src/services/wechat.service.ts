@@ -14,10 +14,10 @@ import { CryptoUtil } from '@/common/utils/crypto.util';
  */
 @Injectable()
 export class WechatService {
-  private appId: string;
-  private appSecret: string;
-  private loginAppId: string;
-  private loginAppSecret: string;
+  private readonly appId: string;
+  private readonly appSecret: string;
+  private readonly loginAppId: string;
+  private readonly loginAppSecret: string;
 
   constructor(
     private readonly configService: ConfigService,

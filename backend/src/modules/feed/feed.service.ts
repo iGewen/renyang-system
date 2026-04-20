@@ -9,11 +9,11 @@ import { IdUtil } from '@/common/utils/id.util';
 export class FeedService {
   constructor(
     @InjectRepository(FeedBill)
-    private feedBillRepository: Repository<FeedBill>,
+    private readonly feedBillRepository: Repository<FeedBill>,
     @InjectRepository(Adoption)
-    private adoptionRepository: Repository<Adoption>,
-    private redisService: RedisService,
-    private dataSource: DataSource,
+    private readonly adoptionRepository: Repository<Adoption>,
+    private readonly redisService: RedisService,
+    private readonly dataSource: DataSource,
   ) {}
 
   /**

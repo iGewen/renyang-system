@@ -9,7 +9,6 @@ import {
   UseInterceptors,
   UploadedFile,
   UploadedFiles,
-  UseGuards,
   Req,
   Res,
   BadRequestException,
@@ -27,7 +26,7 @@ import {
 } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { UploadService } from './upload.service';
-import { IsString, IsOptional, IsIn } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { join, resolve } from 'node:path';

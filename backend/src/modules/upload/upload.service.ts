@@ -14,11 +14,11 @@ export interface UploadResult {
 
 @Injectable()
 export class UploadService {
-  private uploadDir: string;
-  private baseUrl: string;
-  private allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-  private allowedDocTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-  private maxFileSize = 10 * 1024 * 1024; // 10MB
+  private readonly uploadDir: string;
+  private readonly baseUrl: string;
+  private readonly allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  private readonly allowedDocTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+  private readonly maxFileSize = 10 * 1024 * 1024; // 10MB
 
   constructor(private configService: ConfigService) {
     this.uploadDir = this.configService.get('UPLOAD_DIR') || path.join(process.cwd(), 'uploads');

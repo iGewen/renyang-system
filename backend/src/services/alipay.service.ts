@@ -14,9 +14,9 @@ import * as crypto from 'node:crypto';
  */
 @Injectable()
 export class AlipayService {
-  private notifyUrl: string;
-  private returnUrl: string;
-  private gateway: string = 'https://openapi.alipay.com/gateway.do';
+  private readonly notifyUrl: string;
+  private readonly returnUrl: string;
+  private readonly gateway: string = 'https://openapi.alipay.com/gateway.do';
   private readonly logger = new Logger(AlipayService.name);
 
   constructor(

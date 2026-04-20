@@ -7,9 +7,9 @@ import { BalanceLog, User } from '@/entities';
 export class BalanceService {
   constructor(
     @InjectRepository(BalanceLog)
-    private balanceLogRepository: Repository<BalanceLog>,
+    private readonly balanceLogRepository: Repository<BalanceLog>,
     @InjectRepository(User)
-    private userRepository: Repository<User>,
+    private readonly userRepository: Repository<User>,
   ) {}
 
   /**

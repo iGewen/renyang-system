@@ -2,7 +2,7 @@ import { Controller, Get, Param, Query, Post, Body, UseGuards, SetMetadata } fro
 import { AdoptionService } from './adoption.service';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { UserStatusGuard, UserStatus, MIN_STATUS_KEY } from '@/common/guards/user-status.guard';
-import { IsString, IsEnum, IsOptional, IsIn } from 'class-validator';
+import { IsIn } from 'class-validator';
 
 class PayFeedBillDto {
   @IsIn(['alipay', 'wechat', 'balance'])

@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, Like, Between, In } from 'typeorm';
+import { Repository, DataSource, Between, In } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import {
@@ -413,7 +413,7 @@ export class AdminService {
       targetId: userId,
       beforeData: { status: user.status },
       afterData: { status },
-      remark: `更新用户状态为: ${status === 1 ? '正常' : status === 2 ? '受限' : '封禁'}`,
+      remark: `更新用户状态为: ${this.getUserStatusText(status)}`,
       ip,
       userAgent,
     });

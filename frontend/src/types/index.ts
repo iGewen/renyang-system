@@ -170,6 +170,7 @@ export interface FeedBill {
   operatorId?: string;
   createdAt: string;
   livestock?: Livestock;
+  user?: User;
 }
 
 // ==================== 买断相关 ====================

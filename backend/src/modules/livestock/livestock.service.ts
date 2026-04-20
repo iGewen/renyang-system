@@ -8,10 +8,10 @@ import { RedisService } from '@/common/utils/redis.service';
 export class LivestockService {
   constructor(
     @InjectRepository(Livestock)
-    private livestockRepository: Repository<Livestock>,
+    private readonly livestockRepository: Repository<Livestock>,
     @InjectRepository(LivestockType)
-    private livestockTypeRepository: Repository<LivestockType>,
-    private redisService: RedisService,
+    private readonly livestockTypeRepository: Repository<LivestockType>,
+    private readonly redisService: RedisService,
   ) {}
 
   async getTypes() {

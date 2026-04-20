@@ -4,7 +4,6 @@ import { OrderController } from './order.controller';
 import { OrderService } from './order.service';
 import { Order, User, Livestock, Adoption } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
-import { LivestockService } from '../livestock/livestock.service';
 import { LivestockModule } from '../livestock/livestock.module';
 
 @Module({

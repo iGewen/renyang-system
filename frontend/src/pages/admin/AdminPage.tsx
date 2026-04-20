@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, Modal, Input, ConfirmDialog, EmptyState, ToastProvider, useToast } from '../../components/ui';
+import { motion } from 'framer-motion';
+import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, Modal, Input, EmptyState, ToastProvider, useToast } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { adminApi } from '../../services/api';
-import type { Livestock, LivestockType, AdoptionOrder, FeedBill, User, DashboardStats, SystemConfig, AuditLog, Notification } from '../../types';
+import type { Livestock, LivestockType, AdoptionOrder, FeedBill, User, SystemConfig, AuditLog, Notification } from '../../types';
 import { OrderStatus, UserStatus, FeedBillStatus, RedemptionStatus } from '../../types/enums';
 import { AdminLayout } from './AdminLayout';
 
@@ -277,9 +277,9 @@ export const AdminDashboard: React.FC = () => {
 
       {/* 核心指标卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((card, index) => (
+        {statCards.map((card) => (
           <Card
-            key={`stat-card-${index}`}
+            key={`stat-card-${card.title}`}
             className={cn(
               "p-5 relative overflow-hidden group",
               `bg-gradient-to-br ${card.gradient}`
@@ -318,11 +318,11 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {pendingItems.map((item, index) => {
+          {pendingItems.map((item) => {
             const colors = colorMap[item.color];
             return (
               <motion.button
-                key={`pending-${index}`}
+                key={`pending-${item.label}`}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => globalThis.dispatchEvent(new CustomEvent('navigate', { detail: item.menu }))}
@@ -393,12 +393,12 @@ export const AdminDashboard: React.FC = () => {
               { label: '今日收入', value: stats?.revenueToday || 0, icon: Icons.Calendar, gradient: 'from-emerald-50 to-teal-50', iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600', valueColor: 'text-emerald-600' },
               { label: '本月收入', value: stats?.revenueMonth || 0, icon: Icons.BarChart3, gradient: 'from-blue-50 to-indigo-50', iconBg: 'bg-blue-100', iconColor: 'text-blue-600', valueColor: 'text-blue-600' },
               { label: '本年收入', value: stats?.revenueYear || 0, icon: Icons.TrendingUp, gradient: 'from-purple-50 to-pink-50', iconBg: 'bg-purple-100', iconColor: 'text-purple-600', valueColor: 'text-purple-600' },
-            ].map((item, index) => (
+            ].map((item, idx) => (
               <motion.div
-                key={`revenue-${index}`}
+                key={`revenue-${item.label}`}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: idx * 0.1 }}
                 className={cn(
                   "flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r border border-transparent hover:border-slate-100 transition-colors",
                   item.gradient
@@ -428,9 +428,9 @@ export const AdminDashboard: React.FC = () => {
             { icon: Icons.Coins, label: '饲料费', menu: 'feed', bg: 'bg-amber-100', color: 'text-amber-600', hover: 'hover:bg-amber-200' },
             { icon: Icons.CheckCircle2, label: '买断审核', menu: 'redemption', bg: 'bg-purple-100', color: 'text-purple-600', hover: 'hover:bg-purple-200' },
             { icon: Icons.Settings, label: '系统配置', menu: 'config', bg: 'bg-slate-100', color: 'text-slate-600', hover: 'hover:bg-slate-200' },
-          ].map((item, index) => (
+          ].map((item) => (
             <motion.button
-              key={`quick-action-${index}`}
+              key={`quick-action-${item.menu}`}
               whileHover={{ scale: 1.03, y: -2 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => globalThis.dispatchEvent(new CustomEvent('navigate', { detail: item.menu }))}
@@ -2051,6 +2051,10 @@ export const AdminConfig: React.FC = () => {
                     paymentConfig.alipayEnabled ? "bg-brand-primary" : "bg-slate-300"
                   )}
                   onClick={() => setPaymentConfig(prev => ({ ...prev, alipayEnabled: !prev.alipayEnabled }))}
+                  onKeyDown={(e) => e.key === 'Enter' && setPaymentConfig(prev => ({ ...prev, alipayEnabled: !prev.alipayEnabled }))}
+                  role="switch"
+                  tabIndex={0}
+                  aria-checked={paymentConfig.alipayEnabled}
                 >
                   <div className={cn(
                     "w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform",
@@ -2073,6 +2077,10 @@ export const AdminConfig: React.FC = () => {
                     paymentConfig.wechatEnabled ? "bg-brand-primary" : "bg-slate-300"
                   )}
                   onClick={() => setPaymentConfig(prev => ({ ...prev, wechatEnabled: !prev.wechatEnabled }))}
+                  onKeyDown={(e) => e.key === 'Enter' && setPaymentConfig(prev => ({ ...prev, wechatEnabled: !prev.wechatEnabled }))}
+                  role="switch"
+                  tabIndex={0}
+                  aria-checked={paymentConfig.wechatEnabled}
                 >
                   <div className={cn(
                     "w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform",

@@ -1,20 +1,19 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Adoption, AdoptionStatus, FeedBill, FeedBillStatus, Order, OrderStatus, Livestock } from '@/entities';
+import { Adoption, AdoptionStatus, FeedBill, FeedBillStatus, Order, Livestock } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
-import { IdUtil } from '@/common/utils/id.util';
 
 @Injectable()
 export class AdoptionService {
   constructor(
     @InjectRepository(Adoption)
-    private adoptionRepository: Repository<Adoption>,
+    private readonly adoptionRepository: Repository<Adoption>,
     @InjectRepository(FeedBill)
-    private feedBillRepository: Repository<FeedBill>,
+    private readonly feedBillRepository: Repository<FeedBill>,
     @InjectRepository(Order)
-    private orderRepository: Repository<Order>,
-    private redisService: RedisService,
+    private readonly orderRepository: Repository<Order>,
+    private readonly redisService: RedisService,
   ) {}
 
   /**

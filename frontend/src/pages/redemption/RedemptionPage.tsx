@@ -261,7 +261,7 @@ const RedemptionPage: React.FC = () => {
         {/* Confirm Modal */}
         {showConfirmModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setShowConfirmModal(false)} />
+            <div className="absolute inset-0 bg-black/50" onClick={() => setShowConfirmModal(false)} onKeyDown={(e) => e.key === 'Escape' && setShowConfirmModal(false)} role="button" tabIndex={0} aria-label="关闭" />
             <Card className="relative w-full max-w-md p-6">
               <h3 className="text-lg font-bold text-slate-900 mb-4">确认买断申请</h3>
               <p className="text-slate-500 text-sm mb-6">
