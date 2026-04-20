@@ -78,29 +78,6 @@ HTTPS 模式会自动：
 - ✅ 配置 Nginx HTTPS
 - ✅ 证书到期自动续签
 
-### 镜像说明
-
-本项目使用阿里云 ACR 镜像仓库，国内服务器可直接拉取：
-
-| 镜像 | 地址 |
-|------|------|
-| MySQL | `crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/mysql:8.0` |
-| Redis | `crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/redis:latest` |
-
-如遇拉取超时，请配置 Docker 镜像加速器：
-
-```bash
-# 编辑 /etc/docker/daemon.json
-{
-  "registry-mirrors": [
-    "https://registry.cn-hangzhou.aliyuncs.com"
-  ]
-}
-
-# 重启 Docker
-systemctl restart docker
-```
-
 ## 访问地址
 
 | 服务 | 地址 |
