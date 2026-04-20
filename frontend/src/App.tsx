@@ -862,7 +862,7 @@ const DetailsPage: React.FC = () => {
                 <div className="mb-8">
                   <h3 className="text-4xl font-display font-bold text-brand-primary mb-2">{livestock.name}</h3>
                   <div className="flex items-center gap-1 text-brand-accent">
-                    {[...Array(5)].map((_, i) => <Icons.Star key={`star-${i}`} className="w-4 h-4 fill-current" />)}
+                    {[...Array(5)].map((_, i) => <Icons.Star key={`star-${livestock.id}-${i}`} className="w-4 h-4 fill-current" />)}
                     <span className="text-xs font-bold ml-2">5.0 优质品种</span>
                   </div>
                 </div>
@@ -1417,7 +1417,7 @@ const SuccessPage: React.FC = () => {
                 { title: '领养详情短信已发送', desc: '请查收您的手机通知', icon: Icons.MessageSquare },
                 { title: '领养流程已全部完成', desc: '您可以前往牧场查看', icon: Icons.ShieldCheck }
               ].map((s, i) => (
-                <div key={`step-${i}`} className="flex gap-6 relative">
+                <div key={`step-${s.title.slice(0, 4)}-${i}`} className="flex gap-6 relative">
                   <div className={cn("w-7 h-7 rounded-full flex items-center justify-center z-10 transition-colors duration-500", step >= i + 1 ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/20" : "bg-slate-100 text-slate-300")}>
                     <s.icon className="w-3 h-3" />
                   </div>
@@ -1760,7 +1760,7 @@ const ProfilePage: React.FC = () => {
               { value: String(profile?.stats?.days || 0), label: '领养天数' },
             ].map((item, i) => (
               <motion.div
-                key={`stat-${i}`}
+                key={`stat-${item.label}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 + i * 0.05 }}
@@ -1795,8 +1795,8 @@ const ProfilePage: React.FC = () => {
                     { icon: Icons.Wallet, label: '待付款', to: '/orders?status=pending', color: 'text-orange-500' },
                     { icon: Icons.Package, label: '领养中', to: '/orders?status=paid', color: 'text-brand-primary' },
                     { icon: Icons.CheckCircle2, label: '已完成', to: '/orders?status=completed', color: 'text-green-500' }
-                  ].map((item, i) => (
-                    <Link key={`order-status-${i}`} to={item.to} className="flex flex-col items-center gap-3 group cursor-pointer">
+                  ].map((item) => (
+                    <Link key={`order-status-${item.label}`} to={item.to} className="flex flex-col items-center gap-3 group cursor-pointer">
                       <motion.div
                         whileHover={{ scale: 1.1, y: -2 }}
                         className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-brand-primary group-hover:text-white transition-all shadow-sm"
@@ -1821,8 +1821,8 @@ const ProfilePage: React.FC = () => {
                     {[
                       { icon: Icons.BookOpen, title: '成长档案', desc: '记录爱宠成长点滴', to: '/growth-records' },
                       { icon: Icons.Headset, title: '专属管家', desc: '1对1贴心养殖指导', to: '/support' }
-                    ].map((item, i) => (
-                      <Link key={`service-${i}`} to={item.to} className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer group">
+                    ].map((item) => (
+                      <Link key={`service-${item.title}`} to={item.to} className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer group">
                         <div className="flex items-center gap-4">
                           <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-brand-primary/10 to-indigo-50 flex items-center justify-center text-brand-primary group-hover:from-brand-primary group-hover:to-indigo-600 group-hover:text-white transition-all">
                             <item.icon className="w-5 h-5" />
@@ -2661,7 +2661,7 @@ const SupportPage: React.FC = () => {
                 { q: '饲料费如何缴纳？', a: '进入领养详情页，点击「缴纳饲料费」即可在线支付' },
                 { q: '如何申请买断？', a: '领养期满后，在领养详情页点击「申请买断」提交申请' },
               ].map((item, i) => (
-                <div key={`faq-${i}`} className="p-4 border-b border-slate-50 last:border-b-0">
+                <div key={`faq-${item.q.slice(0, 6)}-${i}`} className="p-4 border-b border-slate-50 last:border-b-0">
                   <p className="font-medium text-slate-900 text-sm">{item.q}</p>
                   <p className="text-xs text-slate-500 mt-1">{item.a}</p>
                 </div>

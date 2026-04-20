@@ -144,7 +144,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={`skeleton-stat-${i}`} className="bg-white rounded-2xl p-5 border border-slate-100">
+            <div key={`skeleton-stat-card-${i}`} className="bg-white rounded-2xl p-5 border border-slate-100">
               <div className="flex justify-between items-start">
                 <div className="space-y-2 flex-1">
                   <div className="h-3 w-16 bg-slate-200 rounded animate-pulse" />

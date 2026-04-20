@@ -262,146 +262,7 @@ export const AdminLoginPage: React.FC = () => {
             className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-white/50"
           >
             <AnimatePresence mode="wait">
-              {!needChangePassword ? (
-                <motion.form
-                  key="login"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.3 }}
-                  onSubmit={handleLogin}
-                  className="space-y-5"
-                >
-                  {/* 用户名 */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700" htmlFor="username">用户名</label>
-                    <div className="relative group">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-primary transition-colors">
-                        <Icons.User className="w-5 h-5" />
-                      </div>
-                      <input
-                        id="username"
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        className="w-full bg-slate-50/80 border border-slate-200 rounded-xl py-3.5 pl-12 pr-4 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all duration-200"
-                        placeholder="请输入用户名"
-                        autoComplete="username"
-                      />
-                    </div>
-                  </div>
-
-                  {/* 密码 */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700" htmlFor="password">密码</label>
-                    <div className="relative group">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-primary transition-colors">
-                        <Icons.Lock className="w-5 h-5" />
-                      </div>
-                      <input
-                        id="password"
-                        type={showPassword ? 'text' : 'password'}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-slate-50/80 border border-slate-200 rounded-xl py-3.5 pl-12 pr-12 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all duration-200"
-                        placeholder="请输入密码"
-                        autoComplete="current-password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                      >
-                        {showPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* 记住我 */}
-                  <div className="flex items-center">
-                    <label className="flex items-center cursor-pointer group">
-                      <input
-                        type="checkbox"
-                        checked={rememberMe}
-                        onChange={() => setRememberMe(!rememberMe)}
-                        className="sr-only"
-                      />
-                      <div
-                        className={cn(
-                          "w-5 h-5 rounded-md border-2 transition-all duration-200 flex items-center justify-center",
-                          rememberMe
-                            ? "bg-brand-primary border-brand-primary"
-                            : "border-slate-300 group-hover:border-brand-primary/50"
-                        )}
-                      >
-                        <AnimatePresence>
-                          {rememberMe && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              exit={{ scale: 0 }}
-                              transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                            >
-                              <Icons.Check className="w-3 h-3 text-white" />
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                      <span className="ml-2.5 text-sm text-slate-500 group-hover:text-slate-700 transition-colors">
-                        记住用户名
-                      </span>
-                    </label>
-                  </div>
-
-                  {/* 错误提示 */}
-                  <AnimatePresence>
-                    {error && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10, height: 0 }}
-                        animate={{ opacity: 1, y: 0, height: 'auto' }}
-                        exit={{ opacity: 0, y: -10, height: 0 }}
-                        className="bg-red-50 border border-red-200 rounded-xl p-3.5 flex items-center gap-3"
-                      >
-                        <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                          <Icons.AlertCircle className="w-4 h-4 text-red-500" />
-                        </div>
-                        <span className="text-sm text-red-600">{error}</span>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* 登录按钮 */}
-                  <motion.button
-                    type="submit"
-                    disabled={loading}
-                    whileHover={{ scale: loading ? 1 : 1.01 }}
-                    whileTap={{ scale: loading ? 1 : 0.99 }}
-                    className={cn(
-                      "w-full py-3.5 rounded-xl font-semibold text-white transition-all duration-200",
-                      "bg-gradient-to-r from-brand-primary to-indigo-600",
-                      "shadow-lg shadow-brand-primary/25 hover:shadow-brand-primary/40",
-                      "disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none",
-                      "flex items-center justify-center gap-2"
-                    )}
-                  >
-                    {loading ? (
-                      <>
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                          className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
-                        />
-                        登录中...
-                      </>
-                    ) : (
-                      <>
-                        <Icons.LogIn className="w-5 h-5" />
-                        登录管理后台
-                      </>
-                    )}
-                  </motion.button>
-                </motion.form>
-              ) : (
+              {needChangePassword ? (
                 <motion.div
                   key="change-password"
                   initial={{ opacity: 0, x: 20 }}
@@ -586,6 +447,145 @@ export const AdminLoginPage: React.FC = () => {
                     </motion.button>
                   </div>
                 </motion.div>
+              ) : (
+                <motion.form
+                  key="login"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.3 }}
+                  onSubmit={handleLogin}
+                  className="space-y-5"
+                >
+                  {/* 用户名 */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700" htmlFor="username">用户名</label>
+                    <div className="relative group">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-primary transition-colors">
+                        <Icons.User className="w-5 h-5" />
+                      </div>
+                      <input
+                        id="username"
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="w-full bg-slate-50/80 border border-slate-200 rounded-xl py-3.5 pl-12 pr-4 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all duration-200"
+                        placeholder="请输入用户名"
+                        autoComplete="username"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 密码 */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700" htmlFor="password">密码</label>
+                    <div className="relative group">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-primary transition-colors">
+                        <Icons.Lock className="w-5 h-5" />
+                      </div>
+                      <input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full bg-slate-50/80 border border-slate-200 rounded-xl py-3.5 pl-12 pr-12 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all duration-200"
+                        placeholder="请输入密码"
+                        autoComplete="current-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        {showPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 记住我 */}
+                  <div className="flex items-center">
+                    <label className="flex items-center cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={() => setRememberMe(!rememberMe)}
+                        className="sr-only"
+                      />
+                      <div
+                        className={cn(
+                          "w-5 h-5 rounded-md border-2 transition-all duration-200 flex items-center justify-center",
+                          rememberMe
+                            ? "bg-brand-primary border-brand-primary"
+                            : "border-slate-300 group-hover:border-brand-primary/50"
+                        )}
+                      >
+                        <AnimatePresence>
+                          {rememberMe && (
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              exit={{ scale: 0 }}
+                              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                            >
+                              <Icons.Check className="w-3 h-3 text-white" />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                      <span className="ml-2.5 text-sm text-slate-500 group-hover:text-slate-700 transition-colors">
+                        记住用户名
+                      </span>
+                    </label>
+                  </div>
+
+                  {/* 错误提示 */}
+                  <AnimatePresence>
+                    {error && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, height: 0 }}
+                        animate={{ opacity: 1, y: 0, height: 'auto' }}
+                        exit={{ opacity: 0, y: -10, height: 0 }}
+                        className="bg-red-50 border border-red-200 rounded-xl p-3.5 flex items-center gap-3"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                          <Icons.AlertCircle className="w-4 h-4 text-red-500" />
+                        </div>
+                        <span className="text-sm text-red-600">{error}</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* 登录按钮 */}
+                  <motion.button
+                    type="submit"
+                    disabled={loading}
+                    whileHover={{ scale: loading ? 1 : 1.01 }}
+                    whileTap={{ scale: loading ? 1 : 0.99 }}
+                    className={cn(
+                      "w-full py-3.5 rounded-xl font-semibold text-white transition-all duration-200",
+                      "bg-gradient-to-r from-brand-primary to-indigo-600",
+                      "shadow-lg shadow-brand-primary/25 hover:shadow-brand-primary/40",
+                      "disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none",
+                      "flex items-center justify-center gap-2"
+                    )}
+                  >
+                    {loading ? (
+                      <>
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                          className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                        />
+                        登录中...
+                      </>
+                    ) : (
+                      <>
+                        <Icons.LogIn className="w-5 h-5" />
+                        登录管理后台
+                      </>
+                    )}
+                  </motion.button>
+                </motion.form>
               )}
             </AnimatePresence>
           </motion.div>
