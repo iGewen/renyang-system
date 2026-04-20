@@ -424,16 +424,17 @@ export class RefundService {
    * 管理员直接退款
    * 安全修复：所有数据库操作移入事务内确保原子性
    */
-  async adminRefund(
-    adminId: string,
-    userId: string,
-    amount: number,
-    reason: string,
-    orderType?: string,
-    orderId?: string,
-    adminName?: string,
-    ip?: string,
-  ) {
+  async adminRefund(params: {
+    adminId: string;
+    userId: string;
+    amount: number;
+    reason: string;
+    orderType?: string;
+    orderId?: string;
+    adminName?: string;
+    ip?: string;
+  }) {
+    const { adminId, userId, amount, reason, orderType, orderId, adminName, ip } = params;
     // 使用事务确保所有数据库操作的原子性
     const refund = await this.dataSource.transaction(async (manager) => {
       const refundEntity = manager.create(RefundOrder, {

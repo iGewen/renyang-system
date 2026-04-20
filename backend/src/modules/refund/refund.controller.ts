@@ -149,16 +149,16 @@ export class RefundController {
     @Req() req: Request,
   ) {
     const ip = req.ip || req.socket?.remoteAddress || '';
-    return this.refundService.adminRefund(
+    return this.refundService.adminRefund({
       adminId,
-      dto.userId,
-      dto.amount,
-      dto.reason,
-      dto.orderType,
-      dto.orderId,
+      userId: dto.userId,
+      amount: dto.amount,
+      reason: dto.reason,
+      orderType: dto.orderType,
+      orderId: dto.orderId,
       adminName,
       ip,
-    );
+    });
   }
 
   /**
