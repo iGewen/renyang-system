@@ -65,3 +65,8 @@ design-system/
 
 # Environment files (local only)
 *.env.local
+
+# SonarCloud 相关文件
+.scannerwork/
+sonar-project.properties
+run-sonar.bat
