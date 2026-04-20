@@ -102,9 +102,9 @@ const Sidebar: React.FC<{
               {!collapsed && (
                 <>
                   <span className="flex-1 text-left truncate">{item.label}</span>
-                  {item.badge && item.badge > 0 && (
+                  {Boolean(item.badge && item.badge > 0) && (
                     <span className="px-2 py-0.5 text-xs bg-white/20 text-white rounded-full">
-                      {item.badge > 99 ? '99+' : String(item.badge)}
+                      {item.badge! > 99 ? '99+' : String(item.badge)}
                     </span>
                   )}
                 </>

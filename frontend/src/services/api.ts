@@ -383,7 +383,7 @@ export const redemptionApi = {
 
   // 获取我的买断列表
   getMyRedemptions: async (status?: number): Promise<RedemptionOrder[]> => {
-    const query = status !== undefined ? `?status=${status}` : '';
+    const query = status === undefined ? '' : `?status=${status}`;
     return request(`/redemptions${query}`);
   },
 

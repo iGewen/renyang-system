@@ -83,7 +83,7 @@ export function invokeWechatJsapiPay(payParams: WechatPayParams): Promise<Wechat
       );
     };
 
-    if (typeof (globalThis as any).WeixinJSBridge === 'undefined') {
+    if ((globalThis as any).WeixinJSBridge === undefined) {
       if (document.addEventListener) {
         document.addEventListener('WeixinJSBridgeReady', onBridgeReady, false);
       } else {

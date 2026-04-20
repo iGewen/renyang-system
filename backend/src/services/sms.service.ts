@@ -298,7 +298,7 @@ export class SmsService {
     );
 
     const signature = await crypto.subtle.sign('HMAC', cryptoKey, dataBuffer);
-    return btoa(String.fromCharCode(...new Uint8Array(signature)));
+    return btoa(String.fromCodePoint(...new Uint8Array(signature)));
   }
 
   /**

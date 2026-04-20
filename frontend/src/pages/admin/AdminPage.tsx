@@ -1805,7 +1805,7 @@ export const AdminUsers: React.FC = () => {
 
 export const AdminConfig: React.FC = () => {
   const toast = useToast();
-  const [_configs, setConfigs] = useState<SystemConfig[]>([]);
+  const [, setConfigs] = useState<SystemConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'basic' | 'payment' | 'sms' | 'wechat'>('basic');

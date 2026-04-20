@@ -52,7 +52,7 @@ export class UploadService {
   private getFilePath(filename: string, subDir?: string): string {
     // 防止路径遍历攻击
     const sanitizedFilename = path.basename(filename);
-    const sanitizedSubDir = subDir ? subDir.replaceAll('..', '').replaceAll(/[\/\\]/g, '') : undefined;
+    const sanitizedSubDir = subDir ? subDir.replaceAll('..', '').replaceAll(/[/\\]/g, '') : undefined;
 
     const dir = sanitizedSubDir ? path.join(this.uploadDir, sanitizedSubDir) : this.uploadDir;
 
