@@ -70,6 +70,20 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, []);
 
+  // 创建清理缓存的回调
+  const createCleanupCallback = useCallback((key: string, now: number) => () => {
+    if (recentMessages.get(key) === now) {
+      recentMessages.delete(key);
+    }
+    timeoutRefs.current.delete(`cleanup-${key}`);
+  }, []);
+
+  // 创建消失 toast 的回调
+  const createDismissCallback = useCallback((id: string) => () => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+    timeoutRefs.current.delete(`dismiss-${id}`);
+  }, []);
+
   const showToast = useCallback((type: ToastType, message: string) => {
     // 去重：检查最近3秒内是否已显示过相同消息
     const key = `${type}:${message}`;
@@ -91,21 +105,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setToasts(prev => [...prev, { id, type, message }]);
 
     // 清理缓存的 timeout
-    const cleanupTimeoutId = setTimeout(() => {
-      if (recentMessages.get(key) === now) {
-        recentMessages.delete(key);
-      }
-      timeoutRefs.current.delete(`cleanup-${key}`);
-    }, 3000);
+    const cleanupTimeoutId = setTimeout(createCleanupCallback(key, now), 3000);
     timeoutRefs.current.set(`cleanup-${key}`, cleanupTimeoutId);
 
     // 3秒后自动消失的 timeout
-    const dismissTimeoutId = setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-      timeoutRefs.current.delete(`dismiss-${id}`);
-    }, 3000);
+    const dismissTimeoutId = setTimeout(createDismissCallback(id), 3000);
     timeoutRefs.current.set(`dismiss-${id}`, dismissTimeoutId);
-  }, []);
+  }, [createCleanupCallback, createDismissCallback]);
 
   const success = useCallback((message: string) => showToast('success', message), [showToast]);
   const error = useCallback((message: string) => showToast('error', message), [showToast]);

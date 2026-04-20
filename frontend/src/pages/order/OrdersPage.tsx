@@ -103,6 +103,32 @@ const OrdersPage: React.FC = () => {
     }
   };
 
+  // 取消订单
+  const handleCancelOrder = async (orderId: string) => {
+    if (confirm('确定要取消订单吗？')) {
+      await orderApi.cancel(orderId);
+      setOrders(prev => prev.filter(o => o.id !== orderId));
+    }
+  };
+
+  // 跳转支付
+  const handleGoToPayment = (order: Order) => {
+    navigate('/payment', { state: { orderId: order.id, orderNo: order.orderNo, livestock: order.livestockSnapshot } });
+  };
+
+  // 查看领养详情
+  const handleViewAdoption = (order: Order) => {
+    const targetId = order.adoption?.id || order.id;
+    navigate(`/adoption/${targetId}`);
+  };
+
+  // 打开退款弹窗
+  const openRefundModal = (order: Order) => {
+    setRefundOrder(order);
+    setRefundReason('');
+    setShowRefundModal(true);
+  };
+
   const tabs: { key: OrderFilterTab; label: string }[] = [
     { key: 'all', label: '全部' },
     { key: 'pending_payment', label: '待付款' },
@@ -200,19 +226,14 @@ const OrdersPage: React.FC = () => {
                           variant="outline"
                           size="sm"
                           className="flex-1"
-                          onClick={async () => {
-                            if (confirm('确定要取消订单吗？')) {
-                              await orderApi.cancel(order.id);
-                              setOrders(prev => prev.filter(o => o.id !== order.id));
-                            }
-                          }}
+                          onClick={() => handleCancelOrder(order.id)}
                         >
                           取消订单
                         </Button>
                         <Button
                           size="sm"
                           className="flex-1"
-                          onClick={() => navigate('/payment', { state: { orderId: order.id, orderNo: order.orderNo, livestock: order.livestockSnapshot } })}
+                          onClick={() => handleGoToPayment(order)}
                         >
                           立即支付
                         </Button>
@@ -224,22 +245,14 @@ const OrdersPage: React.FC = () => {
                           variant="outline"
                           size="sm"
                           className="flex-1"
-                          onClick={() => {
-                            // 领养详情页现在支持通过领养ID或订单ID访问
-                            const targetId = order.adoption?.id || order.id;
-                            navigate(`/adoption/${targetId}`);
-                          }}
+                          onClick={() => handleViewAdoption(order)}
                         >
                           查看详情
                         </Button>
                         <Button
                           size="sm"
                           className="flex-1 bg-red-500 hover:bg-red-600"
-                          onClick={() => {
-                            setRefundOrder(order);
-                            setRefundReason('');
-                            setShowRefundModal(true);
-                          }}
+                          onClick={() => openRefundModal(order)}
                         >
                           申请退款
                         </Button>

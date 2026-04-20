@@ -1877,56 +1877,60 @@ export const AdminConfig: React.FC = () => {
     loadConfigs();
   }, []);
 
+  // 配置键到设置函数的映射
+  const configKeyMap = {
+    // 基础配置
+    site_name: (v: string) => setBasicConfig(prev => ({ ...prev, siteName: v })),
+    site_title: (v: string) => setBasicConfig(prev => ({ ...prev, siteTitle: v })),
+    site_description: (v: string) => setBasicConfig(prev => ({ ...prev, siteDescription: v })),
+    site_keywords: (v: string) => setBasicConfig(prev => ({ ...prev, siteKeywords: v })),
+    contact_phone: (v: string) => setBasicConfig(prev => ({ ...prev, contactPhone: v })),
+    contact_email: (v: string) => setBasicConfig(prev => ({ ...prev, contactEmail: v })),
+    contact_wechat: (v: string) => setBasicConfig(prev => ({ ...prev, contactWechat: v })),
+    // 支付配置 - 布尔值
+    payment_alipay_enabled: (v: string) => setPaymentConfig(prev => ({ ...prev, alipayEnabled: v === 'true' })),
+    payment_wechat_enabled: (v: string) => setPaymentConfig(prev => ({ ...prev, wechatEnabled: v === 'true' })),
+    // 支付配置 - 支付宝
+    alipay_app_id: (v: string) => setPaymentConfig(prev => ({ ...prev, alipayAppId: v })),
+    alipay_private_key: (v: string) => setPaymentConfig(prev => ({ ...prev, alipayPrivateKey: v })),
+    alipay_public_key: (v: string) => setPaymentConfig(prev => ({ ...prev, alipayPublicKey: v })),
+    alipay_notify_url: (v: string) => setPaymentConfig(prev => ({ ...prev, alipayNotifyUrl: v })),
+    alipay_return_url: (v: string) => setPaymentConfig(prev => ({ ...prev, alipayReturnUrl: v })),
+    // 支付配置 - 微信
+    wechat_app_id: (v: string) => setPaymentConfig(prev => ({ ...prev, wechatAppId: v })),
+    wechat_mch_id: (v: string) => setPaymentConfig(prev => ({ ...prev, wechatMchId: v })),
+    wechat_pay_key: (v: string) => setPaymentConfig(prev => ({ ...prev, wechatPayKey: v })),
+    wechat_api_v3_key: (v: string) => setPaymentConfig(prev => ({ ...prev, wechatApiV3Key: v })),
+    wechat_serial_no: (v: string) => setPaymentConfig(prev => ({ ...prev, wechatSerialNo: v })),
+    wechat_private_key: (v: string) => setPaymentConfig(prev => ({ ...prev, wechatPrivateKey: v })),
+    wechat_notify_url: (v: string) => setPaymentConfig(prev => ({ ...prev, wechatNotifyUrl: v })),
+    // 短信配置
+    aliyun_access_key_id: (v: string) => setSmsConfig(prev => ({ ...prev, aliyunAccessKeyId: v })),
+    aliyun_access_key_secret: (v: string) => setSmsConfig(prev => ({ ...prev, aliyunAccessKeySecret: v })),
+    aliyun_sign_name: (v: string) => setSmsConfig(prev => ({ ...prev, aliyunSignName: v })),
+    sms_template_login: (v: string) => setSmsConfig(prev => ({ ...prev, smsTemplateLogin: v })),
+    sms_template_register: (v: string) => setSmsConfig(prev => ({ ...prev, smsTemplateRegister: v })),
+    sms_template_reset_password: (v: string) => setSmsConfig(prev => ({ ...prev, smsTemplateResetPassword: v })),
+    sms_template_order: (v: string) => setSmsConfig(prev => ({ ...prev, smsTemplateOrder: v })),
+    sms_template_feed_bill: (v: string) => setSmsConfig(prev => ({ ...prev, smsTemplateFeedBill: v })),
+    // 微信模板配置
+    wechat_template_adoption_success: (v: string) => setWechatTemplateConfig(prev => ({ ...prev, adoptionSuccess: v })),
+    wechat_template_feed_bill: (v: string) => setWechatTemplateConfig(prev => ({ ...prev, feedBill: v })),
+    wechat_template_feed_bill_overdue: (v: string) => setWechatTemplateConfig(prev => ({ ...prev, feedBillOverdue: v })),
+    wechat_template_redemption_audit: (v: string) => setWechatTemplateConfig(prev => ({ ...prev, redemptionAudit: v })),
+    wechat_template_redemption_success: (v: string) => setWechatTemplateConfig(prev => ({ ...prev, redemptionSuccess: v })),
+  } as const;
+
   const loadConfigs = async () => {
     try {
       const res = await adminApi.getConfigs();
       setConfigs(res);
 
-      // 解析配置到表单 - 不依赖configType，直接按key匹配
-      // 确保 configValue 不为 null 或 undefined
+      // 使用映射表解析配置
       res.forEach((config: SystemConfig) => {
         const value = config.configValue || '';
-        // 基础配置
-        if (config.configKey === 'site_name') setBasicConfig(prev => ({ ...prev, siteName: value }));
-        if (config.configKey === 'site_title') setBasicConfig(prev => ({ ...prev, siteTitle: value }));
-        if (config.configKey === 'site_description') setBasicConfig(prev => ({ ...prev, siteDescription: value }));
-        if (config.configKey === 'site_keywords') setBasicConfig(prev => ({ ...prev, siteKeywords: value }));
-        if (config.configKey === 'contact_phone') setBasicConfig(prev => ({ ...prev, contactPhone: value }));
-        if (config.configKey === 'contact_email') setBasicConfig(prev => ({ ...prev, contactEmail: value }));
-        if (config.configKey === 'contact_wechat') setBasicConfig(prev => ({ ...prev, contactWechat: value }));
-
-        // 支付配置
-        if (config.configKey === 'payment_alipay_enabled') setPaymentConfig(prev => ({ ...prev, alipayEnabled: value === 'true' }));
-        if (config.configKey === 'payment_wechat_enabled') setPaymentConfig(prev => ({ ...prev, wechatEnabled: value === 'true' }));
-        if (config.configKey === 'alipay_app_id') setPaymentConfig(prev => ({ ...prev, alipayAppId: value }));
-        if (config.configKey === 'alipay_private_key') setPaymentConfig(prev => ({ ...prev, alipayPrivateKey: value }));
-        if (config.configKey === 'alipay_public_key') setPaymentConfig(prev => ({ ...prev, alipayPublicKey: value }));
-        if (config.configKey === 'alipay_notify_url') setPaymentConfig(prev => ({ ...prev, alipayNotifyUrl: value }));
-        if (config.configKey === 'alipay_return_url') setPaymentConfig(prev => ({ ...prev, alipayReturnUrl: value }));
-        if (config.configKey === 'wechat_app_id') setPaymentConfig(prev => ({ ...prev, wechatAppId: value }));
-        if (config.configKey === 'wechat_mch_id') setPaymentConfig(prev => ({ ...prev, wechatMchId: value }));
-        if (config.configKey === 'wechat_pay_key') setPaymentConfig(prev => ({ ...prev, wechatPayKey: value }));
-        if (config.configKey === 'wechat_api_v3_key') setPaymentConfig(prev => ({ ...prev, wechatApiV3Key: value }));
-        if (config.configKey === 'wechat_serial_no') setPaymentConfig(prev => ({ ...prev, wechatSerialNo: value }));
-        if (config.configKey === 'wechat_private_key') setPaymentConfig(prev => ({ ...prev, wechatPrivateKey: value }));
-        if (config.configKey === 'wechat_notify_url') setPaymentConfig(prev => ({ ...prev, wechatNotifyUrl: value }));
-
-        // 短信配置
-        if (config.configKey === 'aliyun_access_key_id') setSmsConfig(prev => ({ ...prev, aliyunAccessKeyId: value }));
-        if (config.configKey === 'aliyun_access_key_secret') setSmsConfig(prev => ({ ...prev, aliyunAccessKeySecret: value }));
-        if (config.configKey === 'aliyun_sign_name') setSmsConfig(prev => ({ ...prev, aliyunSignName: value }));
-        if (config.configKey === 'sms_template_login') setSmsConfig(prev => ({ ...prev, smsTemplateLogin: value }));
-        if (config.configKey === 'sms_template_register') setSmsConfig(prev => ({ ...prev, smsTemplateRegister: value }));
-        if (config.configKey === 'sms_template_reset_password') setSmsConfig(prev => ({ ...prev, smsTemplateResetPassword: value }));
-        if (config.configKey === 'sms_template_order') setSmsConfig(prev => ({ ...prev, smsTemplateOrder: value }));
-        if (config.configKey === 'sms_template_feed_bill') setSmsConfig(prev => ({ ...prev, smsTemplateFeedBill: value }));
-
-        // 微信模板配置
-        if (config.configKey === 'wechat_template_adoption_success') setWechatTemplateConfig(prev => ({ ...prev, adoptionSuccess: value }));
-        if (config.configKey === 'wechat_template_feed_bill') setWechatTemplateConfig(prev => ({ ...prev, feedBill: value }));
-        if (config.configKey === 'wechat_template_feed_bill_overdue') setWechatTemplateConfig(prev => ({ ...prev, feedBillOverdue: value }));
-        if (config.configKey === 'wechat_template_redemption_audit') setWechatTemplateConfig(prev => ({ ...prev, redemptionAudit: value }));
-        if (config.configKey === 'wechat_template_redemption_success') setWechatTemplateConfig(prev => ({ ...prev, redemptionSuccess: value }));
+        const setter = configKeyMap[config.configKey as keyof typeof configKeyMap];
+        if (setter) setter(value);
       });
     } catch (error) {
       console.error('加载配置失败', error);
