@@ -66,10 +66,6 @@ const RedemptionPage: React.FC = () => {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('zh-CN');
-  };
-
   if (loading) return <LoadingSpinner />;
 
   // 显示提交结果页面

@@ -17,10 +17,10 @@ export class WechatPayService {
   private readonly logger = new Logger(WechatPayService.name);
 
   constructor(
-    private configService: ConfigService,
-    private redisService: RedisService,
+    private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
     @InjectRepository(SystemConfig)
-    private configRepository: Repository<SystemConfig>,
+    private readonly configRepository: Repository<SystemConfig>,
   ) {
     this.notifyUrl = this.configService.get('wechat.notifyUrl') || '';
   }
@@ -632,7 +632,7 @@ export class WechatPayService {
     try {
       // 1. 申请交易账单
       this.logger.log(`[WechatPay] 开始对账 - 日期: ${billDate}`);
-      const { downloadUrl, billCount } = await this.getTradeBill(billDate);
+      const { downloadUrl } = await this.getTradeBill(billDate);
 
       if (!downloadUrl) {
         return { success: false, message: '申请账单失败' };
@@ -664,8 +664,8 @@ export class WechatPayService {
             openId: fields[3],              // 用户标识
             tradeType: fields[4],           // 交易类型
             tradeState: fields[5],          // 交易状态
-            totalAmount: parseInt(fields[6]) / 100, // 订单金额（转为元）
-            payerTotal: parseInt(fields[7]) / 100,  // 用户支付金额
+            totalAmount: Number.parseInt(fields[6]) / 100, // 订单金额（转为元）
+            payerTotal: Number.parseInt(fields[7]) / 100,  // 用户支付金额
             successTime: fields[9],         // 支付完成时间
           });
         }
@@ -731,7 +731,7 @@ export class WechatPayService {
         body: bodyStr || undefined,
       });
 
-      const result = await response.json() as any;
+      const result = await response.json();
 
       if (!response.ok) {
         this.logger.error('[WechatPay] API请求失败:', {

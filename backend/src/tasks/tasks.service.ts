@@ -14,11 +14,11 @@ export class TasksService {
   private readonly logger = new Logger(TasksService.name);
 
   constructor(
-    private feedService: FeedService,
-    private orderService: OrderService,
-    private adoptionService: AdoptionService,
-    private redemptionService: RedemptionService,
-    private redisService: RedisService,
+    private readonly feedService: FeedService,
+    private readonly orderService: OrderService,
+    private readonly adoptionService: AdoptionService,
+    private readonly redemptionService: RedemptionService,
+    private readonly redisService: RedisService,
   ) {}
 
   /**
@@ -126,7 +126,6 @@ export class TasksService {
 
     try {
       // 清理过期的微信临时token
-      const pattern = 'wechat:temp:*';
       // Redis scan and delete logic would go here
       // For simplicity, we're relying on Redis TTL
 

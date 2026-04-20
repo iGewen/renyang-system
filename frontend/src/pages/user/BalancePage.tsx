@@ -140,7 +140,7 @@ export const BalancePage: React.FC = () => {
   const handleRecharge = async () => {
     const amount = Number.parseFloat(rechargeAmount);
     // 添加显式 NaN 检查
-    if (isNaN(amount) || amount <= 0) {
+    if (Number.isNaN(amount) || amount <= 0) {
       error('请输入正确的金额');
       return;
     }

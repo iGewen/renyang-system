@@ -4,7 +4,8 @@ import { ToastProvider } from './components/ui.tsx';
 import { SiteConfigProvider } from './contexts/SiteConfigContext.tsx';
 import './index.css';
 
-createRoot(document.getElementById('root')!).render(
+const rootElement = document.getElementById('root');
+createRoot(rootElement).render(
   <ToastProvider>
     <SiteConfigProvider>
       <App />

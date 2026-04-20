@@ -5,7 +5,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SmsCode, SystemConfig } from '@/entities';
 import { CryptoUtil } from '@/common/utils/crypto.util';
-import { Request } from 'express';
 
 // 短信频率限制配置
 const SMS_MAX_COUNT_PER_MINUTE = 5;
@@ -21,12 +20,12 @@ export class SmsService {
   private readonly logger = new Logger(SmsService.name);
 
   constructor(
-    private configService: ConfigService,
-    private redisService: RedisService,
+    private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
     @InjectRepository(SmsCode)
-    private smsCodeRepository: Repository<SmsCode>,
+    private readonly smsCodeRepository: Repository<SmsCode>,
     @InjectRepository(SystemConfig)
-    private configRepository: Repository<SystemConfig>,
+    private readonly configRepository: Repository<SystemConfig>,
   ) {}
 
   /**
@@ -271,7 +270,7 @@ export class SmsService {
       body: `${queryString}&Signature=${encodeURIComponent(signature)}`,
     });
 
-    const result = await response.json() as any;
+    const result = await response.json();
 
     this.logger.log(`[SMS] 阿里云响应: ${JSON.stringify(result)}`);
 
@@ -361,7 +360,7 @@ export class SmsService {
       body: `${queryString}&Signature=${encodeURIComponent(signature)}`,
     });
 
-    const result = await response.json() as any;
+    const result = await response.json();
 
     if (result.Code !== 'OK') {
       this.logger.error(`[SMS] 发送通知失败: ${result.Message}`);

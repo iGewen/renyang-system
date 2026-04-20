@@ -30,34 +30,34 @@ import { CryptoUtil } from '@/common/utils/crypto.util';
 export class AdminService {
   constructor(
     @InjectRepository(Admin)
-    private adminRepository: Repository<Admin>,
+    private readonly adminRepository: Repository<Admin>,
     @InjectRepository(User)
-    private userRepository: Repository<User>,
+    private readonly userRepository: Repository<User>,
     @InjectRepository(Order)
-    private orderRepository: Repository<Order>,
+    private readonly orderRepository: Repository<Order>,
     @InjectRepository(Livestock)
-    private livestockRepository: Repository<Livestock>,
+    private readonly livestockRepository: Repository<Livestock>,
     @InjectRepository(LivestockType)
-    private livestockTypeRepository: Repository<LivestockType>,
+    private readonly livestockTypeRepository: Repository<LivestockType>,
     @InjectRepository(Adoption)
-    private adoptionRepository: Repository<Adoption>,
+    private readonly adoptionRepository: Repository<Adoption>,
     @InjectRepository(FeedBill)
-    private feedBillRepository: Repository<FeedBill>,
+    private readonly feedBillRepository: Repository<FeedBill>,
     @InjectRepository(RedemptionOrder)
-    private redemptionOrderRepository: Repository<RedemptionOrder>,
+    private readonly redemptionOrderRepository: Repository<RedemptionOrder>,
     @InjectRepository(RefundOrder)
-    private refundOrderRepository: Repository<RefundOrder>,
+    private readonly refundOrderRepository: Repository<RefundOrder>,
     @InjectRepository(Notification)
-    private notificationRepository: Repository<Notification>,
+    private readonly notificationRepository: Repository<Notification>,
     @InjectRepository(SystemConfig)
-    private systemConfigRepository: Repository<SystemConfig>,
+    private readonly systemConfigRepository: Repository<SystemConfig>,
     @InjectRepository(AuditLog)
-    private auditLogRepository: Repository<AuditLog>,
-    private redisService: RedisService,
-    private dataSource: DataSource,
-    private configService: ConfigService,
-    private jwtService: JwtService,
-    private notificationService: NotificationService,
+    private readonly auditLogRepository: Repository<AuditLog>,
+    private readonly redisService: RedisService,
+    private readonly dataSource: DataSource,
+    private readonly configService: ConfigService,
+    private readonly jwtService: JwtService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   // =============== 管理员认证相关 ===============
@@ -2017,7 +2017,7 @@ export class AdminService {
       '手机号': user.phone,
       '昵称': user.nickname || '',
       '余额': Number(user.balance).toFixed(2),
-      '状态': user.status === 1 ? '正常' : user.status === 2 ? '限制' : '封禁',
+      '状态': this.getUserStatusText(user.status),
       '最后登录时间': user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('zh-CN') : '',
       '注册时间': new Date(user.createdAt).toLocaleString('zh-CN'),
     }));
@@ -2058,7 +2058,7 @@ export class AdminService {
       '订单金额': Number(order.totalAmount).toFixed(2),
       '实付金额': Number(order.paidAmount || 0).toFixed(2),
       '支付方式': order.paymentMethod || '',
-      '状态': order.status === 1 ? '待支付' : order.status === 2 ? '已支付' : order.status === 3 ? '已取消' : '已退款',
+      '状态': this.getOrderStatusText(order.status),
       '创建时间': new Date(order.createdAt).toLocaleString('zh-CN'),
       '支付时间': order.paidAt ? new Date(order.paidAt).toLocaleString('zh-CN') : '',
     }));
@@ -2183,5 +2183,34 @@ export class AdminService {
     const filename = `${sheetName}_${new Date().toISOString().split('T')[0]}.xlsx`;
 
     return { base64, filename };
+  }
+
+  /**
+   * 获取用户状态文本
+   */
+  private getUserStatusText(status: number): string {
+    if (status === 1) {
+      return '正常';
+    }
+    if (status === 2) {
+      return '限制';
+    }
+    return '封禁';
+  }
+
+  /**
+   * 获取订单状态文本
+   */
+  private getOrderStatusText(status: number): string {
+    if (status === 1) {
+      return '待支付';
+    }
+    if (status === 2) {
+      return '已支付';
+    }
+    if (status === 3) {
+      return '已取消';
+    }
+    return '已退款';
   }
 }

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, EmptyState, useToast } from '../../components/ui';
+import { Icons, PageTransition, LoadingSpinner, Button, Card, EmptyState, useToast } from '../../components/ui';
 import { cn } from '../../lib/utils';
-import { adoptionApi, redemptionApi, balanceApi, paymentApi, orderApi } from '../../services/api';
+import { adoptionApi, redemptionApi, balanceApi } from '../../services/api';
 import { FeedBillStatus, RedemptionStatus } from '../../types/enums';
 import type { Adoption, FeedBill, RedemptionOrder, Livestock } from '../../types';
 import { usePaymentConfig } from '../../contexts/SiteConfigContext';

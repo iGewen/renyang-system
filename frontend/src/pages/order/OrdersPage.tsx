@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, EmptyState, Modal, Input, useToast } from '../../components/ui';
+import { Icons, PageTransition, LoadingSpinner, Button, Card, EmptyState, Modal, useToast } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { orderApi, refundApi } from '../../services/api';
 import type { Order } from '../../types';
@@ -143,21 +143,26 @@ const OrdersPage: React.FC = () => {
 
         {/* Content */}
         <div className="px-6 mt-4">
-          {loading ? (
-            <LoadingSpinner />
-          ) : orders.length === 0 ? (
-            <EmptyState
-              icon={<Icons.ShoppingCart className="w-16 h-16" />}
-              title="暂无订单"
-              description={activeTab === 'all' ? '您还没有任何订单' : '该分类下暂无订单'}
-              action={
-                <Button onClick={() => navigate('/')} size="sm">
-                  去领养
-                </Button>
-              }
-            />
-          ) : (
-            <div className="space-y-4">
+          {(() => {
+            if (loading) {
+              return <LoadingSpinner />;
+            }
+            if (orders.length === 0) {
+              return (
+                <EmptyState
+                  icon={<Icons.ShoppingCart className="w-16 h-16" />}
+                  title="暂无订单"
+                  description={activeTab === 'all' ? '您还没有任何订单' : '该分类下暂无订单'}
+                  action={
+                    <Button onClick={() => navigate('/')} size="sm">
+                      去领养
+                    </Button>
+                  }
+                />
+              );
+            }
+            return (
+              <div className="space-y-4">
               {orders.map(order => {
                 const statusConfig = getStatusConfig(order.status);
                 return (
@@ -244,8 +249,9 @@ const OrdersPage: React.FC = () => {
                   </Card>
                 );
               })}
-            </div>
-          )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* 退款申请弹窗 */}

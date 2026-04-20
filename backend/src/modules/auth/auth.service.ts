@@ -28,13 +28,13 @@ const LOGIN_FAIL_LOCK_DURATION = 15 * 60; // 锁定时间（秒）
 export class AuthService {
   constructor(
     @InjectRepository(User)
-    private userRepository: Repository<User>,
+    private readonly userRepository: Repository<User>,
     @InjectRepository(SmsCode)
-    private smsCodeRepository: Repository<SmsCode>,
-    private jwtService: JwtService,
-    private configService: ConfigService,
-    private redisService: RedisService,
-    private smsService: SmsService,
+    private readonly smsCodeRepository: Repository<SmsCode>,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
+    private readonly smsService: SmsService,
   ) {}
 
   /**

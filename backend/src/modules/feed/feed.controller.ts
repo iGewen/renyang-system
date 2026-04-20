@@ -72,9 +72,9 @@ export class FeedController {
     @Query('keyword') keyword?: string,
   ) {
     return this.feedService.getFeedBillList({
-      page: page ? parseInt(page) : 1,
-      pageSize: pageSize ? parseInt(pageSize) : 20,
-      status: status ? parseInt(status) : undefined,
+      page: page ? Number.parseInt(page) : 1,
+      pageSize: pageSize ? Number.parseInt(pageSize) : 20,
+      status: status ? Number.parseInt(status) : undefined,
       keyword,
     });
   }
@@ -137,8 +137,8 @@ export class FeedController {
     @Query('pageSize') pageSize?: string,
   ) {
     return this.feedService.getExceptionAdoptions(
-      page ? parseInt(page) : 1,
-      pageSize ? parseInt(pageSize) : 20,
+      page ? Number.parseInt(page) : 1,
+      pageSize ? Number.parseInt(pageSize) : 20,
     );
   }
 

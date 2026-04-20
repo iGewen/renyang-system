@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsNumber, IsOptional, IsNotEmpty, IsIn, IsObject, Min, Max } from 'class-validator';
 
 // =============== 支付相关 DTO ===============

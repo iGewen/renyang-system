@@ -24,9 +24,9 @@ export class UserController {
   constructor(
     private readonly userService: UserService,
     @InjectRepository(SystemConfig)
-    private systemConfigRepository: Repository<SystemConfig>,
+    private readonly systemConfigRepository: Repository<SystemConfig>,
     @InjectRepository(SmsCode)
-    private smsCodeRepository: Repository<SmsCode>,
+    private readonly smsCodeRepository: Repository<SmsCode>,
   ) {}
 
   @Get('me')

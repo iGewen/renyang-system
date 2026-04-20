@@ -45,15 +45,15 @@
  * ============================================================================
  */
 
-import React, { useState, useEffect, createContext, useContext, lazy, Suspense, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, createContext, useContext, lazy, Suspense, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation, Link, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import DOMPurify from 'dompurify';
-import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState, useToast, Skeleton, SkeletonCard, PageLoader, InlineLoader } from './components/ui';
+import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, Modal, Input, EmptyState, useToast } from './components/ui';
 import { cn } from './lib/utils';
-import type { Livestock, Adoption, FeedBill, User, Order } from './types';
-import { AdoptionStatus, OrderStatus, getAdoptionStatusText, getOrderStatusText } from './types/enums';
-import { livestockApi, adoptionApi, orderApi, paymentApi, balanceApi, notificationApi, authApi, adminApi, agreementApi, redemptionApi } from './services/api';
+import type { Livestock, Adoption, FeedBill, User } from './types';
+import { AdoptionStatus, OrderStatus, getAdoptionStatusText } from './types/enums';
+import { livestockApi, adoptionApi, orderApi, paymentApi, notificationApi, authApi, agreementApi, redemptionApi } from './services/api';
 import { SiteConfigProvider, usePaymentConfig, useSiteConfig } from './contexts/SiteConfigContext';
 import logger from './utils/logger';
 
@@ -113,7 +113,7 @@ const AuthPage: React.FC = () => {
     // 从 localStorage 恢复冷却时间
     const storedEndTime = localStorage.getItem(SMS_COOLDOWN_KEY);
     if (storedEndTime) {
-      const remaining = Math.ceil((parseInt(storedEndTime, 10) - Date.now()) / 1000);
+      const remaining = Math.ceil((Number.parseInt(storedEndTime, 10) - Date.now()) / 1000);
       if (remaining > 0) {
         return remaining;
       }
@@ -396,7 +396,7 @@ const AuthPage: React.FC = () => {
 const HomePageSkeleton: React.FC = () => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
     {Array.from({ length: 6 }).map((_, i) => (
-      <div key={i} className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+      <div key={`skeleton-card-${i}`} className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
         <div className="relative h-64 bg-slate-200 animate-pulse" />
         <div className="p-6 space-y-4">
           <div className="h-4 bg-slate-200 rounded animate-pulse w-3/4" />
@@ -587,31 +587,37 @@ const HomePage: React.FC = () => {
           </header>
 
           {/* 内容区域 */}
-          {loading ? (
-            <HomePageSkeleton />
-          ) : livestockList.length === 0 ? (
-            <EmptyState
-              icon={<Icons.Sprout className="w-10 h-10" />}
-              title="暂无可领养的活体"
-              description="我们正在为您寻找更多优质活体，请稍后再来查看"
-              action={
-                <Button variant="outline" onClick={() => globalThis.location.reload()}>
-                  刷新页面
-                </Button>
-              }
-            />
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-              {livestockList.map((item, index) => (
-                <LivestockCard
-                  key={item.id}
-                  item={item}
-                  index={index}
-                  onClick={() => navigate(`/details/${item.id}`)}
+          {(() => {
+            if (loading) {
+              return <HomePageSkeleton />;
+            }
+            if (livestockList.length === 0) {
+              return (
+                <EmptyState
+                  icon={<Icons.Sprout className="w-10 h-10" />}
+                  title="暂无可领养的活体"
+                  description="我们正在为您寻找更多优质活体，请稍后再来查看"
+                  action={
+                    <Button variant="outline" onClick={() => globalThis.location.reload()}>
+                      刷新页面
+                    </Button>
+                  }
                 />
-              ))}
-            </div>
-          )}
+              );
+            }
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                {livestockList.map((item, index) => (
+                  <LivestockCard
+                    key={item.id}
+                    item={item}
+                    index={index}
+                    onClick={() => navigate(`/details/${item.id}`)}
+                  />
+                ))}
+              </div>
+            );
+          })()}
         </div>
       </div>
     </PageTransition>
@@ -850,7 +856,7 @@ const DetailsPage: React.FC = () => {
                 <div className="mb-8">
                   <h3 className="text-4xl font-display font-bold text-brand-primary mb-2">{livestock.name}</h3>
                   <div className="flex items-center gap-1 text-brand-accent">
-                    {[...Array(5)].map((_, i) => <Icons.Star key={i} className="w-4 h-4 fill-current" />)}
+                    {[...Array(5)].map((_, i) => <Icons.Star key={`star-${i}`} className="w-4 h-4 fill-current" />)}
                     <span className="text-xs font-bold ml-2">5.0 优质品种</span>
                   </div>
                 </div>
@@ -1402,7 +1408,7 @@ const SuccessPage: React.FC = () => {
                 { title: '领养详情短信已发送', desc: '请查收您的手机通知', icon: Icons.MessageSquare },
                 { title: '领养流程已全部完成', desc: '您可以前往牧场查看', icon: Icons.ShieldCheck }
               ].map((s, i) => (
-                <div key={i} className="flex gap-6 relative">
+                <div key={`step-${i}`} className="flex gap-6 relative">
                   <div className={cn("w-7 h-7 rounded-full flex items-center justify-center z-10 transition-colors duration-500", step >= i + 1 ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/20" : "bg-slate-100 text-slate-300")}>
                     <s.icon className="w-3 h-3" />
                   </div>
@@ -1449,6 +1455,19 @@ const MyAdoptionsPage: React.FC = () => {
 
   const getRedemptionForAdoption = (adoptionId: string) => {
     return redemptions.find(r => r.adoptionId === adoptionId && (r.status === 1 || r.status === 2));
+  };
+
+  const getAdoptionBadgeVariant = (status: number): 'success' | 'warning' | 'danger' | 'info' | 'default' => {
+    const map: Record<number, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
+      [AdoptionStatus.ACTIVE]: 'success',
+      [AdoptionStatus.FEED_OVERDUE]: 'danger',
+      [AdoptionStatus.EXCEPTION]: 'danger',
+      [AdoptionStatus.REDEEMABLE]: 'info',
+      [AdoptionStatus.REDEMPTION_PENDING]: 'warning',
+      [AdoptionStatus.REDEEMED]: 'default',
+      [AdoptionStatus.TERMINATED]: 'default'
+    };
+    return map[status] || 'default';
   };
 
   const getStatusBadge = (status: number, redemption?: any) => {
@@ -1530,7 +1549,7 @@ const MyAdoptionsPage: React.FC = () => {
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, token, logout, isAuthenticated } = useAuth();
+  const { token, logout, isAuthenticated } = useAuth();
   const [profile, setProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [showNicknameModal, setShowNicknameModal] = useState(false);
@@ -1706,7 +1725,7 @@ const ProfilePage: React.FC = () => {
           >
             <Card className="p-4 grid grid-cols-3 gap-4 text-center shadow-lg">
               <Link to="/balance" className="group">
-                <p className="text-xl font-display font-bold text-brand-primary group-hover:scale-105 transition-transform">¥{parseFloat(String(profile?.balance || '0')).toFixed(2)}</p>
+                <p className="text-xl font-display font-bold text-brand-primary group-hover:scale-105 transition-transform">¥{Number.parseFloat(String(profile?.balance || '0')).toFixed(2)}</p>
                 <p className="text-xs text-slate-400 mt-0.5">余额</p>
               </Link>
               <div className="border-x border-slate-100">
@@ -1726,12 +1745,12 @@ const ProfilePage: React.FC = () => {
           {/* 桌面端统计卡片 */}
           <div className="hidden lg:grid grid-cols-3 gap-6">
             {[
-              { value: `¥${parseFloat(String(profile?.balance || '0')).toFixed(2)}`, label: '账户余额', to: '/balance' },
+              { value: `¥${Number.parseFloat(String(profile?.balance || '0')).toFixed(2)}`, label: '账户余额', to: '/balance' },
               { value: String(profile?.stats?.adoptions || 0), label: '领养活体', to: '/my-adoptions' },
               { value: String(profile?.stats?.days || 0), label: '领养天数' },
             ].map((item, i) => (
               <motion.div
-                key={i}
+                key={`stat-${i}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 + i * 0.05 }}
@@ -1767,7 +1786,7 @@ const ProfilePage: React.FC = () => {
                     { icon: Icons.Package, label: '领养中', to: '/orders?status=paid', color: 'text-brand-primary' },
                     { icon: Icons.CheckCircle2, label: '已完成', to: '/orders?status=completed', color: 'text-green-500' }
                   ].map((item, i) => (
-                    <Link key={i} to={item.to} className="flex flex-col items-center gap-3 group cursor-pointer">
+                    <Link key={`order-status-${i}`} to={item.to} className="flex flex-col items-center gap-3 group cursor-pointer">
                       <motion.div
                         whileHover={{ scale: 1.1, y: -2 }}
                         className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-brand-primary group-hover:text-white transition-all shadow-sm"
@@ -1793,7 +1812,7 @@ const ProfilePage: React.FC = () => {
                       { icon: Icons.BookOpen, title: '成长档案', desc: '记录爱宠成长点滴', to: '/growth-records' },
                       { icon: Icons.Headset, title: '专属管家', desc: '1对1贴心养殖指导', to: '/support' }
                     ].map((item, i) => (
-                      <Link key={i} to={item.to} className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer group">
+                      <Link key={`service-${i}`} to={item.to} className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer group">
                         <div className="flex items-center gap-4">
                           <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-brand-primary/10 to-indigo-50 flex items-center justify-center text-brand-primary group-hover:from-brand-primary group-hover:to-indigo-600 group-hover:text-white transition-all">
                             <item.icon className="w-5 h-5" />
@@ -2150,9 +2169,10 @@ const SecurityPage: React.FC = () => {
               onChange={e => setPhoneForm({ ...phoneForm, newPhone: e.target.value })}
             />
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">验证码</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="verification-code">验证码</label>
               <div className="flex gap-2">
                 <Input
+                  id="verification-code"
                   placeholder="请输入验证码"
                   value={phoneForm.code}
                   onChange={e => setPhoneForm({ ...phoneForm, code: e.target.value })}
@@ -2424,7 +2444,7 @@ const GrowthRecordsPage: React.FC = () => {
                         <h3 className="font-bold text-slate-900 truncate">{livestock?.name || '未知活体'}</h3>
                         <p className="text-xs text-slate-400 font-mono mt-1">{adoption.adoptionNo}</p>
                         <div className="flex items-center gap-2 mt-2">
-                          <Badge variant={adoption.status === 1 ? 'success' : adoption.status === 6 ? 'default' : 'warning'}>
+                          <Badge variant={getAdoptionBadgeVariant(adoption.status)}>
                             {getAdoptionStatusText(adoption.status)}
                           </Badge>
                         </div>
@@ -2631,7 +2651,7 @@ const SupportPage: React.FC = () => {
                 { q: '饲料费如何缴纳？', a: '进入领养详情页，点击「缴纳饲料费」即可在线支付' },
                 { q: '如何申请买断？', a: '领养期满后，在领养详情页点击「申请买断」提交申请' },
               ].map((item, i) => (
-                <div key={i} className="p-4 border-b border-slate-50 last:border-b-0">
+                <div key={`faq-${i}`} className="p-4 border-b border-slate-50 last:border-b-0">
                   <p className="font-medium text-slate-900 text-sm">{item.q}</p>
                   <p className="text-xs text-slate-500 mt-1">{item.a}</p>
                 </div>

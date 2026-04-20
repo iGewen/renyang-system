@@ -20,10 +20,10 @@ export class AlipayService {
   private readonly logger = new Logger(AlipayService.name);
 
   constructor(
-    private configService: ConfigService,
-    private redisService: RedisService,
+    private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
     @InjectRepository(SystemConfig)
-    private configRepository: Repository<SystemConfig>,
+    private readonly configRepository: Repository<SystemConfig>,
   ) {
     this.notifyUrl = this.configService.get('alipay.notifyUrl') || '';
     this.returnUrl = this.configService.get('alipay.returnUrl') || '';
@@ -64,7 +64,6 @@ export class AlipayService {
     // 从数据库获取配置
     const appId = await this.getConfig('alipay_app_id');
     const privateKey = await this.getConfig('alipay_private_key');
-    const alipayPublicKey = await this.getConfig('alipay_public_key');
     const notifyUrl = await this.getConfig('alipay_notify_url') || this.notifyUrl;
     const returnUrl = await this.getConfig('alipay_return_url') || this.returnUrl;
 
@@ -151,7 +150,6 @@ export class AlipayService {
     }
 
     const sign = params.sign;
-    const signType = params.sign_type;
 
     if (!sign) {
       this.logger.error('[Alipay] 回调缺少签名');
@@ -234,7 +232,7 @@ export class AlipayService {
         body: this.buildQueryString(params),
       });
 
-      const result = await response.json() as any;
+      const result = await response.json();
       this.logger.log(`[Alipay] 查询订单响应: ${JSON.stringify(result.alipay_trade_query_response || result)}`);
 
       return result.alipay_trade_query_response;
@@ -285,7 +283,7 @@ export class AlipayService {
         body: this.buildQueryString(params),
       });
 
-      const result = await response.json() as any;
+      const result = await response.json();
       this.logger.log(`[Alipay] 关闭订单响应: ${JSON.stringify(result.alipay_trade_close_response || result)}`);
 
       return result.alipay_trade_close_response?.code === '10000';
@@ -346,7 +344,7 @@ export class AlipayService {
         body: this.buildQueryString(params),
       });
 
-      const result = await response.json() as any;
+      const result = await response.json();
       this.logger.log(`[Alipay] 退款响应: ${JSON.stringify(result.alipay_trade_refund_response || result)}`);
 
       if (result.alipay_trade_refund_response?.code === '10000') {

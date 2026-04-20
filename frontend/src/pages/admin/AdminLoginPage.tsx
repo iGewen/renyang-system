@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Icons, Input, Button, useToast } from '../../components/ui';
+import { Icons, useToast } from '../../components/ui';
 import { adminApi } from '../../services/api';
 import { cn } from '../../lib/utils';
 
 export const AdminLoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { success, error: toastError } = useToast();
+  const { success } = useToast();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -86,6 +86,28 @@ export const AdminLoginPage: React.FC = () => {
     if (/[^A-Za-z0-9]/.test(pwd)) strength++;
     return strength;
   }, []);
+
+  // 密码强度相关辅助函数
+  const getPasswordStrengthBarColor = (strength: number, level: number): string => {
+    if (strength >= level) {
+      if (strength <= 2) return "bg-red-400";
+      if (strength <= 3) return "bg-yellow-400";
+      return "bg-green-400";
+    }
+    return "bg-slate-200";
+  };
+
+  const getPasswordStrengthTextColor = (strength: number): string => {
+    if (strength <= 2) return "text-red-500";
+    if (strength <= 3) return "text-yellow-500";
+    return "text-green-500";
+  };
+
+  const getPasswordStrengthText = (strength: number): string => {
+    if (strength <= 2) return '弱';
+    if (strength <= 3) return '中';
+    return '强';
+  };
 
   const handleChangePassword = async () => {
     if (!newPassword || !confirmPassword) {
@@ -252,12 +274,13 @@ export const AdminLoginPage: React.FC = () => {
                 >
                   {/* 用户名 */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">用户名</label>
+                    <label className="text-sm font-medium text-slate-700" htmlFor="username">用户名</label>
                     <div className="relative group">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-primary transition-colors">
                         <Icons.User className="w-5 h-5" />
                       </div>
                       <input
+                        id="username"
                         type="text"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
@@ -270,12 +293,13 @@ export const AdminLoginPage: React.FC = () => {
 
                   {/* 密码 */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">密码</label>
+                    <label className="text-sm font-medium text-slate-700" htmlFor="password">密码</label>
                     <div className="relative group">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-primary transition-colors">
                         <Icons.Lock className="w-5 h-5" />
                       </div>
                       <input
+                        id="password"
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -399,12 +423,13 @@ export const AdminLoginPage: React.FC = () => {
 
                   {/* 原密码 */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">原密码</label>
+                    <label className="text-sm font-medium text-slate-700" htmlFor="old-password">原密码</label>
                     <div className="relative group">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-primary transition-colors">
                         <Icons.Lock className="w-5 h-5" />
                       </div>
                       <input
+                        id="old-password"
                         type="password"
                         value={oldPassword}
                         onChange={(e) => setOldPassword(e.target.value)}
@@ -416,12 +441,13 @@ export const AdminLoginPage: React.FC = () => {
 
                   {/* 新密码 */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">新密码</label>
+                    <label className="text-sm font-medium text-slate-700" htmlFor="new-password">新密码</label>
                     <div className="relative group">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-primary transition-colors">
                         <Icons.Key className="w-5 h-5" />
                       </div>
                       <input
+                        id="new-password"
                         type={showPassword ? 'text' : 'password'}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
@@ -445,26 +471,16 @@ export const AdminLoginPage: React.FC = () => {
                               key={level}
                               className={cn(
                                 "h-1.5 rounded-full flex-1 transition-all duration-300",
-                                passwordStrength >= level
-                                  ? passwordStrength <= 2
-                                    ? "bg-red-400"
-                                    : passwordStrength <= 3
-                                    ? "bg-yellow-400"
-                                    : "bg-green-400"
-                                  : "bg-slate-200"
+                                getPasswordStrengthBarColor(passwordStrength, level)
                               )}
                             />
                           ))}
                         </div>
                         <span className={cn(
                           "text-xs font-medium",
-                          passwordStrength <= 2
-                            ? "text-red-500"
-                            : passwordStrength <= 3
-                            ? "text-yellow-500"
-                            : "text-green-500"
+                          getPasswordStrengthTextColor(passwordStrength)
                         )}>
-                          {passwordStrength <= 2 ? '弱' : passwordStrength <= 3 ? '中' : '强'}
+                          {getPasswordStrengthText(passwordStrength)}
                         </span>
                       </div>
                     )}
@@ -472,12 +488,13 @@ export const AdminLoginPage: React.FC = () => {
 
                   {/* 确认密码 */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">确认密码</label>
+                    <label className="text-sm font-medium text-slate-700" htmlFor="confirm-password">确认密码</label>
                     <div className="relative group">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-primary transition-colors">
                         <Icons.Lock className="w-5 h-5" />
                       </div>
                       <input
+                        id="confirm-password"
                         type="password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}

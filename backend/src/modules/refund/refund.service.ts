@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, In } from 'typeorm';
 import { RefundOrder, RefundType, RefundStatus, Order, OrderStatus, Adoption, AdoptionStatus, PaymentRecord, AuditLog } from '@/entities';
@@ -15,21 +15,21 @@ export class RefundService {
 
   constructor(
     @InjectRepository(RefundOrder)
-    private refundRepository: Repository<RefundOrder>,
+    private readonly refundRepository: Repository<RefundOrder>,
     @InjectRepository(Order)
-    private orderRepository: Repository<Order>,
+    private readonly orderRepository: Repository<Order>,
     @InjectRepository(Adoption)
-    private adoptionRepository: Repository<Adoption>,
+    private readonly adoptionRepository: Repository<Adoption>,
     @InjectRepository(PaymentRecord)
-    private paymentRecordRepository: Repository<PaymentRecord>,
+    private readonly paymentRecordRepository: Repository<PaymentRecord>,
     @InjectRepository(AuditLog)
-    private auditLogRepository: Repository<AuditLog>,
-    private dataSource: DataSource,
-    private redisService: RedisService,
-    private userService: UserService,
-    private notificationService: NotificationService,
-    private wechatPayService: WechatPayService,
-    private alipayService: AlipayService,
+    private readonly auditLogRepository: Repository<AuditLog>,
+    private readonly dataSource: DataSource,
+    private readonly redisService: RedisService,
+    private readonly userService: UserService,
+    private readonly notificationService: NotificationService,
+    private readonly wechatPayService: WechatPayService,
+    private readonly alipayService: AlipayService,
   ) {}
 
   /**
@@ -49,7 +49,6 @@ export class RefundService {
         // 验证订单
         let order: Order | null = null;
         let adoption: Adoption | null = null;
-        let refundLivestock = 2; // 默认不退活体
         let originalAmount = 0;
 
         if (orderType === 'adoption') {
@@ -77,7 +76,6 @@ export class RefundService {
           }
 
           // 领养订单需要退活体
-          refundLivestock = 1;
         } else if (orderType === 'feed') {
           // 饲料费退款逻辑
           throw new BadRequestException('饲料费退款请联系客服处理');
@@ -86,6 +84,9 @@ export class RefundService {
         } else {
           throw new BadRequestException('不支持的订单类型');
         }
+
+        // 领养订单标记需要退活体
+        const refundLivestock = orderType === 'adoption' ? 1 : 0;
 
         // 安全修复 B-BIZ-012：检查所有非终态的退款申请，防止重复退款
         const existingRefund = await manager.findOne(RefundOrder, {
@@ -288,7 +289,6 @@ export class RefundService {
     let refundMethod = 'balance';
     let refundSuccess = true;
     let refundMessage = '';
-    let externalRefundId = '';
 
     // 安全修复：先执行外部API退款（在事务外）
     if (paymentRecord && paymentRecord.paymentMethod && paymentRecord.paymentNo) {
@@ -309,7 +309,6 @@ export class RefundService {
           if (result.success) {
             refundMethod = 'wechat';
             refundMessage = '已退回到微信支付账户';
-            externalRefundId = result.refundId || '';
             this.logger.log(`[Refund] 微信退款成功 - 退款单号: ${result.refundId}`);
           } else {
             // 微信退款失败，退回到余额
@@ -332,7 +331,6 @@ export class RefundService {
           if (result.success) {
             refundMethod = 'alipay';
             refundMessage = '已退回到支付宝账户';
-            externalRefundId = result.refundNo || '';
             this.logger.log(`[Refund] 支付宝退款成功 - 退款单号: ${result.refundNo}`);
           } else {
             // 支付宝退款失败，退回到余额

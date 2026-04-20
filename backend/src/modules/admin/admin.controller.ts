@@ -133,10 +133,10 @@ export class AdminController {
     @Query('status') status?: string,
   ) {
     return this.adminService.getUserList({
-      page: page ? parseInt(page) : 1,
-      pageSize: pageSize ? parseInt(pageSize) : 20,
+      page: page ? Number.parseInt(page) : 1,
+      pageSize: pageSize ? Number.parseInt(pageSize) : 20,
       keyword,
-      status: status ? parseInt(status) : undefined,
+      status: status ? Number.parseInt(status) : undefined,
     });
   }
 
@@ -335,10 +335,10 @@ export class AdminController {
     @Query('keyword') keyword?: string,
   ) {
     return this.adminService.getLivestockList({
-      page: page ? parseInt(page) : 1,
-      pageSize: pageSize ? parseInt(pageSize) : 20,
+      page: page ? Number.parseInt(page) : 1,
+      pageSize: pageSize ? Number.parseInt(pageSize) : 20,
       typeId,
-      status: status ? parseInt(status) : undefined,
+      status: status ? Number.parseInt(status) : undefined,
       keyword,
     });
   }
@@ -434,9 +434,9 @@ export class AdminController {
     @Query('endDate') endDate?: string,
   ) {
     return this.adminService.getOrderList({
-      page: page ? parseInt(page) : 1,
-      pageSize: pageSize ? parseInt(pageSize) : 20,
-      status: status ? parseInt(status) : undefined,
+      page: page ? Number.parseInt(page) : 1,
+      pageSize: pageSize ? Number.parseInt(pageSize) : 20,
+      status: status ? Number.parseInt(status) : undefined,
       keyword,
       startDate,
       endDate,
@@ -490,9 +490,9 @@ export class AdminController {
     @Query('keyword') keyword?: string,
   ) {
     return this.adminService.getAdoptionList({
-      page: page ? parseInt(page) : 1,
-      pageSize: pageSize ? parseInt(pageSize) : 20,
-      status: status ? parseInt(status) : undefined,
+      page: page ? Number.parseInt(page) : 1,
+      pageSize: pageSize ? Number.parseInt(pageSize) : 20,
+      status: status ? Number.parseInt(status) : undefined,
       keyword,
     });
   }
@@ -527,9 +527,9 @@ export class AdminController {
     @Query('keyword') keyword?: string,
   ) {
     return this.adminService.getFeedBillList({
-      page: page ? parseInt(page) : 1,
-      pageSize: pageSize ? parseInt(pageSize) : 20,
-      status: status ? parseInt(status) : undefined,
+      page: page ? Number.parseInt(page) : 1,
+      pageSize: pageSize ? Number.parseInt(pageSize) : 20,
+      status: status ? Number.parseInt(status) : undefined,
       keyword,
     });
   }
@@ -592,8 +592,8 @@ export class AdminController {
     @Query('type') type?: string,
   ) {
     return this.adminService.getNotificationList({
-      page: page ? parseInt(page) : 1,
-      pageSize: pageSize ? parseInt(pageSize) : 20,
+      page: page ? Number.parseInt(page) : 1,
+      pageSize: pageSize ? Number.parseInt(pageSize) : 20,
       type,
     });
   }
@@ -629,8 +629,8 @@ export class AdminController {
     @Query('pageSize') pageSize?: string,
   ) {
     return this.adminService.getAdminList(
-      page ? parseInt(page) : 1,
-      pageSize ? parseInt(pageSize) : 20,
+      page ? Number.parseInt(page) : 1,
+      pageSize ? Number.parseInt(pageSize) : 20,
     );
   }
 
@@ -688,8 +688,8 @@ export class AdminController {
     @Query('endDate') endDate?: string,
   ) {
     return this.adminService.getAuditLogs({
-      page: page ? parseInt(page) : 1,
-      pageSize: pageSize ? parseInt(pageSize) : 20,
+      page: page ? Number.parseInt(page) : 1,
+      pageSize: pageSize ? Number.parseInt(pageSize) : 20,
       module,
       adminId,
       startDate,
@@ -730,7 +730,7 @@ export class AdminController {
     @Query('endDate') endDate?: string,
   ) {
     return this.adminService.exportUsers({
-      status: status ? parseInt(status) : undefined,
+      status: status ? Number.parseInt(status) : undefined,
       startDate,
       endDate,
     });
@@ -751,7 +751,7 @@ export class AdminController {
     @Query('endDate') endDate?: string,
   ) {
     return this.adminService.exportOrders({
-      status: status ? parseInt(status) : undefined,
+      status: status ? Number.parseInt(status) : undefined,
       startDate,
       endDate,
     });
@@ -772,7 +772,7 @@ export class AdminController {
     @Query('endDate') endDate?: string,
   ) {
     return this.adminService.exportAdoptions({
-      status: status ? parseInt(status) : undefined,
+      status: status ? Number.parseInt(status) : undefined,
       startDate,
       endDate,
     });
@@ -793,7 +793,7 @@ export class AdminController {
     @Query('endDate') endDate?: string,
   ) {
     return this.adminService.exportFeedBills({
-      status: status ? parseInt(status) : undefined,
+      status: status ? Number.parseInt(status) : undefined,
       startDate,
       endDate,
     });
@@ -816,9 +816,9 @@ export class AdminController {
     @Query('status') status?: string,
   ) {
     return this.adminService.getRedemptionList({
-      page: page ? parseInt(page) : 1,
-      pageSize: pageSize ? parseInt(pageSize) : 20,
-      status: status ? parseInt(status) : undefined,
+      page: page ? Number.parseInt(page) : 1,
+      pageSize: pageSize ? Number.parseInt(pageSize) : 20,
+      status: status ? Number.parseInt(status) : undefined,
     });
   }
 
@@ -868,9 +868,9 @@ export class AdminController {
     @Query('status') status?: string,
   ) {
     return this.adminService.getRefundList({
-      page: page ? parseInt(page) : 1,
-      pageSize: pageSize ? parseInt(pageSize) : 20,
-      status: status ? parseInt(status) : undefined,
+      page: page ? Number.parseInt(page) : 1,
+      pageSize: pageSize ? Number.parseInt(pageSize) : 20,
+      status: status ? Number.parseInt(status) : undefined,
     });
   }
 

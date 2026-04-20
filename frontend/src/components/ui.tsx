@@ -777,7 +777,7 @@ export const SkeletonCard: React.FC<{ lines?: number }> = ({ lines = 3 }) => (
     </div>
     <div className="space-y-2">
       {Array.from({ length: lines }).map((_, i) => (
-        <Skeleton key={i} width={i === lines - 1 ? '80%' : '100%'} height={12} />
+        <Skeleton key={`skeleton-line-${i}`} width={i === lines - 1 ? '80%' : '100%'} height={12} />
       ))}
     </div>
   </div>
@@ -787,7 +787,7 @@ export const SkeletonCard: React.FC<{ lines?: number }> = ({ lines = 3 }) => (
 export const SkeletonList: React.FC<{ count?: number }> = ({ count = 5 }) => (
   <div className="space-y-3">
     {Array.from({ length: count }).map((_, i) => (
-      <div key={i} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100">
+      <div key={`skeleton-list-${i}`} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100">
         <Skeleton variant="circular" width={40} height={40} />
         <div className="flex-1 space-y-2">
           <Skeleton width="70%" height={14} />
@@ -804,13 +804,13 @@ export const SkeletonTable: React.FC<{ rows?: number; cols?: number }> = ({ rows
     {/* 使用内联 style 替代动态 Tailwind 类名，避免 PurgeCSS 问题 */}
     <div className="gap-4 p-4 bg-slate-50 border-b border-slate-100" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
       {Array.from({ length: cols }).map((_, i) => (
-        <Skeleton key={i} height={14} />
+        <Skeleton key={`skeleton-header-${i}`} height={14} />
       ))}
     </div>
     {Array.from({ length: rows }).map((_, rowIndex) => (
-      <div key={rowIndex} className="gap-4 p-4 border-b border-slate-50 last:border-b-0" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+      <div key={`skeleton-row-${rowIndex}`} className="gap-4 p-4 border-b border-slate-50 last:border-b-0" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
         {Array.from({ length: cols }).map((_, colIndex) => (
-          <Skeleton key={colIndex} height={14} width={colIndex === 0 ? '80%' : '60%'} />
+          <Skeleton key={`skeleton-cell-${rowIndex}-${colIndex}`} height={14} width={colIndex === 0 ? '80%' : '60%'} />
         ))}
       </div>
     ))}
@@ -898,13 +898,19 @@ export const Button: React.FC<ButtonProps> = ({
       disabled={disabled || loading}
       {...props}
     >
-      {loading ? (
-        <span className="relative">
-          <Icons.Loader2 className="w-5 h-5 animate-spin" />
-        </span>
-      ) : icon ? (
-        <span className="flex-shrink-0">{icon}</span>
-      ) : null}
+      {(() => {
+        if (loading) {
+          return (
+            <span className="relative">
+              <Icons.Loader2 className="w-5 h-5 animate-spin" />
+            </span>
+          );
+        }
+        if (icon) {
+          return <span className="flex-shrink-0">{icon}</span>;
+        }
+        return null;
+      })()}
       <span className={loading ? 'opacity-70' : ''}>{children}</span>
     </button>
   );

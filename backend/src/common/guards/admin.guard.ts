@@ -21,10 +21,10 @@ export class AdminGuard implements CanActivate {
   private readonly ADMIN_CACHE_TTL = 300;
 
   constructor(
-    private reflector: Reflector,
+    private readonly reflector: Reflector,
     @InjectRepository(Admin)
-    private adminRepository: Repository<Admin>,
-    private redisService: RedisService,
+    private readonly adminRepository: Repository<Admin>,
+    private readonly redisService: RedisService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

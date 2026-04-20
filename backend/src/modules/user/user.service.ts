@@ -9,13 +9,13 @@ import { IdUtil } from '@/common/utils/id.util';
 export class UserService {
   constructor(
     @InjectRepository(User)
-    private userRepository: Repository<User>,
+    private readonly userRepository: Repository<User>,
     @InjectRepository(BalanceLog)
-    private balanceLogRepository: Repository<BalanceLog>,
+    private readonly balanceLogRepository: Repository<BalanceLog>,
     @InjectRepository(Adoption)
-    private adoptionRepository: Repository<Adoption>,
-    private redisService: RedisService,
-    private dataSource: DataSource,
+    private readonly adoptionRepository: Repository<Adoption>,
+    private readonly redisService: RedisService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async findOne(id: string) {

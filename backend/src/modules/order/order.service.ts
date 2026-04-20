@@ -67,13 +67,17 @@ export class OrderService {
         // 获取更新后的活体信息
         const livestock = await manager.findOne(Livestock, { where: { id: livestockId } });
 
+        if (!livestock) {
+          throw new BadRequestException('活体不存在');
+        }
+
         // 创建订单
         const newOrder = manager.create(Order, {
           id: IdUtil.generate('ORD'),
           orderNo: IdUtil.generateOrderNo(),
           userId,
           livestockId,
-          livestockSnapshot: livestock,
+          livestockSnapshot: livestock!,
           quantity: 1,
           totalAmount: livestock!.price,
           paidAmount: 0,

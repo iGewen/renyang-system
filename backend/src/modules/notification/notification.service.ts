@@ -8,10 +8,10 @@ import { WechatService } from '@/services/wechat.service';
 export class NotificationService {
   constructor(
     @InjectRepository(Notification)
-    private notificationRepository: Repository<Notification>,
+    private readonly notificationRepository: Repository<Notification>,
     @InjectRepository(User)
-    private userRepository: Repository<User>,
-    private wechatService: WechatService,
+    private readonly userRepository: Repository<User>,
+    private readonly wechatService: WechatService,
   ) {}
 
   /**

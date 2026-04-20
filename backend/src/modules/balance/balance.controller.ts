@@ -27,8 +27,8 @@ export class BalanceController {
   ) {
     return this.balanceService.getBalanceLogs(
       userId,
-      page ? parseInt(page) : 1,
-      pageSize ? parseInt(pageSize) : 20,
+      page ? Number.parseInt(page) : 1,
+      pageSize ? Number.parseInt(pageSize) : 20,
     );
   }
 
@@ -43,8 +43,8 @@ export class BalanceController {
   ) {
     return this.balanceService.getRechargeLogs(
       userId,
-      page ? parseInt(page) : 1,
-      pageSize ? parseInt(pageSize) : 20,
+      page ? Number.parseInt(page) : 1,
+      pageSize ? Number.parseInt(pageSize) : 20,
     );
   }
 
@@ -59,8 +59,8 @@ export class BalanceController {
   ) {
     return this.balanceService.getConsumeLogs(
       userId,
-      page ? parseInt(page) : 1,
-      pageSize ? parseInt(pageSize) : 20,
+      page ? Number.parseInt(page) : 1,
+      pageSize ? Number.parseInt(pageSize) : 20,
     );
   }
 }

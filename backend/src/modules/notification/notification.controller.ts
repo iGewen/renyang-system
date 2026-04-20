@@ -19,8 +19,8 @@ export class NotificationController {
   ) {
     return this.notificationService.getUserNotifications(
       userId,
-      page ? parseInt(page) : 1,
-      pageSize ? parseInt(pageSize) : 20,
+      page ? Number.parseInt(page) : 1,
+      pageSize ? Number.parseInt(pageSize) : 20,
     );
   }
 

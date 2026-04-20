@@ -4,7 +4,7 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { AdminGuard } from '@/common/guards/admin.guard';
 import { RequireAdmin } from '@/common/decorators/admin-role.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { IsIn, IsOptional, IsNumber, IsBoolean, IsString, IsNumberString, Min, Max } from 'class-validator';
+import { IsOptional, IsNumber, IsBoolean, IsString, Min, Max } from 'class-validator';
 import { Request } from 'express';
 
 class ApplyRefundDto {
@@ -70,7 +70,7 @@ export class RefundController {
   ) {
     return this.refundService.getMyRefunds(
       userId,
-      status ? parseInt(status) : undefined,
+      status ? Number.parseInt(status) : undefined,
     );
   }
 
@@ -172,8 +172,8 @@ export class RefundController {
     @Query('pageSize') pageSize?: string,
   ) {
     return this.refundService.getPendingRefunds(
-      page ? parseInt(page) : 1,
-      pageSize ? parseInt(pageSize) : 10,
+      page ? Number.parseInt(page) : 1,
+      pageSize ? Number.parseInt(pageSize) : 10,
     );
   }
 
@@ -189,9 +189,9 @@ export class RefundController {
     @Query('status') status?: string,
   ) {
     return this.refundService.getAllRefunds(
-      page ? parseInt(page) : 1,
-      pageSize ? parseInt(pageSize) : 10,
-      status ? parseInt(status) : undefined,
+      page ? Number.parseInt(page) : 1,
+      pageSize ? Number.parseInt(pageSize) : 10,
+      status ? Number.parseInt(status) : undefined,
     );
   }
 }

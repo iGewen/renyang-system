@@ -39,7 +39,7 @@ export class RedemptionController {
   ) {
     return this.redemptionService.getMyRedemptions(
       userId,
-      status ? parseInt(status) : undefined,
+      status ? Number.parseInt(status) : undefined,
     );
   }
 
@@ -137,8 +137,8 @@ export class RedemptionController {
     @Query('pageSize') pageSize?: string,
   ) {
     return this.redemptionService.getPendingRedemptions(
-      page ? parseInt(page) : 1,
-      pageSize ? parseInt(pageSize) : 10,
+      page ? Number.parseInt(page) : 1,
+      pageSize ? Number.parseInt(pageSize) : 10,
     );
   }
 
@@ -154,9 +154,9 @@ export class RedemptionController {
     @Query('status') status?: string,
   ) {
     return this.redemptionService.getAllRedemptions(
-      page ? parseInt(page) : 1,
-      pageSize ? parseInt(pageSize) : 10,
-      status ? parseInt(status) : undefined,
+      page ? Number.parseInt(page) : 1,
+      pageSize ? Number.parseInt(pageSize) : 10,
+      status ? Number.parseInt(status) : undefined,
     );
   }
 }

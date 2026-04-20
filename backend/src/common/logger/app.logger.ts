@@ -52,13 +52,13 @@ export interface LogContext {
 
 @Injectable()
 export class AppLogger implements LoggerService {
-  private logDir: string;
-  private currentLogFile: string;
-  private errorLogFile: string;
-  private maxFileSize: number = 10 * 1024 * 1024; // 10MB
-  private maxBackupFiles: number = 5;
+  private readonly logDir: string;
+  private readonly currentLogFile: string;
+  private readonly errorLogFile: string;
+  private readonly maxFileSize: number = 10 * 1024 * 1024; // 10MB
+  private readonly maxBackupFiles: number = 5;
 
-  constructor(private configService: ConfigService) {
+  constructor(private readonly configService: ConfigService) {
     this.logDir = this.configService.get('LOG_DIR') || path.join(process.cwd(), 'logs');
     this.ensureLogDir();
     this.currentLogFile = path.join(this.logDir, 'app.log');

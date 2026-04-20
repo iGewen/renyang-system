@@ -18,18 +18,18 @@ export class PaymentService {
 
   constructor(
     @InjectRepository(PaymentRecord)
-    private paymentRepository: Repository<PaymentRecord>,
+    private readonly paymentRepository: Repository<PaymentRecord>,
     @InjectRepository(FeedBill)
-    private feedBillRepository: Repository<FeedBill>,
-    private dataSource: DataSource,
-    private configService: ConfigService,
-    private redisService: RedisService,
-    private orderService: OrderService,
-    private userService: UserService,
-    private alipayService: AlipayService,
-    private wechatPayService: WechatPayService,
+    private readonly feedBillRepository: Repository<FeedBill>,
+    private readonly dataSource: DataSource,
+    private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
+    private readonly orderService: OrderService,
+    private readonly userService: UserService,
+    private readonly alipayService: AlipayService,
+    private readonly wechatPayService: WechatPayService,
     @Inject(forwardRef(() => RedemptionService))
-    private redemptionService: RedemptionService,
+    private readonly redemptionService: RedemptionService,
   ) {}
 
   /**
@@ -648,8 +648,6 @@ export class PaymentService {
     //   "resource": { ... }
     // }
 
-    const eventType = data.event_type;
-
     // 解密 resource 字段
     let refundData: any;
     try {
@@ -665,7 +663,6 @@ export class PaymentService {
 
     const outRefundNo = refundData.out_refund_no;
     const refundStatus = refundData.refund_status;
-    const transactionId = refundData.transaction_id;
 
     this.logger.log(`[WechatPay] 退款回调 - 退款单号: ${outRefundNo}, 状态: ${refundStatus}`);
 

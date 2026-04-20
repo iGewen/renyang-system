@@ -4,7 +4,6 @@ import { NotificationController } from './notification.controller';
 import { NotificationService } from './notification.service';
 import { Notification, User } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
-import { WechatService } from '@/services/wechat.service';
 import { ServicesModule } from '@/services/services.module';
 
 @Module({

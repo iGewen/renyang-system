@@ -18,7 +18,7 @@ export const MIN_STATUS_KEY = 'min_status';
 
 @Injectable()
 export class UserStatusGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
     // 获取接口要求的最小状态级别

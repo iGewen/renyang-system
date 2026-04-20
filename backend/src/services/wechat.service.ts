@@ -20,13 +20,13 @@ export class WechatService {
   private loginAppSecret: string;
 
   constructor(
-    private configService: ConfigService,
-    private redisService: RedisService,
+    private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
     @InjectRepository(User)
-    private userRepository: Repository<User>,
+    private readonly userRepository: Repository<User>,
     @InjectRepository(SystemConfig)
-    private systemConfigRepository: Repository<SystemConfig>,
-    private jwtService: JwtService,
+    private readonly systemConfigRepository: Repository<SystemConfig>,
+    private readonly jwtService: JwtService,
   ) {
     // 微信支付相关
     this.appId = this.configService.get('wechat.appId') || '';
@@ -79,11 +79,8 @@ export class WechatService {
       where: { wechatOpenId: tokenData.openid },
     });
 
-    let isNewUser = false;
-
     if (!user) {
       // 创建新用户（临时用户，需要绑定手机号）
-      isNewUser = true;
       user = this.userRepository.create({
         id: IdUtil.generate('U'),
         wechatOpenId: tokenData.openid,
@@ -187,7 +184,7 @@ export class WechatService {
     const url = `https://api.weixin.qq.com/sns/oauth2/access_token?appid=${appId}&secret=${appSecret}&code=${code}&grant_type=authorization_code`;
 
     const response = await fetch(url);
-    const data = await response.json() as any;
+    const data = await response.json();
 
     if (data.errcode) {
       throw new BadRequestException(data.errmsg || '获取微信授权失败');
@@ -207,7 +204,7 @@ export class WechatService {
     const url = `https://api.weixin.qq.com/sns/userinfo?access_token=${accessToken}&openid=${openid}&lang=zh_CN`;
 
     const response = await fetch(url);
-    const data = await response.json() as any;
+    const data = await response.json();
 
     if (data.errcode) {
       // 如果获取失败，返回默认信息
@@ -233,7 +230,7 @@ export class WechatService {
     if (!accessToken) {
       const tokenUrl = `https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=${appId}&secret=${appSecret}`;
       const tokenResponse = await fetch(tokenUrl);
-      const tokenData = await tokenResponse.json() as any;
+      const tokenData = await tokenResponse.json();
 
       if (tokenData.errcode) {
         throw new BadRequestException('获取access_token失败');
@@ -248,7 +245,7 @@ export class WechatService {
     if (!ticket) {
       const ticketUrl = `https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=${accessToken}&type=jsapi`;
       const ticketResponse = await fetch(ticketUrl);
-      const ticketData = await ticketResponse.json() as any;
+      const ticketData = await ticketResponse.json();
 
       if (ticketData.errcode !== 0) {
         throw new BadRequestException('获取jsapi_ticket失败');
@@ -324,7 +321,7 @@ export class WechatService {
     // 重新获取
     const url = `https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=${appId}&secret=${appSecret}`;
     const response = await fetch(url);
-    const data = await response.json() as any;
+    const data = await response.json();
 
     if (data.errcode) {
       console.error('获取微信access_token失败:', data);
@@ -333,9 +330,9 @@ export class WechatService {
 
     accessToken = data.access_token;
     // 缓存7000秒（约2小时，微信token有效期2小时）
-    await this.redisService.set('wechat:global:access_token', accessToken!, 7000);
+    await this.redisService.set('wechat:global:access_token', accessToken as string, 7000);
 
-    return accessToken!;
+    return accessToken as string;
   }
 
   /**
@@ -371,7 +368,7 @@ export class WechatService {
         body: JSON.stringify(body),
       });
 
-      const result = await response.json() as any;
+      const result = await response.json();
 
       if (result.errcode !== 0) {
         console.error('发送模板消息失败:', result);

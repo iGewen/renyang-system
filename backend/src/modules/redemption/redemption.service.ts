@@ -12,15 +12,15 @@ import { NotificationService } from '../notification/notification.service';
 export class RedemptionService {
   constructor(
     @InjectRepository(RedemptionOrder)
-    private redemptionRepository: Repository<RedemptionOrder>,
+    private readonly redemptionRepository: Repository<RedemptionOrder>,
     @InjectRepository(Adoption)
-    private adoptionRepository: Repository<Adoption>,
-    private dataSource: DataSource,
-    private redisService: RedisService,
-    private adoptionService: AdoptionService,
+    private readonly adoptionRepository: Repository<Adoption>,
+    private readonly dataSource: DataSource,
+    private readonly redisService: RedisService,
+    private readonly adoptionService: AdoptionService,
     @Inject(forwardRef(() => PaymentService))
-    private paymentService: PaymentService,
-    private notificationService: NotificationService,
+    private readonly paymentService: PaymentService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   /**
@@ -38,7 +38,7 @@ export class RedemptionService {
     }
 
     // 计算买断金额
-    const livestock = adoption.livestockSnapshot as any;
+    const livestock = adoption.livestockSnapshot;
     const requiredMonths = adoption.redemptionMonths - 1; // 首月免费
     const remainingMonths = Math.max(0, requiredMonths - adoption.feedMonthsPaid);
     const monthlyFeedFee = livestock?.monthlyFeedFee || 0;
@@ -104,7 +104,7 @@ export class RedemptionService {
       }
 
       // 计算买断金额
-      const livestock = adoption.livestockSnapshot as any;
+      const livestock = adoption.livestockSnapshot;
       const requiredMonths = adoption.redemptionMonths - 1; // 首月免费
       const remainingMonths = Math.max(0, requiredMonths - adoption.feedMonthsPaid);
       const monthlyFeedFee = livestock?.monthlyFeedFee || 0;
@@ -380,7 +380,7 @@ export class RedemptionService {
     return {
       success: false,
       amount: finalAmount,
-      payUrl: (payment as any).payUrl,
+      payUrl: payment.payUrl,
       paymentNo: payment.paymentNo,
       redemptionNo: redemption.redemptionNo,
     };

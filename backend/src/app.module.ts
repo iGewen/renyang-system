@@ -143,7 +143,7 @@ import { AppLogger, LoggerMiddleware } from './common/logger';
 export class AppModule implements NestModule, OnModuleInit {
   private readonly logger = new Logger(AppModule.name);
 
-  constructor(@InjectDataSource() private dataSource: DataSource) {}
+  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
   configure(consumer: MiddlewareConsumer) {
     consumer

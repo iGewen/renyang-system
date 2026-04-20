@@ -8,7 +8,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   private client: Redis;
   private readonly logger = new Logger(RedisService.name);
 
-  constructor(private configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) {}
 
   async onModuleInit() {
     this.client = new Redis({

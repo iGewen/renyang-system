@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, StatCard, Modal, Input, ConfirmDialog, EmptyState, ToastProvider, useToast } from '../../components/ui';
+import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, Modal, Input, ConfirmDialog, EmptyState, ToastProvider, useToast } from '../../components/ui';
 import { cn } from '../../lib/utils';
-import { adminApi, refundApi } from '../../services/api';
+import { adminApi } from '../../services/api';
 import type { Livestock, LivestockType, AdoptionOrder, FeedBill, User, DashboardStats, SystemConfig, AuditLog, Notification } from '../../types';
-import { OrderStatus, UserStatus, FeedBillStatus, RedemptionStatus, getOrderStatusText, getUserStatusText, getFeedBillStatusText, getRedemptionStatusText } from '../../types/enums';
+import { OrderStatus, UserStatus, FeedBillStatus, RedemptionStatus } from '../../types/enums';
 import { AdminLayout } from './AdminLayout';
 
 // 状态标签变体类型
@@ -13,6 +13,40 @@ type StatusVariant = 'success' | 'warning' | 'danger' | 'info' | 'default';
 
 // 详情标签类型
 type DetailTab = 'orders' | 'payments' | 'balance';
+
+// 订单状态辅助函数
+const getOrderBadgeVariant = (status: string): StatusVariant => {
+  if (status === 'paid') return 'success';
+  if (status === 'pending') return 'warning';
+  return 'default';
+};
+
+const getOrderStatusText = (status: string): string => {
+  if (status === 'paid') return '已支付';
+  if (status === 'pending') return '待支付';
+  return status;
+};
+
+// 支付状态辅助函数
+const getPaymentBadgeVariant = (status: string): StatusVariant => {
+  if (status === 'success') return 'success';
+  if (status === 'pending') return 'warning';
+  return 'default';
+};
+
+const getPaymentStatusText = (status: string): string => {
+  if (status === 'success') return '成功';
+  if (status === 'pending') return '处理中';
+  return status;
+};
+
+// 支付方式辅助函数
+const getPaymentMethodText = (method: string): string => {
+  if (method === 'alipay') return '支付宝';
+  if (method === 'wechat') return '微信';
+  if (method === 'balance') return '余额';
+  return method;
+};
 
 // ==================== 防抖 Hook ====================
 function useDebounce<T>(value: T, delay: number): T {
@@ -110,7 +144,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl p-5 border border-slate-100">
+            <div key={`skeleton-stat-${i}`} className="bg-white rounded-2xl p-5 border border-slate-100">
               <div className="flex justify-between items-start">
                 <div className="space-y-2 flex-1">
                   <div className="h-3 w-16 bg-slate-200 rounded animate-pulse" />
@@ -245,7 +279,7 @@ export const AdminDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card, index) => (
           <Card
-            key={index}
+            key={`stat-card-${index}`}
             className={cn(
               "p-5 relative overflow-hidden group",
               `bg-gradient-to-br ${card.gradient}`
@@ -288,7 +322,7 @@ export const AdminDashboard: React.FC = () => {
             const colors = colorMap[item.color];
             return (
               <motion.button
-                key={index}
+                key={`pending-${index}`}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => globalThis.dispatchEvent(new CustomEvent('navigate', { detail: item.menu }))}
@@ -361,7 +395,7 @@ export const AdminDashboard: React.FC = () => {
               { label: '本年收入', value: stats?.revenueYear || 0, icon: Icons.TrendingUp, gradient: 'from-purple-50 to-pink-50', iconBg: 'bg-purple-100', iconColor: 'text-purple-600', valueColor: 'text-purple-600' },
             ].map((item, index) => (
               <motion.div
-                key={index}
+                key={`revenue-${index}`}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
@@ -396,7 +430,7 @@ export const AdminDashboard: React.FC = () => {
             { icon: Icons.Settings, label: '系统配置', menu: 'config', bg: 'bg-slate-100', color: 'text-slate-600', hover: 'hover:bg-slate-200' },
           ].map((item, index) => (
             <motion.button
-              key={index}
+              key={`quick-action-${index}`}
               whileHover={{ scale: 1.03, y: -2 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => globalThis.dispatchEvent(new CustomEvent('navigate', { detail: item.menu }))}
@@ -500,10 +534,10 @@ export const AdminLivestock: React.FC = () => {
       const data = {
         name: livestockForm.name,
         typeId: livestockForm.typeId,
-        price: parseFloat(livestockForm.price),
-        monthlyFeedFee: parseFloat(livestockForm.monthlyFeedFee),
-        redemptionMonths: parseInt(livestockForm.redemptionMonths),
-        stock: parseInt(livestockForm.stock),
+        price: Number.parseFloat(livestockForm.price),
+        monthlyFeedFee: Number.parseFloat(livestockForm.monthlyFeedFee),
+        redemptionMonths: Number.parseInt(livestockForm.redemptionMonths),
+        stock: Number.parseInt(livestockForm.stock),
         description: livestockForm.description,
         mainImage: livestockForm.image || undefined,
         images: livestockForm.image ? [livestockForm.image] : [],
@@ -641,8 +675,8 @@ export const AdminLivestock: React.FC = () => {
         <div className="space-y-4 p-6 max-h-[70vh] overflow-y-auto">
           <Input label="名称" value={livestockForm.name} onChange={e => setLivestockForm({ ...livestockForm, name: e.target.value })} placeholder="请输入活体名称" />
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">类型</label>
-            <select className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none" value={livestockForm.typeId} onChange={e => setLivestockForm({ ...livestockForm, typeId: e.target.value })}>
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="livestock-type">类型</label>
+            <select id="livestock-type" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none" value={livestockForm.typeId} onChange={e => setLivestockForm({ ...livestockForm, typeId: e.target.value })}>
               <option value="">请选择类型</option>
               {types.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
@@ -651,8 +685,9 @@ export const AdminLivestock: React.FC = () => {
           <Input label="月饲料费" type="number" value={livestockForm.monthlyFeedFee} onChange={e => setLivestockForm({ ...livestockForm, monthlyFeedFee: e.target.value })} placeholder="请输入月饲料费" />
           <Input label="库存" type="number" value={livestockForm.stock} onChange={e => setLivestockForm({ ...livestockForm, stock: e.target.value })} placeholder="请输入库存数量" />
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">图片URL</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="livestock-image">图片URL</label>
             <input
+              id="livestock-image"
               type="text"
               className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none"
               value={livestockForm.image}
@@ -662,8 +697,8 @@ export const AdminLivestock: React.FC = () => {
             <p className="text-xs text-slate-400 mt-1">支持相对路径（/uploads/）或 HTTPS 链接</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">描述</label>
-            <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none" rows={3} value={livestockForm.description} onChange={e => setLivestockForm({ ...livestockForm, description: e.target.value })} placeholder="请输入描述" />
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="livestock-description">描述</label>
+            <textarea id="livestock-description" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none" rows={3} value={livestockForm.description} onChange={e => setLivestockForm({ ...livestockForm, description: e.target.value })} placeholder="请输入描述" />
           </div>
           <div className="flex gap-3 pt-4">
             <Button variant="outline" className="flex-1" onClick={() => setShowLivestockModal(false)}>取消</Button>
@@ -796,7 +831,7 @@ export const AdminOrders: React.FC = () => {
     try {
       toast.info('正在导出订单数据...');
       const result = await adminApi.exportOrders({
-        status: statusFilter ? parseInt(statusFilter) : undefined
+        status: statusFilter ? Number.parseInt(statusFilter) : undefined
       });
       const link = document.createElement('a');
       link.href = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${result.base64}`;
@@ -859,7 +894,7 @@ export const AdminOrders: React.FC = () => {
                   <td className="py-3 px-4">{order.livestock?.name || '-'}</td>
                   <td className="py-3 px-4">¥{order.totalAmount}</td>
                   <td className="py-3 px-4">
-                    <Badge variant={orderStatusMap[order.status as number]?.variant || 'default'}>{orderStatusMap[order.status as number]?.label || order.status}</Badge>
+                    <Badge variant={orderStatusMap[order.status]?.variant || 'default'}>{orderStatusMap[order.status]?.label || order.status}</Badge>
                   </td>
                   <td className="py-3 px-4 text-sm text-slate-500">{new Date(order.createdAt).toLocaleString()}</td>
                   <td className="py-3 px-4">
@@ -892,8 +927,8 @@ export const AdminOrders: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-slate-500">状态</p>
-                <Badge variant={orderStatusMap[selectedOrder.status as number]?.variant || 'default'}>
-                  {orderStatusMap[selectedOrder.status as number]?.label || selectedOrder.status}
+                <Badge variant={orderStatusMap[selectedOrder.status]?.variant || 'default'}>
+                  {orderStatusMap[selectedOrder.status]?.label || selectedOrder.status}
                 </Badge>
               </div>
               <div>
@@ -949,8 +984,9 @@ export const AdminOrders: React.FC = () => {
               <p className="text-lg font-bold text-brand-primary mt-1">¥{selectedOrder.totalAmount}</p>
             </div>
             <div>
-              <label className="block text-sm text-slate-500 mb-2">退款原因</label>
+              <label className="block text-sm text-slate-500 mb-2" htmlFor="refund-reason">退款原因</label>
               <textarea
+                id="refund-reason"
                 className="w-full border border-slate-200 rounded-lg p-3 text-sm"
                 rows={3}
                 placeholder="请输入退款原因"
@@ -975,7 +1011,7 @@ export const AdminOrders: React.FC = () => {
                 {deleteConfirmStep === 1 ? '确定要删除此订单吗？' : '⚠️ 再次确认删除订单，此操作不可恢复！'}
               </p>
               <p className="text-sm text-red-600 mt-2">订单号: {selectedOrder.orderNo}</p>
-              <p className="text-sm text-red-600">状态: {orderStatusMap[selectedOrder.status as number]?.label}</p>
+              <p className="text-sm text-red-600">状态: {orderStatusMap[selectedOrder.status]?.label}</p>
             </div>
             <div className="flex justify-end gap-2 pt-4">
               <Button variant="outline" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmStep(1); }}>取消</Button>
@@ -1043,11 +1079,11 @@ export const AdminFeedBills: React.FC = () => {
               {bills.map(bill => (
                 <tr key={bill.id} className="border-b border-slate-50">
                   <td className="py-3 px-4 font-mono text-sm">{bill.billNo}</td>
-                  <td className="py-3 px-4">{(bill as any).user?.phone || '-'}</td>
+                  <td className="py-3 px-4">{bill.user?.phone || '-'}</td>
                   <td className="py-3 px-4">¥{bill.adjustedAmount || bill.originalAmount}</td>
                   <td className="py-3 px-4">¥{bill.lateFeeAmount || 0}</td>
                   <td className="py-3 px-4">
-                    <Badge variant={feedBillStatusMap[bill.status as number]?.variant || 'default'}>{feedBillStatusMap[bill.status as number]?.label || bill.status}</Badge>
+                    <Badge variant={feedBillStatusMap[bill.status]?.variant || 'default'}>{feedBillStatusMap[bill.status]?.label || bill.status}</Badge>
                   </td>
                   <td className="py-3 px-4 text-sm text-slate-500">{bill.billDate ? new Date(bill.billDate).toLocaleDateString() : '-'}</td>
                 </tr>
@@ -1158,8 +1194,8 @@ export const AdminRedemptions: React.FC = () => {
                     <span className="font-bold text-slate-900">¥{item.finalAmount || item.originalAmount || 0}</span>
                   </td>
                   <td className="py-3 px-4">
-                    <Badge variant={redemptionStatusMap[item.status as number]?.variant || 'default'}>
-                      {redemptionStatusMap[item.status as number]?.label || item.status}
+                    <Badge variant={redemptionStatusMap[item.status]?.variant || 'default'}>
+                      {redemptionStatusMap[item.status]?.label || item.status}
                     </Badge>
                   </td>
                   <td className="py-3 px-4 text-sm text-slate-500">
@@ -1296,8 +1332,8 @@ export const AdminUsers: React.FC = () => {
 
   const handleAdjustBalance = async () => {
     if (!selectedUser) return;
-    const amount = parseFloat(balanceForm.amount);
-    if (isNaN(amount) || amount === 0) {
+    const amount = Number.parseFloat(balanceForm.amount);
+    if (Number.isNaN(amount) || amount === 0) {
       toast.error('请输入有效的金额');
       return;
     }
@@ -1313,7 +1349,7 @@ export const AdminUsers: React.FC = () => {
     // 检查扣减后余额是否为负
     const currentBalance = typeof selectedUser.balance === 'number'
       ? selectedUser.balance
-      : parseFloat(selectedUser.balance || '0');
+      : Number.parseFloat(selectedUser.balance || '0');
     if (currentBalance + amount < 0) {
       toast.error('扣减后余额不能为负数');
       return;
@@ -1453,9 +1489,9 @@ export const AdminUsers: React.FC = () => {
                   <td className="py-3 px-4 font-mono text-sm">{user.id?.substring(0, 8)}</td>
                   <td className="py-3 px-4">{user.phone}</td>
                   <td className="py-3 px-4">{user.nickname || '-'}</td>
-                  <td className="py-3 px-4 font-medium">¥{typeof user.balance === 'number' ? user.balance.toFixed(2) : parseFloat(user.balance || '0').toFixed(2)}</td>
+                  <td className="py-3 px-4 font-medium">¥{typeof user.balance === 'number' ? user.balance.toFixed(2) : Number.parseFloat(user.balance || '0').toFixed(2)}</td>
                   <td className="py-3 px-4">
-                    <Badge variant={userStatusMap[user.status as number]?.variant || 'default'}>{userStatusMap[user.status as number]?.label || user.status}</Badge>
+                    <Badge variant={userStatusMap[user.status]?.variant || 'default'}>{userStatusMap[user.status]?.label || user.status}</Badge>
                   </td>
                   <td className="py-3 px-4 text-sm text-slate-500">{new Date(user.createdAt).toLocaleDateString()}</td>
                   <td className="py-3 px-4">
@@ -1479,8 +1515,9 @@ export const AdminUsers: React.FC = () => {
         <div className="p-6 space-y-4">
           <p className="text-sm text-slate-600">用户：{selectedUser?.phone} ({selectedUser?.nickname || '未设置昵称'})</p>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">选择状态</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="user-status">选择状态</label>
             <select
+              id="user-status"
               className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none"
               value={newStatus}
               onChange={e => setNewStatus(Number(e.target.value))}
@@ -1525,12 +1562,13 @@ export const AdminUsers: React.FC = () => {
           <div className="p-4 bg-slate-50 rounded-xl">
             <p className="text-sm text-slate-500">当前余额</p>
             <p className="text-2xl font-bold text-brand-primary">
-              ¥{typeof selectedUser?.balance === 'number' ? selectedUser.balance.toFixed(2) : parseFloat(selectedUser?.balance || '0').toFixed(2)}
+              ¥{typeof selectedUser?.balance === 'number' ? selectedUser.balance.toFixed(2) : Number.parseFloat(selectedUser?.balance || '0').toFixed(2)}
             </p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">调整金额</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="balance-amount">调整金额</label>
             <input
+              id="balance-amount"
               type="number"
               className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none"
               value={balanceForm.amount}
@@ -1542,8 +1580,9 @@ export const AdminUsers: React.FC = () => {
             </p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">调整原因 <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="balance-reason">调整原因 <span className="text-red-500">*</span></label>
             <textarea
+              id="balance-reason"
               className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none"
               rows={3}
               value={balanceForm.reason}
@@ -1572,7 +1611,7 @@ export const AdminUsers: React.FC = () => {
             </div>
             <div className="text-right">
               <p className="text-sm text-slate-500">账户余额</p>
-              <p className="text-xl font-bold text-brand-primary">¥{typeof selectedUser?.balance === 'number' ? selectedUser.balance.toFixed(2) : parseFloat(selectedUser?.balance || '0').toFixed(2)}</p>
+              <p className="text-xl font-bold text-brand-primary">¥{typeof selectedUser?.balance === 'number' ? selectedUser.balance.toFixed(2) : Number.parseFloat(selectedUser?.balance || '0').toFixed(2)}</p>
             </div>
           </div>
 
@@ -1627,8 +1666,8 @@ export const AdminUsers: React.FC = () => {
                                 <p className="font-medium text-slate-900">{order.livestock?.name || '活体'}</p>
                                 <p className="text-xs text-slate-400 font-mono">{order.orderNo}</p>
                               </div>
-                              <Badge variant={order.status === 'paid' ? 'success' : order.status === 'pending' ? 'warning' : 'default'}>
-                                {order.status === 'paid' ? '已支付' : order.status === 'pending' ? '待支付' : order.status}
+                              <Badge variant={getOrderBadgeVariant(order.status)}>
+                                {getOrderStatusText(order.status)}
                               </Badge>
                             </div>
                             <div className="flex items-center justify-between text-sm">
@@ -1654,12 +1693,12 @@ export const AdminUsers: React.FC = () => {
                             <div className="flex items-start justify-between mb-2">
                               <div>
                                 <p className="font-medium text-slate-900">
-                                  {payment.paymentMethod === 'alipay' ? '支付宝' : payment.paymentMethod === 'wechat' ? '微信' : payment.paymentMethod === 'balance' ? '余额' : payment.paymentMethod}
+                                  {getPaymentMethodText(payment.paymentMethod)}
                                 </p>
                                 <p className="text-xs text-slate-400 font-mono">{payment.paymentNo}</p>
                               </div>
-                              <Badge variant={payment.status === 'success' ? 'success' : payment.status === 'pending' ? 'warning' : 'default'}>
-                                {payment.status === 'success' ? '成功' : payment.status === 'pending' ? '处理中' : payment.status}
+                              <Badge variant={getPaymentBadgeVariant(payment.status)}>
+                                {getPaymentStatusText(payment.status)}
                               </Badge>
                             </div>
                             <div className="flex items-center justify-between text-sm">
@@ -1984,8 +2023,8 @@ export const AdminConfig: React.FC = () => {
             <Input label="网站名称" value={basicConfig.siteName} onChange={e => setBasicConfig({ ...basicConfig, siteName: e.target.value })} placeholder="云端牧场" />
             <Input label="网站标题" value={basicConfig.siteTitle} onChange={e => setBasicConfig({ ...basicConfig, siteTitle: e.target.value })} placeholder="云端牧场 - 智慧农业领养平台" />
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">网站描述 (SEO)</label>
-              <textarea className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none" rows={3} value={basicConfig.siteDescription} onChange={e => setBasicConfig({ ...basicConfig, siteDescription: e.target.value })} placeholder="网站描述，用于SEO优化" />
+              <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="site-description">网站描述 (SEO)</label>
+              <textarea id="site-description" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none" rows={3} value={basicConfig.siteDescription} onChange={e => setBasicConfig({ ...basicConfig, siteDescription: e.target.value })} placeholder="网站描述，用于SEO优化" />
             </div>
             <Input label="网站关键词 (SEO)" value={basicConfig.siteKeywords} onChange={e => setBasicConfig({ ...basicConfig, siteKeywords: e.target.value })} placeholder="云端牧场,智慧农业,活体领养" />
             <Input label="联系电话" value={basicConfig.contactPhone} onChange={e => setBasicConfig({ ...basicConfig, contactPhone: e.target.value })} placeholder="400-xxx-xxxx" />
@@ -2333,8 +2372,9 @@ export const AdminNotifications: React.FC = () => {
       <Modal open={showSendModal} onClose={() => setShowSendModal(false)} title="发送站内信">
         <div className="space-y-4 p-6">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">通知类型</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="notification-type">通知类型</label>
             <select
+              id="notification-type"
               className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none"
               value={formData.type}
               onChange={e => setFormData({ ...formData, type: e.target.value })}
@@ -2353,8 +2393,9 @@ export const AdminNotifications: React.FC = () => {
             placeholder="请输入通知标题"
           />
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">内容</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="notification-content">内容</label>
             <textarea
+              id="notification-content"
               className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none"
               rows={4}
               value={formData.content}
@@ -2554,8 +2595,9 @@ export const AdminAgreements: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">协议内容</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="agreement-content">协议内容</label>
               <textarea
+                id="agreement-content"
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none"
                 rows={15}
                 value={formData.content}
@@ -2881,8 +2923,9 @@ export const AdminRefunds: React.FC = () => {
 
           {auditPassed && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">退款金额 *</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="audit-amount">退款金额 *</label>
               <input
+                id="audit-amount"
                 type="number"
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none"
                 value={auditAmount}
@@ -2894,8 +2937,9 @@ export const AdminRefunds: React.FC = () => {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">备注</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="audit-remark">备注</label>
             <textarea
+              id="audit-remark"
               className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none resize-none"
               rows={2}
               placeholder="审核备注（可选）"
@@ -3080,8 +3124,9 @@ export const AdminAuditLogs: React.FC = () => {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">管理员密码</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="admin-password-confirm">管理员密码</label>
             <input
+              id="admin-password-confirm"
               type="password"
               className={cn(
                 "w-full px-4 py-3 rounded-xl border outline-none",
@@ -3106,45 +3151,45 @@ export const AdminAuditLogs: React.FC = () => {
           <div className="p-6 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-slate-500">时间</label>
+                <span className="text-sm text-slate-500">时间</span>
                 <p className="font-medium">{new Date(selectedLog.createdAt).toLocaleString()}</p>
               </div>
               <div>
-                <label className="text-sm text-slate-500">操作人</label>
+                <span className="text-sm text-slate-500">操作人</span>
                 <p className="font-medium">{selectedLog.adminName || '-'}</p>
               </div>
               <div>
-                <label className="text-sm text-slate-500">模块</label>
+                <span className="text-sm text-slate-500">模块</span>
                 <p className="font-medium">{moduleMapFull[selectedLog.module]?.label || selectedLog.module}</p>
               </div>
               <div>
-                <label className="text-sm text-slate-500">操作类型</label>
+                <span className="text-sm text-slate-500">操作类型</span>
                 <p className="font-medium">{actionMap[selectedLog.action] || selectedLog.action}</p>
               </div>
               <div>
-                <label className="text-sm text-slate-500">IP地址</label>
+                <span className="text-sm text-slate-500">IP地址</span>
                 <p className="font-medium font-mono">{formatIp(selectedLog.ip)}</p>
               </div>
               <div>
-                <label className="text-sm text-slate-500">敏感操作</label>
+                <span className="text-sm text-slate-500">敏感操作</span>
                 <p className="font-medium">{selectedLog.isSensitive ? '是' : '否'}</p>
               </div>
             </div>
             {selectedLog.remark && (
               <div>
-                <label className="text-sm text-slate-500">描述</label>
+                <span className="text-sm text-slate-500">描述</span>
                 <p className="font-medium">{selectedLog.remark}</p>
               </div>
             )}
             {selectedLog.beforeData && (
               <div>
-                <label className="text-sm text-slate-500 block mb-2">修改前数据</label>
+                <span className="text-sm text-slate-500 block mb-2">修改前数据</span>
                 <pre className="bg-slate-50 p-3 rounded-lg text-sm overflow-x-auto max-h-40">{formatJson(selectedLog.beforeData)}</pre>
               </div>
             )}
             {selectedLog.afterData && (
               <div>
-                <label className="text-sm text-slate-500 block mb-2">修改后数据</label>
+                <span className="text-sm text-slate-500 block mb-2">修改后数据</span>
                 <pre className="bg-slate-50 p-3 rounded-lg text-sm overflow-x-auto max-h-40">{formatJson(selectedLog.afterData)}</pre>
               </div>
             )}
