@@ -1481,7 +1481,7 @@ const MyAdoptionsPage: React.FC = () => {
 
   const getStatusBadge = (status: number, redemption?: any) => {
     // 如果有买断订单且状态是审核通过，显示特殊状态
-    if (redemption && redemption.status === 2) {
+    if (redemption?.status === 2) {
       return <Badge variant="info">审核通过待支付</Badge>;
     }
     const map: Record<number, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
@@ -1514,7 +1514,7 @@ const MyAdoptionsPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {adoptions.map((item) => {
                 const redemption = getRedemptionForAdoption(item.id);
-                const canPayRedemption = redemption && redemption.status === 2;
+                const canPayRedemption = redemption?.status === 2;
                 return (
                   <Card key={item.id} className="p-8" onClick={() => navigate(`/adoption/${item.id}`)}>
                     <div className="flex gap-5 mb-6">

@@ -56,7 +56,7 @@ export function invokeWechatJsapiPay(payParams: WechatPayParams): Promise<Wechat
     }
 
     const onBridgeReady = () => {
-      (window as any).WeixinJSBridge.invoke(
+      (globalThis as any).WeixinJSBridge.invoke(
         'getBrandWCPayRequest',
         {
           appId: payParams.appId,
@@ -83,7 +83,7 @@ export function invokeWechatJsapiPay(payParams: WechatPayParams): Promise<Wechat
       );
     };
 
-    if (typeof (window as any).WeixinJSBridge === 'undefined') {
+    if (typeof (globalThis as any).WeixinJSBridge === 'undefined') {
       if (document.addEventListener) {
         document.addEventListener('WeixinJSBridgeReady', onBridgeReady, false);
       } else {
@@ -128,9 +128,9 @@ export function getWechatEnv(): 'wechat' | 'miniprogram' | 'other' {
  */
 export function invokeMiniProgramPay(payParams: WechatPayParams): Promise<WechatPayResult> {
   return new Promise((resolve, reject) => {
-    const wx = (window as any).wx;
+    const wx = (globalThis as any).wx;
 
-    if (!wx || !wx.requestPayment) {
+    if (!wx?.requestPayment) {
       reject(new Error('请在小程序环境中使用'));
       return;
     }

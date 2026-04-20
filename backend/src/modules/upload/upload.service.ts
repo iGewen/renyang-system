@@ -20,7 +20,7 @@ export class UploadService {
   private readonly allowedDocTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
   private readonly maxFileSize = 10 * 1024 * 1024; // 10MB
 
-  constructor(private configService: ConfigService) {
+  constructor(private readonly configService: ConfigService) {
     this.uploadDir = this.configService.get('UPLOAD_DIR') || path.join(process.cwd(), 'uploads');
     this.baseUrl = this.configService.get('APP_URL') || 'http://localhost:3001';
     this.ensureUploadDir();
