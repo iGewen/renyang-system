@@ -237,6 +237,9 @@ export class WechatService {
       }
 
       accessToken = tokenData.access_token;
+      if (!accessToken) {
+        throw new BadRequestException('获取access_token失败：返回值为空');
+      }
       await this.redisService.set('wechat:jsapi:access_token', accessToken, 7000);
     }
 
@@ -252,6 +255,9 @@ export class WechatService {
       }
 
       ticket = ticketData.ticket;
+      if (!ticket) {
+        throw new BadRequestException('获取jsapi_ticket失败：返回值为空');
+      }
       await this.redisService.set('wechat:jsapi:ticket', ticket, 7000);
     }
 
