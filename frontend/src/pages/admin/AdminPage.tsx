@@ -2072,6 +2072,7 @@ export const AdminConfig: React.FC = () => {
             <p className="text-sm text-slate-500 mb-4">开启或关闭对应的支付方式，关闭后用户端将不显示该支付选项</p>
             <div className="flex gap-8">
               <label className="flex items-center gap-3 cursor-pointer">
+                <span className="sr-only">支付宝支付开关</span>
                 <div
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
@@ -2098,6 +2099,7 @@ export const AdminConfig: React.FC = () => {
               </label>
 
               <label className="flex items-center gap-3 cursor-pointer">
+                <span className="sr-only">微信支付开关</span>
                 <div
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",

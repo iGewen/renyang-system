@@ -402,7 +402,7 @@ const AuthPage: React.FC = () => {
 const HomePageSkeleton: React.FC = () => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
     {Array.from({ length: 6 }).map((_, i) => (
-      <div key={`skeleton-card-${i}`} className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+      <div key={`skeleton-home-card-${i}`} className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
         <div className="relative h-64 bg-slate-200 animate-pulse" />
         <div className="p-6 space-y-4">
           <div className="h-4 bg-slate-200 rounded animate-pulse w-3/4" />
