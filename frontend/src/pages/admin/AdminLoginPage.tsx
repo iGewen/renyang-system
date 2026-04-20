@@ -5,6 +5,29 @@ import { Icons, useToast } from '../../components/ui';
 import { adminApi } from '../../services/api';
 import { cn } from '../../lib/utils';
 
+// 背景动画元素 - 移到组件外部避免每次渲染重新创建
+const FloatingShape: React.FC<{ delay: number; duration: number; className: string }> = ({ delay, duration, className }) => (
+  <motion.div
+    aria-hidden="true"
+    initial={{ opacity: 0, scale: 0.8 }}
+    animate={{
+      opacity: 0.15,
+      scale: 1,
+      y: [0, -20, 0],
+    }}
+    transition={{
+      delay,
+      duration,
+      y: {
+        repeat: Infinity,
+        duration: duration * 2,
+        ease: "easeInOut"
+      }
+    }}
+    className={className}
+  />
+);
+
 export const AdminLoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { success } = useToast();
@@ -174,29 +197,6 @@ export const AdminLoginPage: React.FC = () => {
   useEffect(() => {
     setPasswordStrength(calculatePasswordStrength(newPassword));
   }, [newPassword, calculatePasswordStrength]);
-
-  // 背景动画元素
-  const FloatingShape = ({ delay, duration, className }: { delay: number; duration: number; className: string }) => (
-    <motion.div
-      aria-hidden="true"
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{
-        opacity: 0.15,
-        scale: 1,
-        y: [0, -20, 0],
-      }}
-      transition={{
-        delay,
-        duration,
-        y: {
-          repeat: Infinity,
-          duration: duration * 2,
-          ease: "easeInOut"
-        }
-      }}
-      className={className}
-    />
-  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-brand-bg via-indigo-50/50 to-brand-bg relative overflow-hidden">

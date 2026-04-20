@@ -143,8 +143,8 @@ export const AdminDashboard: React.FC = () => {
           <div className="h-4 w-48 bg-slate-200 rounded animate-pulse" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={`skeleton-stat-card-${i}`} className="bg-white rounded-2xl p-5 border border-slate-100">
+          {[1, 2, 3, 4].map((id) => (
+            <div key={`skeleton-stat-card-${id}`} className="bg-white rounded-2xl p-5 border border-slate-100">
               <div className="flex justify-between items-start">
                 <div className="space-y-2 flex-1">
                   <div className="h-3 w-16 bg-slate-200 rounded animate-pulse" />
@@ -1820,7 +1820,7 @@ export const AdminUsers: React.FC = () => {
 
 export const AdminConfig: React.FC = () => {
   const toast = useToast();
-  const [, setConfigs] = useState<SystemConfig[]>([]);
+  const [_configs, setConfigs] = useState<SystemConfig[]>([]); // configs 用于内部状态管理
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'basic' | 'payment' | 'sms' | 'wechat'>('basic');
@@ -2090,9 +2090,9 @@ export const AdminConfig: React.FC = () => {
             <h3 className="text-lg font-bold text-slate-900 mb-4">支付方式开关</h3>
             <p className="text-sm text-slate-500 mb-4">开启或关闭对应的支付方式，关闭后用户端将不显示该支付选项</p>
             <div className="flex gap-8">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <span className="sr-only">支付宝支付开关</span>
+              <div className="flex items-center gap-3 cursor-pointer">
                 <div
+                  id="alipay-switch"
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
                     paymentConfig.alipayEnabled ? "bg-brand-primary" : "bg-slate-300"
@@ -2102,6 +2102,7 @@ export const AdminConfig: React.FC = () => {
                   role="switch"
                   tabIndex={0}
                   aria-checked={paymentConfig.alipayEnabled}
+                  aria-labelledby="alipay-label"
                 >
                   <div className={cn(
                     "w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform",
@@ -2110,16 +2111,16 @@ export const AdminConfig: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Icons.Alipay className="w-5 h-5 text-blue-500" />
-                  <span className="font-medium">支付宝支付</span>
+                  <span id="alipay-label" className="font-medium">支付宝支付</span>
                   <span className={cn("text-sm", paymentConfig.alipayEnabled ? "text-brand-primary" : "text-slate-400")}>
                     {paymentConfig.alipayEnabled ? '已启用' : '已关闭'}
                   </span>
                 </div>
-              </label>
+              </div>
 
-              <label className="flex items-center gap-3 cursor-pointer">
-                <span className="sr-only">微信支付开关</span>
+              <div className="flex items-center gap-3 cursor-pointer">
                 <div
+                  id="wechat-switch"
                   className={cn(
                     "w-12 h-6 rounded-full transition-colors relative",
                     paymentConfig.wechatEnabled ? "bg-brand-primary" : "bg-slate-300"
@@ -2129,6 +2130,7 @@ export const AdminConfig: React.FC = () => {
                   role="switch"
                   tabIndex={0}
                   aria-checked={paymentConfig.wechatEnabled}
+                  aria-labelledby="wechat-label"
                 >
                   <div className={cn(
                     "w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform",
@@ -2137,12 +2139,12 @@ export const AdminConfig: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Icons.Wechat className="w-5 h-5 text-green-500" />
-                  <span className="font-medium">微信支付</span>
+                  <span id="wechat-label" className="font-medium">微信支付</span>
                   <span className={cn("text-sm", paymentConfig.wechatEnabled ? "text-brand-primary" : "text-slate-400")}>
                     {paymentConfig.wechatEnabled ? '已启用' : '已关闭'}
                   </span>
                 </div>
-              </label>
+              </div>
             </div>
           </Card>
 

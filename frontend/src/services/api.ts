@@ -54,29 +54,7 @@ function safeParseJwtPayload(token: string): { exp?: number; sub?: string; [key:
 // 安全修复 (F-C03): 使用 sessionStorage 替代 localStorage
 // sessionStorage 在标签页关闭后自动清除，比 localStorage 更安全
 const TokenManager = {
-  get: (isAdminRequest: boolean = false): string | null => {
-    // 如果是管理后台请求，优先使用 admin_token
-    if (isAdminRequest) {
-      const adminToken = sessionStorage.getItem('admin_token');
-      if (adminToken) {
-        const payload = safeParseJwtPayload(adminToken);
-        if (!payload) {
-          // Token 格式无效，清除
-          sessionStorage.removeItem('admin_token');
-          sessionStorage.removeItem('admin_info');
-          return null;
-        }
-        if (payload.exp && payload.exp * 1000 < Date.now()) {
-          sessionStorage.removeItem('admin_token');
-          sessionStorage.removeItem('admin_info');
-          return null;
-        }
-        return adminToken;
-      }
-      return null;
-    }
-
-    // 普通用户请求，使用 token
+  getUserToken: (): string | null => {
     const token = sessionStorage.getItem('token');
     if (!token) return null;
 
@@ -95,15 +73,44 @@ const TokenManager = {
     return token;
   },
 
-  set: (token: string, isAdmin: boolean): void => {
-    if (isAdmin) {
-      sessionStorage.setItem('admin_token', token);
-    } else {
-      sessionStorage.setItem('token', token);
+  getAdminToken: (): string | null => {
+    const adminToken = sessionStorage.getItem('admin_token');
+    if (!adminToken) return null;
+
+    const payload = safeParseJwtPayload(adminToken);
+    if (!payload) {
+      // Token 格式无效，清除
+      sessionStorage.removeItem('admin_token');
+      sessionStorage.removeItem('admin_info');
+      return null;
     }
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      sessionStorage.removeItem('admin_token');
+      sessionStorage.removeItem('admin_info');
+      return null;
+    }
+    return adminToken;
   },
 
-  clear: (): void => {
+  setUserToken: (token: string): void => {
+    sessionStorage.setItem('token', token);
+  },
+
+  setAdminToken: (token: string): void => {
+    sessionStorage.setItem('admin_token', token);
+  },
+
+  clearUserToken: (): void => {
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
+  },
+
+  clearAdminToken: (): void => {
+    sessionStorage.removeItem('admin_token');
+    sessionStorage.removeItem('admin_info');
+  },
+
+  clearAll: (): void => {
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('admin_token');
     sessionStorage.removeItem('user');
@@ -116,7 +123,7 @@ async function request<T>(url: string, options?: RequestInit, isAdminRequest: bo
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
-  const token = TokenManager.get(isAdminRequest);
+  const token = isAdminRequest ? TokenManager.getAdminToken() : TokenManager.getUserToken();
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
