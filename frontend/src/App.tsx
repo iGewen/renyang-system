@@ -1466,19 +1466,6 @@ const MyAdoptionsPage: React.FC = () => {
     return redemptions.find(r => r.adoptionId === adoptionId && (r.status === 1 || r.status === 2));
   };
 
-  const getAdoptionBadgeVariant = (status: number): 'success' | 'warning' | 'danger' | 'info' | 'default' => {
-    const map: Record<number, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
-      [AdoptionStatus.ACTIVE]: 'success',
-      [AdoptionStatus.FEED_OVERDUE]: 'danger',
-      [AdoptionStatus.EXCEPTION]: 'danger',
-      [AdoptionStatus.REDEEMABLE]: 'info',
-      [AdoptionStatus.REDEMPTION_PENDING]: 'warning',
-      [AdoptionStatus.REDEEMED]: 'default',
-      [AdoptionStatus.TERMINATED]: 'default'
-    };
-    return map[status] || 'default';
-  };
-
   const getStatusBadge = (status: number, redemption?: any) => {
     // 如果有买断订单且状态是审核通过，显示特殊状态
     if (redemption?.status === 2) {

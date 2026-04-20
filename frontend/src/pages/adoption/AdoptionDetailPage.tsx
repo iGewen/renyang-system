@@ -428,7 +428,7 @@ const InfoTabContent: React.FC<{
     {adoption.status === 5 && redemption && (
       <RedemptionProgressCard redemption={redemption} onPay={onPayRedemption} paying={paying} />
     )}
-    {adoption.isException && (
+    {adoption.isException === 1 && (
       <Card className="p-6 bg-red-50 border-red-100">
         <div className="flex items-start gap-4">
           <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
