@@ -34,7 +34,8 @@ coverage/
 .env.docker
 
 # 文档目录（不上传到仓库）
-docs/
+# docs/ - 注释掉，部署教程需要上传
+# docs/
 
 # Claude配置目录
 .claude/
@@ -70,3 +71,5 @@ design-system/
 .scannerwork/
 sonar-project.properties
 run-sonar.bat
+FIX_LOG.md
+SONAR_FIX_LOG.md
