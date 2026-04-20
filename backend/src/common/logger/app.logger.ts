@@ -46,7 +46,8 @@ export interface LogContext {
   url?: string;
   userAgent?: string;
   requestId?: string;
-  [key: string]: any;
+  // 修复 B-QUAL-011：限制索引签名类型，避免任意键值
+  [key: string]: string | number | undefined;
 }
 
 @Injectable()

@@ -12,15 +12,19 @@ import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Admin } from '@/entities/admin.entity';
+import { RedisService } from '../utils/redis.service';
 
 @Injectable()
 export class AdminGuard implements CanActivate {
   private readonly logger = new Logger(AdminGuard.name);
+  // 管理员信息缓存时间（5分钟）
+  private readonly ADMIN_CACHE_TTL = 300;
 
   constructor(
     private reflector: Reflector,
     @InjectRepository(Admin)
     private adminRepository: Repository<Admin>,
+    private redisService: RedisService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -50,10 +54,42 @@ export class AdminGuard implements CanActivate {
       throw new UnauthorizedException('请先登录');
     }
 
-    // 检查是否是管理员（通过检查admins表）
-    const admin = await this.adminRepository.findOne({
-      where: { id: user.id },
-    });
+    // 修复 B-QUAL-008：使用 Redis 缓存管理员信息，减少数据库查询
+    const cacheKey = `admin:info:${user.id}`;
+    let admin: Admin | null = null;
+
+    try {
+      const cachedAdmin = await this.redisService.get(cacheKey);
+      if (cachedAdmin) {
+        admin = JSON.parse(cachedAdmin);
+      }
+    } catch (error) {
+      this.logger.warn(`[AdminGuard] 缓存读取失败: ${error.message}`);
+    }
+
+    // 缓存未命中，从数据库获取
+    if (!admin) {
+      admin = await this.adminRepository.findOne({
+        where: { id: user.id },
+      });
+
+      if (admin) {
+        // 缓存管理员信息
+        try {
+          await this.redisService.set(
+            cacheKey,
+            JSON.stringify({
+              id: admin.id,
+              status: admin.status,
+              role: admin.role,
+            }),
+            this.ADMIN_CACHE_TTL
+          );
+        } catch (error) {
+          this.logger.warn(`[AdminGuard] 缓存写入失败: ${error.message}`);
+        }
+      }
+    }
 
     if (!admin) {
       this.logger.warn(`[AdminGuard] 非管理员尝试访问: userId=${user.id}`);

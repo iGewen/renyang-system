@@ -518,10 +518,11 @@ export const AdminLivestock: React.FC = () => {
     }
   };
 
-  const handleToggleStatus = async (id: string, currentStatus: any) => {
+  const handleToggleStatus = async (id: string, currentStatus: number) => {
     try {
-      const newStatus = currentStatus === 1 || currentStatus === 'on_sale' ? 'off_sale' : 'on_sale';
-      await adminApi.updateLivestockStatus(id, newStatus);
+      const newStatus = currentStatus === 1 ? 2 : 1; // 1=在售, 2=下架
+      const statusStr = newStatus === 1 ? 'on_sale' : 'off_sale';
+      await adminApi.updateLivestockStatus(id, statusStr);
       setLivestock(livestock.map(l => l.id === id ? { ...l, status: newStatus } : l));
       toast.success('状态更新成功');
     } catch (error: any) {
@@ -563,10 +564,10 @@ export const AdminLivestock: React.FC = () => {
             <div key={type.id} className="p-4 bg-slate-50 rounded-xl flex justify-between items-center">
               <div>
                 <p className="font-medium">{type.name}</p>
-                <p className="text-xs text-slate-400">{type.description || '暂无描述'}</p>
+                <p className="text-xs text-slate-400">{(type as any).description || '暂无描述'}</p>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => { setEditingType(type); setTypeForm({ name: type.name, description: type.description || '' }); setShowTypeModal(true); }} className="text-brand-primary text-sm">编辑</button>
+                <button onClick={() => { setEditingType(type); setTypeForm({ name: type.name, description: (type as any).description || '' }); setShowTypeModal(true); }} className="text-brand-primary text-sm">编辑</button>
                 <button onClick={() => handleDeleteType(type.id)} className="text-red-500 text-sm">删除</button>
               </div>
             </div>
@@ -598,15 +599,15 @@ export const AdminLivestock: React.FC = () => {
                   <td className="py-3 px-4">¥{item.price}</td>
                   <td className="py-3 px-4">{item.stock}</td>
                   <td className="py-3 px-4">
-                    <Badge variant={item.status === 1 || item.status === 'on_sale' ? 'success' : 'default'}>
-                      {item.status === 1 || item.status === 'on_sale' ? '在售' : '下架'}
+                    <Badge variant={item.status === 1 ? 'success' : 'default'}>
+                      {item.status === 1 ? '在售' : '下架'}
                     </Badge>
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex gap-2">
                       <button onClick={() => { setEditingLivestock(item); setLivestockForm({ name: item.name, typeId: item.typeId, price: String(item.price), monthlyFeedFee: String(item.monthlyFeedFee), redemptionMonths: String(item.redemptionMonths || 12), stock: String(item.stock), description: item.description || '', image: item.mainImage || '' }); setShowLivestockModal(true); }} className="text-brand-primary text-sm">编辑</button>
                       <button onClick={() => handleToggleStatus(item.id, item.status)} className="text-blue-600 text-sm">
-                        {item.status === 1 || item.status === 'on_sale' ? '下架' : '上架'}
+                        {item.status === 1 ? '下架' : '上架'}
                       </button>
                       <button onClick={() => handleDeleteLivestock(item.id)} className="text-red-500 text-sm">删除</button>
                     </div>
@@ -1036,13 +1037,13 @@ export const AdminFeedBills: React.FC = () => {
               {bills.map(bill => (
                 <tr key={bill.id} className="border-b border-slate-50">
                   <td className="py-3 px-4 font-mono text-sm">{bill.billNo}</td>
-                  <td className="py-3 px-4">{bill.adoption?.user?.phone || '-'}</td>
-                  <td className="py-3 px-4">¥{bill.amount}</td>
+                  <td className="py-3 px-4">{(bill as any).user?.phone || '-'}</td>
+                  <td className="py-3 px-4">¥{bill.adjustedAmount || bill.originalAmount}</td>
                   <td className="py-3 px-4">¥{bill.lateFeeAmount || 0}</td>
                   <td className="py-3 px-4">
                     <Badge variant={feedBillStatusMap[bill.status as number]?.variant || 'default'}>{feedBillStatusMap[bill.status as number]?.label || bill.status}</Badge>
                   </td>
-                  <td className="py-3 px-4 text-sm text-slate-500">{bill.dueDate ? new Date(bill.dueDate).toLocaleDateString() : '-'}</td>
+                  <td className="py-3 px-4 text-sm text-slate-500">{bill.billDate ? new Date(bill.billDate).toLocaleDateString() : '-'}</td>
                 </tr>
               ))}
             </tbody>

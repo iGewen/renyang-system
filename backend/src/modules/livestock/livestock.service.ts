@@ -76,15 +76,20 @@ export class LivestockService {
   }
 
   async updateStock(id: string, quantity: number, manager?: any): Promise<boolean> {
-    const stockKey = `livestock:stock:${id}`;
+    // 安全修复 B-SEC-023：验证 quantity 参数类型
+    if (!Number.isFinite(quantity)) {
+      throw new Error('库存变更数量必须是有效数字');
+    }
 
-    // 检查库存是否足够（仅在扣减时检查）
+    // 验证库存变更后不能为负数
     if (quantity < 0) {
       const currentStock = await this.getStock(id);
       if (currentStock < Math.abs(quantity)) {
         throw new Error('库存不足');
       }
     }
+
+    const stockKey = `livestock:stock:${id}`;
 
     // 支持事务管理器
     if (manager) {

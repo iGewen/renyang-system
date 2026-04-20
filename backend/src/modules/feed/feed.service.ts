@@ -32,13 +32,18 @@ export class FeedService {
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     for (const adoption of adoptions) {
-      // 计算账单日期
+      // 修复 B-BIZ-033：正确处理跨年月份和月末日期
+      // 例如：1月31日 + 1个月 = 2月28日/29日，而非 3月2日/3日
       const startDate = new Date(adoption.startDate);
-      const billDate = new Date(
-        startDate.getFullYear(),
-        startDate.getMonth() + adoption.feedMonthsPaid + 1, // 跳过首月免费
-        startDate.getDate()
-      );
+      const targetMonth = startDate.getMonth() + adoption.feedMonthsPaid + 1; // 跳过首月免费
+      const targetYear = startDate.getFullYear() + Math.floor(targetMonth / 12);
+      const normalizedMonth = targetMonth % 12;
+
+      // 获取目标月份的最大天数，避免溢出
+      const maxDayInTargetMonth = new Date(targetYear, normalizedMonth + 1, 0).getDate();
+      const targetDay = Math.min(startDate.getDate(), maxDayInTargetMonth);
+
+      const billDate = new Date(targetYear, normalizedMonth, targetDay);
 
       // 提前5天生成账单
       const advanceDays = 5;
@@ -92,12 +97,22 @@ export class FeedService {
    * 计算滞纳金（定时任务调用）
    */
   async calculateLateFees() {
-    // 获取系统配置
-    const configStr = await this.redisService.get('system:config');
-    const config = configStr ? JSON.parse(configStr) : {
-      lateFeeStartDays: 3,
-      lateFeeRate: 0.001,
-      lateFeeCapRate: 0.5,
+    // 修复 B-BIZ-010：使用正确的 Redis Key 格式分别读取配置
+    const lateFeeStartDays = parseInt(
+      await this.redisService.get('system:config:late_fee_start_days') || '3',
+      10
+    );
+    const lateFeeRate = parseFloat(
+      await this.redisService.get('system:config:late_fee_rate') || '0.001'
+    );
+    const lateFeeCapRate = parseFloat(
+      await this.redisService.get('system:config:late_fee_cap_rate') || '0.5'
+    );
+
+    const config = {
+      lateFeeStartDays,
+      lateFeeRate,
+      lateFeeCapRate,
     };
 
     const now = new Date();
@@ -133,8 +148,9 @@ export class FeedService {
       // 更新账单
       bill.lateFeeDays = lateFeeDays;
       bill.lateFeeAmount = lateFeeAmount;
-      // 修复：累加滞纳金而非覆盖
-      bill.totalLateFee = (bill.totalLateFee || 0) + lateFeeAmount;
+      // 修复：lateFeeAmount 已经是根据逾期天数计算的完整滞纳金，直接赋值而非累加
+      // 累加会导致滞纳金呈二次方增长，严重多收用户费用
+      bill.totalLateFee = lateFeeAmount;
       bill.status = FeedBillStatus.OVERDUE;
       bill.lateFeeStartDate = lateFeeStartDate;
 

@@ -211,9 +211,17 @@ export class RedemptionService {
     redemption.status = RedemptionStatus.CANCELLED;
     await this.redemptionRepository.save(redemption);
 
-    // 恢复领养状态
+    // 修复 B-BIZ-011：取消买断申请时，需要重新计算领养状态
+    // 不能简单地恢复为 ACTIVE，应该根据 feedMonthsPaid 判断
     const adoption = redemption.adoption;
-    adoption.status = AdoptionStatus.ACTIVE;
+    const requiredMonths = adoption.redemptionMonths - 1; // 首月免费
+    if (adoption.feedMonthsPaid >= requiredMonths) {
+      // 已达到买断条件，恢复为可买断状态
+      adoption.status = AdoptionStatus.REDEEMABLE;
+    } else {
+      // 未达到买断条件，恢复为正常领养状态
+      adoption.status = AdoptionStatus.ACTIVE;
+    }
     await this.adoptionRepository.save(adoption);
 
     return { success: true };
@@ -245,6 +253,17 @@ export class RedemptionService {
     const lockKey = `redemption:audit:${redemptionId}`;
     return this.redisService.withLock(lockKey, 30000, async () => {
       if (passed) {
+        // 安全修复 B-BIZ-023：验证调整金额不能为负数
+        if (adjustedAmount !== undefined && adjustedAmount !== null) {
+          if (adjustedAmount < 0) {
+            throw new BadRequestException('调整金额不能为负数');
+          }
+          // 验证调整金额不能超过原金额太多（防止异常数据）
+          if (adjustedAmount > redemption.originalAmount * 2) {
+            throw new BadRequestException('调整金额异常，请检查后重试');
+          }
+        }
+
         // 审核通过
         redemption.status = RedemptionStatus.AUDIT_PASSED;
         redemption.auditAdminId = adminId;
@@ -307,8 +326,10 @@ export class RedemptionService {
    * 支付买断
    */
   async payRedemption(redemptionId: string, userId: string, paymentMethod: string) {
+    // 修复 B-BIZ-005：加载 adoption 关联，防止 completeRedemption 访问 undefined
     const redemption = await this.redemptionRepository.findOne({
       where: { id: redemptionId, userId },
+      relations: ['adoption'],
     });
 
     if (!redemption) {

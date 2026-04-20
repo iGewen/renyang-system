@@ -1,11 +1,20 @@
 # ===========================================
 # Nginx配置 - HTTP模式
 # 证书申请成功前使用此配置
+# 安全修复 INFRA-006：添加安全响应头
 # ===========================================
 
 server {
     listen 80;
     server_name _;
+
+    # 安全响应头
+    server_tokens off;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
 
     root /usr/share/nginx/html;
     index index.html;
@@ -36,7 +45,10 @@ server {
     }
 
     # API代理到后端
+    # 安全修复 INFRA-007：添加请求体大小限制和超时配置
     location /api {
+        client_max_body_size 20m;
+
         proxy_pass http://backend:3001;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -46,9 +58,14 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
-        proxy_read_timeout 300s;
-        proxy_connect_timeout 75s;
-        proxy_send_timeout 300s;
+
+        # 修复：降低超时时间，避免长时间阻塞
+        proxy_read_timeout 60s;
+        proxy_connect_timeout 30s;
+        proxy_send_timeout 60s;
+
+        # 禁用代理缓冲，支持流式响应
+        proxy_buffering off;
     }
 
     # SPA路由支持

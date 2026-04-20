@@ -147,4 +147,29 @@ export class UserService {
   async updatePhone(userId: string, phone: string) {
     await this.userRepository.update(userId, { phone });
   }
+
+  /**
+   * 查找用户并包含 password 字段（用于密码验证）
+   * 修复 B-BIZ-004：User 实体的 password 字段设置了 select: false
+   */
+  async findOneWithPassword(id: string) {
+    return this.userRepository
+      .createQueryBuilder('user')
+      .where('user.id = :id', { id })
+      .addSelect('user.password')
+      .getOne();
+  }
+
+  /**
+   * 在事务中更新手机号并标记验证码已使用
+   * 修复 B-BIZ-024：手机号更新和验证码标记应在同一事务中
+   */
+  async updatePhoneWithCode(userId: string, phone: string, smsCodeId: string) {
+    return this.dataSource.transaction(async (manager) => {
+      // 更新手机号
+      await manager.update(User, { id: userId }, { phone });
+      // 标记验证码已使用
+      await manager.update('SmsCode', { id: smsCodeId }, { isUsed: 1 });
+    });
+  }
 }

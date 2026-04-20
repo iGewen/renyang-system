@@ -49,9 +49,15 @@ export const AdminLoginPage: React.FC = () => {
         setNeedChangePassword(true);
         setOldPassword(password); // 预填原密码
       } else {
-        // 保存登录信息
-        localStorage.setItem('admin_token', result.token);
-        localStorage.setItem('admin_info', JSON.stringify(result.admin));
+        // 保存登录信息 - 使用 sessionStorage 替代 localStorage（关闭浏览器标签页即清除）
+        sessionStorage.setItem('admin_token', result.token);
+        sessionStorage.setItem('admin_info', JSON.stringify({
+          id: result.admin.id,
+          username: result.admin.username,
+          name: result.admin.name,
+          role: result.admin.role,
+          // 不存储敏感字段如 avatar 等
+        }));
 
         // 如果选择了记住我，保存用户名
         if (rememberMe) {
@@ -98,11 +104,11 @@ export const AdminLoginPage: React.FC = () => {
     setChangingPassword(true);
     try {
       // 先保存 token 以便调用修改密码接口
-      localStorage.setItem('admin_token', adminData.token);
+      sessionStorage.setItem('admin_token', adminData.token);
       await adminApi.updatePassword({ oldPassword, newPassword });
 
       // 清除状态，重新登录
-      localStorage.removeItem('admin_token');
+      sessionStorage.removeItem('admin_token');
       setNeedChangePassword(false);
       setAdminData(null);
       setError('');
@@ -114,7 +120,7 @@ export const AdminLoginPage: React.FC = () => {
       success('密码修改成功，请使用新密码重新登录');
     } catch (err: any) {
       // 修改失败时清除 token
-      localStorage.removeItem('admin_token');
+      sessionStorage.removeItem('admin_token');
       setError(err.message || '修改密码失败');
     } finally {
       setChangingPassword(false);
@@ -587,7 +593,7 @@ export const AdminLoginPage: React.FC = () => {
             className="mt-8 text-center"
           >
             <p className="text-slate-300 text-xs">
-              © 2024 云端牧场 · All Rights Reserved
+              © {new Date().getFullYear()} 云端牧场 · All Rights Reserved
             </p>
           </motion.div>
         </div>

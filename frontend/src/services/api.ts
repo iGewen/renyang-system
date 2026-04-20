@@ -22,19 +22,27 @@ const REQUEST_TIMEOUT = 30000; // 30秒超时
 
 /**
  * 安全解析 JWT payload
- * 修复：添加完整的错误处理和格式验证
+ * 修复 F-002：支持非ASCII字符（如中文用户名）
  */
-function safeParseJwtPayload(token: string): { exp?: number; sub?: string } | null {
+function safeParseJwtPayload(token: string): { exp?: number; sub?: string; [key: string]: any } | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) {
       // JWT 格式不正确
       return null;
     }
-    const payload = JSON.parse(atob(parts[1]));
-    return payload;
-  } catch {
+    // 修复：使用 decodeURIComponent + escape 组合处理 Base64 中的非ASCII字符
+    // 这是因为 atob() 只能处理 ASCII 字符，而 JWT payload 可能包含 UTF-8 编码的中文
+    const payload = decodeURIComponent(
+      atob(parts[1])
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(payload);
+  } catch (error) {
     // 解析失败，返回 null
+    console.warn('[JWT] 解析 token 失败:', error);
     return null;
   }
 }
@@ -119,7 +127,7 @@ async function request<T>(url: string, options?: RequestInit, isAdminRequest: bo
       signal: controller.signal,
     });
 
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
 
     if (!response.ok) {
       // 401 错误时清除过期的 Token 并跳转到登录页
@@ -129,13 +137,14 @@ async function request<T>(url: string, options?: RequestInit, isAdminRequest: bo
         if (isAdminRequest && !isLoginRequest) {
           sessionStorage.removeItem('admin_token');
           sessionStorage.removeItem('admin_info');
-          // 跳转到管理员登录页
-          window.location.href = '/admin-login';
+          // 修复 F-003/F-004：使用 React Router 替代硬跳转
+          // 通过事件通知 App 组件进行路由跳转，保持 SPA 状态
+          window.dispatchEvent(new CustomEvent('auth:admin-expired'));
         } else if (!isAdminRequest && !isLoginRequest) {
           sessionStorage.removeItem('token');
           sessionStorage.removeItem('user');
-          // 跳转到用户登录页
-          window.location.href = '/auth';
+          // 修复 F-003/F-004：通过事件通知，避免硬跳转
+          window.dispatchEvent(new CustomEvent('auth:user-expired'));
         }
       }
       throw new Error(data.message || '请求失败');
@@ -294,9 +303,9 @@ export const orderApi = {
   },
 
   // 获取我的订单列表
-  getMyOrders: async (params?: { status?: string; page?: number; pageSize?: number }): Promise<PaginatedResponse<AdoptionOrder>> => {
+  getMyOrders: async (params?: { status?: number; page?: number; pageSize?: number }): Promise<PaginatedResponse<AdoptionOrder>> => {
     const query = new URLSearchParams();
-    if (params?.status) query.set('status', params.status);
+    if (params?.status !== undefined) query.set('status', params.status.toString());
     if (params?.page) query.set('page', params.page.toString());
     if (params?.pageSize) query.set('pageSize', params.pageSize.toString());
     return request(`/orders/adoption?${query.toString()}`);
@@ -341,7 +350,7 @@ export const adoptionApi = {
 
   // 申请买断
   applyRedemption: async (adoptionId: string): Promise<{ redemptionId: string; redemptionNo: string; amount: number; type: 'full' | 'early' }> => {
-    const result = await request(`/redemptions/apply/${adoptionId}`, {
+    const result = await request<{ redemption: { id: string; redemptionNo: string; finalAmount: number }; type: 'full' | 'early' }>(`/redemptions/apply/${adoptionId}`, {
       method: 'POST',
     });
     return {

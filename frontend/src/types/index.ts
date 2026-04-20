@@ -1,4 +1,5 @@
 // ==================== 基础类型 ====================
+import { LivestockTypeCode } from './enums';
 
 export interface PaginatedResponse<T> {
   list: T[];

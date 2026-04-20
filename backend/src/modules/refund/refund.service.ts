@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, In } from 'typeorm';
 import { RefundOrder, RefundType, RefundStatus, Order, OrderStatus, Adoption, AdoptionStatus, PaymentRecord, AuditLog } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
 import { IdUtil } from '@/common/utils/id.util';
@@ -88,17 +88,21 @@ export class RefundService {
           throw new BadRequestException('不支持的订单类型');
         }
 
-        // 检查是否已有待审核的退款申请
+        // 安全修复 B-BIZ-012：检查所有非终态的退款申请，防止重复退款
         const existingRefund = await manager.findOne(RefundOrder, {
           where: {
             orderType,
             orderId,
-            status: RefundStatus.PENDING_AUDIT,
+            status: In([RefundStatus.PENDING_AUDIT, RefundStatus.AUDIT_PASSED]),
           },
         });
 
         if (existingRefund) {
-          throw new BadRequestException('已有待审核的退款申请');
+          if (existingRefund.status === RefundStatus.PENDING_AUDIT) {
+            throw new BadRequestException('已有待审核的退款申请');
+          } else {
+            throw new BadRequestException('该订单已审核通过待退款，请勿重复申请');
+          }
         }
 
         // 创建退款订单

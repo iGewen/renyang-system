@@ -71,7 +71,8 @@ services:
 
   # Redis 缓存
   redis:
-    image: crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/redis:latest
+    # 安全修复 INFRA-005：锁定镜像版本，避免浮动标签风险
+    image: crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/redis:7.2-alpine
     container_name: cloud-ranch-redis
     restart: unless-stopped
     command: redis-server --appendonly yes --requirepass_file /run/secrets/redis_password

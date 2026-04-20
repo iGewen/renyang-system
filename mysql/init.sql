@@ -346,3 +346,26 @@ INSERT IGNORE INTO livestock_types (id, name, icon, description, sort_order, sta
 ('LT002', '绵羊', 'sheep', '毛茸茸的绵羊', 2, 1, NOW(), NOW()),
 ('LT003', '黄牛', 'cattle', '强壮的黄牛', 3, 1, NOW(), NOW()),
 ('LT004', '水牛', 'buffalo', '勤劳的水牛', 4, 1, NOW(), NOW());
+
+-- 安全修复 INFRA-003：创建专用应用数据库用户（最小权限原则）
+-- 注意：密码需要通过环境变量 APP_DB_PASSWORD 设置
+-- 如果未设置密码，用户创建会失败，应用将无法连接数据库
+-- 创建用户语句使用 IF NOT EXISTS 防止重复执行报错
+
+-- 检查是否需要创建应用用户（仅在设置了 APP_DB_PASSWORD 时创建）
+-- 注意：MySQL 不支持在 CREATE USER 中使用变量，以下语句需要手动启用或在启动脚本中处理
+-- SET @app_password = IFNULL(@APP_DB_PASSWORD, '');
+-- SET @create_user = IF(@app_password != '', CONCAT('CREATE USER IF NOT EXISTS ''cloud_ranch_app''@''%'' IDENTIFIED BY ''', @app_password, ''''), '');
+-- PREPARE stmt FROM @create_user;
+-- EXECUTE stmt;
+-- DEALLOCATE PREPARE stmt;
+
+-- 授权语句（需要手动执行或在docker-compose中配置）
+-- GRANT SELECT, INSERT, UPDATE, DELETE ON cloud_ranch.* TO 'cloud_ranch_app'@'%';
+-- FLUSH PRIVILEGES;
+
+-- 实际部署时，请在 docker-compose.yml 中配置：
+-- environment:
+--   DB_USERNAME: cloud_ranch_app
+--   DB_PASSWORD: ${APP_DB_PASSWORD}
+-- 并在首次启动后手动执行授权语句，或使用 secrets 管理

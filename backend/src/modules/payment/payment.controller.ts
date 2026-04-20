@@ -31,13 +31,18 @@ export class PaymentController {
     @Body() dto: CreatePaymentDto,
   ) {
     // 充值类型时，后端生成 orderId
-    const orderId = dto.orderType === 'recharge'
-      ? `recharge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      : dto.orderId;
+    let orderId = dto.orderId;
+
+    if (dto.orderType === 'recharge') {
+      orderId = `recharge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
 
     if (!orderId) {
       throw new BadRequestException('订单ID不能为空');
     }
+
+    // 安全修复 B-BIZ-035：饲料费类型需要校验 userId
+    // paymentService.createPayment 内部已有校验，这里不再重复
 
     return this.paymentService.createPayment(
       userId,

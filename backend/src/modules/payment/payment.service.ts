@@ -72,6 +72,10 @@ export class PaymentService {
         if (!feedBill) {
           throw new BadRequestException('饲料账单不存在');
         }
+        // 安全修复 B-BIZ-035：校验饲料账单归属
+        if (feedBill.userId !== userId) {
+          throw new BadRequestException('无权支付该饲料账单');
+        }
         // 使用 adjustedAmount 或 originalAmount，而非 amount
         expectedAmount = Number(feedBill.adjustedAmount || feedBill.originalAmount) + Number(feedBill.lateFeeAmount || 0);
         break;
@@ -300,7 +304,7 @@ export class PaymentService {
 
   /**
    * 处理饲料费支付成功
-   * 使用事务确保数据一致性
+   * 修复 B-BIZ-003：需要更新领养记录的 feedMonthsPaid 和状态
    */
   private async handleFeedBillPaymentSuccess(
     billId: string,
@@ -309,6 +313,7 @@ export class PaymentService {
   ) {
     const bill = await this.feedBillRepository.findOne({
       where: { id: billId },
+      relations: ['adoption'],  // 修复：加载领养关联
     });
 
     if (!bill) {
@@ -332,11 +337,46 @@ export class PaymentService {
 
     await this.feedBillRepository.save(bill);
     this.logger.log(`[PaymentService] 饲料费账单支付成功: ${billId}`);
+
+    // 修复 B-BIZ-003：更新领养记录
+    if (bill.adoption) {
+      await this.updateAdoptionAfterFeedPayment(bill.adoption);
+    }
+  }
+
+  /**
+   * 修复 B-BIZ-003：饲料费支付后更新领养记录
+   */
+  private async updateAdoptionAfterFeedPayment(adoption: any) {
+    // 统计已支付的饲料费账单数量
+    const paidBillsCount = await this.feedBillRepository.count({
+      where: { adoptionId: adoption.id, status: 2 }, // status = PAID
+    });
+
+    adoption.feedMonthsPaid = paidBillsCount;
+
+    // 检查是否达到买断条件
+    const requiredMonths = adoption.redemptionMonths - 1; // 首月免费
+    if (paidBillsCount >= requiredMonths && adoption.status === 1) {
+      // status 1 = ACTIVE
+      adoption.status = 4; // REDEEMABLE
+      this.logger.log(`[PaymentService] 领养达到买断条件: ${adoption.id}`);
+    }
+
+    // 如果之前是逾期状态，恢复为正常
+    if (adoption.status === 2) {
+      // status 2 = FEED_OVERDUE
+      adoption.status = 1; // ACTIVE
+    }
+
+    await this.feedBillRepository.manager.save(adoption);
+    this.logger.log(`[PaymentService] 领养记录已更新: feedMonthsPaid=${paidBillsCount}`);
   }
 
   /**
    * 支付宝回调
    * 安全修复：添加签名验证、金额验证，防止伪造回调
+   * 修复 B-BIZ-007：在锁内重新获取支付记录
    */
   async handleAlipayNotify(data: any) {
     // 安全修复：先验证签名
@@ -380,17 +420,26 @@ export class PaymentService {
 
     const lockKey = `payment:notify:${payment.paymentNo}`;
     return this.redisService.withLock(lockKey, 30000, async () => {
-      // 幂等性检查：仅使用 status 判断，不依赖 paidAt
-      if (payment.status === PaymentStatus.SUCCESS) {
+      // 修复 B-BIZ-007：在锁内重新获取最新的支付记录状态
+      const latestPayment = await this.paymentRepository.findOne({
+        where: { id: payment.id },
+      });
+
+      if (!latestPayment) {
+        return 'fail';
+      }
+
+      // 幂等性检查：使用最新数据判断
+      if (latestPayment.status === PaymentStatus.SUCCESS) {
         return 'success';
       }
 
       // 修复：使用新字段存储第三方交易号，不覆盖 paymentNo
-      payment.transactionId = tradeNo;
-      payment.notifyAt = new Date();
-      payment.notifyData = data;
+      latestPayment.transactionId = tradeNo;
+      latestPayment.notifyAt = new Date();
+      latestPayment.notifyData = data;
 
-      await this.handlePaymentSuccess(payment);
+      await this.handlePaymentSuccess(latestPayment);
 
       return 'success';
     });

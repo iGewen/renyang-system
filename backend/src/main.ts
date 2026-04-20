@@ -3,6 +3,7 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
@@ -13,6 +14,9 @@ async function bootstrap() {
 
   // 全局前缀
   app.setGlobalPrefix('api');
+
+  // 安全修复 B-SEC-007：添加安全 HTTP 头保护
+  app.use(helmet());
 
   // 跨域配置 - 安全修复：未配置时拒绝跨域请求
   const corsOrigin = process.env.CORS_ORIGIN;

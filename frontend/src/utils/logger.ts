@@ -3,7 +3,8 @@
  * 仅在开发环境输出日志，生产环境静默
  */
 
-const isDev = import.meta.env?.DEV ?? (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development');
+// Vite 环境变量 - 使用类型断言避免类型错误
+const isDev = (import.meta as any).env?.DEV ?? false;
 
 export const logger = {
   log: (...args: unknown[]) => {

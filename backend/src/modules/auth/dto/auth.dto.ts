@@ -53,6 +53,7 @@ export class LoginByPasswordDto {
   @ApiProperty({ description: '手机号', example: '13800138000' })
   @IsString()
   @IsNotEmpty({ message: '手机号不能为空' })
+  @Matches(/^1[3-9]\d{9}$/, { message: '手机号格式不正确' })
   phone: string;
 
   @ApiProperty({ description: '密码', example: 'Password123' })
@@ -124,5 +125,7 @@ export class UpdateUserDto {
   @ApiPropertyOptional({ description: '头像URL' })
   @IsString()
   @IsOptional()
+  // 安全修复 B-SEC-017：头像URL格式验证
+  @Matches(/^https?:\/\/.+\..+/, { message: '头像必须是有效的HTTP(S) URL格式' })
   avatar?: string;
 }

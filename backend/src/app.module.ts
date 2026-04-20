@@ -5,6 +5,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 
@@ -71,6 +72,25 @@ import { AppLogger, LoggerMiddleware } from './common/logger';
     // 定时任务模块
     ScheduleModule.forRoot(),
 
+    // 安全修复 B-SEC-002：全局速率限制，防止暴力破解和DoS攻击
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 1000,    // 1秒窗口
+        limit: 3,     // 最多3次请求
+      },
+      {
+        name: 'medium',
+        ttl: 10000,   // 10秒窗口
+        limit: 20,    // 最多20次请求
+      },
+      {
+        name: 'long',
+        ttl: 60000,   // 1分钟窗口
+        limit: 100,   // 最多100次请求
+      },
+    ]),
+
     // JWT模块
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -111,6 +131,11 @@ import { AppLogger, LoggerMiddleware } from './common/logger';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    // 安全修复 B-SEC-002：全局速率限制守卫
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
     AppLogger,
   ],

@@ -5,7 +5,7 @@ import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, EmptyState,
 import { cn } from '../../lib/utils';
 import { adoptionApi, redemptionApi, balanceApi, paymentApi, orderApi } from '../../services/api';
 import { FeedBillStatus, RedemptionStatus } from '../../types/enums';
-import type { Adoption, FeedBill, RedemptionOrder } from '../../types';
+import type { Adoption, FeedBill, RedemptionOrder, Livestock } from '../../types';
 import { usePaymentConfig } from '../../contexts/SiteConfigContext';
 
 const AdoptionDetailPage: React.FC = () => {
@@ -174,7 +174,7 @@ const AdoptionDetailPage: React.FC = () => {
   }
 
   const statusConfig = getStatusConfig(adoption.status, redemption?.status);
-  const livestock = adoption.livestockSnapshot || adoption.livestock || {};
+  const livestock: Partial<Livestock> = (adoption.livestockSnapshot || adoption.livestock) as Partial<Livestock> || {};
 
   return (
     <PageTransition>
@@ -291,7 +291,7 @@ const AdoptionDetailPage: React.FC = () => {
                     <div className="flex justify-between items-center py-3 border-b border-slate-50">
                       <span className="text-slate-500">买断类型</span>
                       <span className="text-slate-900">
-                        {redemption.type === 1 || redemption.type === 'full' ? '满期买断' : '提前买断'}
+                        {redemption.type === 1 || String(redemption.type) === 'full' ? '满期买断' : '提前买断'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-3 border-b border-slate-50">

@@ -29,7 +29,9 @@ coverage/
 # Docker环境配置（包含敏感信息）
 .env
 !.env.example
-!.env.docker
+# 安全修复：.env.docker 不应被跟踪，包含示例密码
+# .env.docker 仅作为配置模板参考，部署时应复制为 .env 并修改
+.env.docker
 
 # 文档目录（不上传到仓库）
 docs/

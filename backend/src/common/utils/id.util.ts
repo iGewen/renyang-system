@@ -62,14 +62,6 @@ export class IdUtil {
   }
 
   /**
-   * 生成领养编号（已废弃，使用 generateLivestockNo）
-   * @deprecated 使用 generateLivestockNo 替代
-   */
-  static generateAdoptionNo(): string {
-    return this.generateLivestockNo();
-  }
-
-  /**
    * 生成账单编号
    * 格式：BILL + YYMMDDHHmmss + 随机后缀
    */

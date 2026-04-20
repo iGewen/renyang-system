@@ -47,7 +47,8 @@ export class UserController {
     @CurrentUser('id') userId: string,
     @Body() body: { oldPassword: string; newPassword: string }
   ) {
-    const user = await this.userService.findOne(userId);
+    // 修复：显式查询包含 password 字段，因为 User 实体设置了 select: false
+    const user = await this.userService.findOneWithPassword(userId);
     if (!user) {
       throw new NotFoundException('用户不存在');
     }
@@ -56,6 +57,16 @@ export class UserController {
     const isValid = await bcrypt.compare(body.oldPassword, user.password);
     if (!isValid) {
       throw new BadRequestException('原密码错误');
+    }
+
+    // 安全修复：验证新密码强度
+    const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,20}$/;
+    if (!passwordPattern.test(body.newPassword)) {
+      throw new BadRequestException('密码必须包含大小写字母和数字，长度8-20位，可包含特殊字符@$!%*?&');
+    }
+
+    if (body.oldPassword === body.newPassword) {
+      throw new BadRequestException('新密码不能与原密码相同');
     }
 
     // 更新密码
@@ -73,6 +84,17 @@ export class UserController {
     @CurrentUser('id') userId: string,
     @Body() body: { newPhone: string; code: string }
   ) {
+    // 安全修复：验证手机号格式
+    const phonePattern = /^1[3-9]\d{9}$/;
+    if (!phonePattern.test(body.newPhone)) {
+      throw new BadRequestException('手机号格式不正确');
+    }
+
+    // 安全修复：验证验证码格式
+    if (!body.code || body.code.length !== 6 || !/^\d{6}$/.test(body.code)) {
+      throw new BadRequestException('验证码格式不正确');
+    }
+
     // 验证验证码
     const smsCode = await this.smsCodeRepository.findOne({
       where: { phone: body.newPhone, code: body.code, type: 'change_phone', isUsed: 0 },
@@ -93,12 +115,8 @@ export class UserController {
       throw new BadRequestException('该手机号已被其他用户使用');
     }
 
-    // 更新手机号
-    await this.userService.updatePhone(userId, body.newPhone);
-
-    // 标记验证码已使用
-    smsCode.isUsed = 1;
-    await this.smsCodeRepository.save(smsCode);
+    // 使用事务更新手机号和标记验证码
+    await this.userService.updatePhoneWithCode(userId, body.newPhone, smsCode.id);
 
     return { success: true };
   }

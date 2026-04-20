@@ -98,7 +98,7 @@ const OrdersPage: React.FC = () => {
     }
   };
 
-  const tabs: { key: OrderStatus; label: string }[] = [
+  const tabs: { key: OrderFilterTab; label: string }[] = [
     { key: 'all', label: '全部' },
     { key: 'pending_payment', label: '待付款' },
     { key: 'paid', label: '已支付' },

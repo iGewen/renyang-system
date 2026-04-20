@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { PageTransition, Icons, Card, Button, Input, useToast } from '../../components/ui';
+import { PageTransition, Icons, Card, Button, Input, useToast, EmptyState } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { balanceApi } from '../../services/api';
 import type { BalanceLog } from '../../types';

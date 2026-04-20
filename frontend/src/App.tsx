@@ -378,7 +378,8 @@ const AuthPage: React.FC = () => {
               dangerouslySetInnerHTML={{
                 __html: DOMPurify.sanitize(agreementContent?.content || '', {
                   ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'span', 'div'],
-                  ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'style'],
+                  // 修复 F-007：移除 style 属性，防止 CSS 注入攻击
+                  ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
                   ADD_ATTR: ['target'],
                 }),
               }}
@@ -452,9 +453,9 @@ const LivestockCard: React.FC<LivestockCardProps> = ({ item, index, onClick }) =
 
           {/* 顶部标签 */}
           <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
-            {item.type?.name && (
+            {item.typeName && (
               <span className="px-3 py-1 bg-white/20 backdrop-blur-md border border-white/30 rounded-full text-white text-[10px] font-bold uppercase tracking-wider">
-                {item.type.name}
+                {item.typeName}
               </span>
             )}
           </div>
@@ -803,7 +804,10 @@ const DetailsPage: React.FC = () => {
     if (!id) return;
     setCreatingOrder(true);
     try {
-      const order = await orderApi.create({ livestockId: id, clientOrderId: `CLIENT-${Date.now()}` });
+      // 安全修复 F-009：使用 crypto.randomUUID() 替代 Date.now()
+    // Date.now() 是可预测的，攻击者可能伪造 clientOrderId
+    const clientOrderId = `CLIENT-${crypto.randomUUID().replace(/-/g, '').substring(0, 16).toUpperCase()}`;
+    const order = await orderApi.create({ livestockId: id, clientOrderId });
       // 后端返回完整的 order 对象，ID 字段是 id
       // 使用 URL 参数传递 orderId，避免刷新后 state 丢失
       navigate(`/payment?orderId=${order.id}`);
@@ -1700,7 +1704,7 @@ const ProfilePage: React.FC = () => {
           >
             <Card className="p-4 grid grid-cols-3 gap-4 text-center shadow-lg">
               <Link to="/balance" className="group">
-                <p className="text-xl font-display font-bold text-brand-primary group-hover:scale-105 transition-transform">¥{parseFloat(profile?.balance || '0').toFixed(2)}</p>
+                <p className="text-xl font-display font-bold text-brand-primary group-hover:scale-105 transition-transform">¥{parseFloat(String(profile?.balance || '0')).toFixed(2)}</p>
                 <p className="text-xs text-slate-400 mt-0.5">余额</p>
               </Link>
               <div className="border-x border-slate-100">
@@ -1720,9 +1724,9 @@ const ProfilePage: React.FC = () => {
           {/* 桌面端统计卡片 */}
           <div className="hidden lg:grid grid-cols-3 gap-6">
             {[
-              { value: `¥${parseFloat(profile?.balance || '0').toFixed(2)}`, label: '账户余额', to: '/balance' },
-              { value: profile?.stats?.adoptions || 0, label: '领养活体', to: '/my-adoptions' },
-              { value: profile?.stats?.days || 0, label: '领养天数' },
+              { value: `¥${parseFloat(String(profile?.balance || '0')).toFixed(2)}`, label: '账户余额', to: '/balance' },
+              { value: String(profile?.stats?.adoptions || 0), label: '领养活体', to: '/my-adoptions' },
+              { value: String(profile?.stats?.days || 0), label: '领养天数' },
             ].map((item, i) => (
               <motion.div
                 key={i}
@@ -1920,7 +1924,8 @@ const SecurityPage: React.FC = () => {
     if (countdown > 0) return;
 
     try {
-      await authApi.sendSmsCode(phoneForm.newPhone, 'change_phone');
+      // 使用 reset_password 类型发送换绑手机验证码
+      await authApi.sendSmsCode(phoneForm.newPhone, 'reset_password');
       setCountdown(60);
       const timer = setInterval(() => {
         setCountdown(prev => {
