@@ -62,6 +62,8 @@ services:
     container_name: cloud-ranch-redis
     restart: unless-stopped
     # 安全修复：移除默认密码回退，强制要求配置
+    environment:
+      REDIS_PASSWORD: "${REDIS_PASSWORD:?ERROR: REDIS_PASSWORD must be set}"
     command:
       - redis-server
       - --appendonly
