@@ -45,14 +45,15 @@
  * ============================================================================
  */
 
-import React, { useState, useEffect, createContext, useContext, lazy, Suspense, useRef } from 'react';
+import React, { useState, useEffect, createContext, useContext, lazy, Suspense, useRef, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation, Link, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import DOMPurify from 'dompurify';
 import { Icons, PageTransition, LoadingSpinner, Button, Badge, Card, Modal, Input, EmptyState, useToast } from './components/ui';
 import { cn } from './lib/utils';
 import type { Livestock, Adoption, User } from './types';
-import { AdoptionStatus, OrderStatus, getAdoptionStatusText } from './types/enums';
+import { AdoptionStatus, OrderStatus } from './types/enums';
+import { getAdoptionStatusText, getAdoptionBadgeVariant } from './utils/statusConfig';
 import { livestockApi, adoptionApi, orderApi, paymentApi, notificationApi, authApi, agreementApi, redemptionApi } from './services/api';
 import { SiteConfigProvider, usePaymentConfig, useSiteConfig } from './contexts/SiteConfigContext';
 
@@ -1497,15 +1498,6 @@ const MyAdoptionsPage: React.FC = () => {
 
   // Badge variant 类型
   type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'default';
-
-  // 获取领养状态的 Badge variant
-  const getAdoptionBadgeVariant = (status: number): BadgeVariant => {
-    if (status === AdoptionStatus.ACTIVE) return 'success';
-    if (status === AdoptionStatus.FEED_OVERDUE || status === AdoptionStatus.EXCEPTION) return 'danger';
-    if (status === AdoptionStatus.REDEEMABLE) return 'info';
-    if (status === AdoptionStatus.REDEMPTION_PENDING) return 'warning';
-    return 'default';
-  };
 
   const getStatusBadge = (status: number, redemption?: any) => {
     // 如果有买断订单且状态是审核通过，显示特殊状态

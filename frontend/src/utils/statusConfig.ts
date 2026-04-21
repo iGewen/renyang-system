@@ -171,3 +171,33 @@ export const getRefundStatusConfig = (status: RefundStatus | number): StatusConf
   };
   return map[status] || { label: '未知', variant: 'default', color: 'text-slate-500 bg-slate-100' };
 };
+
+// ==================== 便捷函数 ====================
+
+/**
+ * 获取领养状态的 Badge variant
+ */
+export const getAdoptionBadgeVariant = (status: AdoptionStatus | number): 'default' | 'success' | 'warning' | 'danger' | 'info' => {
+  return getAdoptionStatusConfig(status).variant;
+};
+
+/**
+ * 获取领养状态文本
+ */
+export const getAdoptionStatusText = (status: AdoptionStatus | number): string => {
+  return getAdoptionStatusConfig(status).label;
+};
+
+/**
+ * 获取订单状态文本
+ */
+export const getOrderStatusText = (status: OrderStatus | number): string => {
+  return getOrderStatusConfig(status).label;
+};
+
+/**
+ * 获取饲料费账单状态文本
+ */
+export const getFeedBillStatusText = (status: FeedBillStatus | number): string => {
+  return getFeedBillStatusConfig(status).label;
+};

@@ -75,7 +75,7 @@ export const SiteConfigProvider: React.FC<AppConfigProviderProps> = ({ children 
           siteKeywords: siteData?.site_keywords || defaultSiteConfig.siteKeywords,
           contactPhone: siteData?.contact_phone || '',
           contactEmail: siteData?.contact_email || '',
-          contactWechat: siteData?.contact_wechat || '',
+          contactWechat: (siteData as any)?.contact_wechat || '',
           loaded: true,
         };
 
