@@ -259,10 +259,11 @@ services:
         echo 'Initializing secrets from .env...'
 
         # 直接从环境变量写入 secrets 文件（覆盖占位文件）
-        echo "$$JWT_SECRET" > jwt_secret.txt
-        echo "$$MYSQL_ROOT_PASSWORD" > db_password.txt
-        echo "$$REDIS_PASSWORD" > redis_password.txt
-        echo "$$ENCRYPTION_KEY" > encryption_key.txt
+        # 使用 printf 避免添加换行符
+        printf '%s' \"$$JWT_SECRET\" > jwt_secret.txt
+        printf '%s' \"$$MYSQL_ROOT_PASSWORD\" > db_password.txt
+        printf '%s' \"$$REDIS_PASSWORD\" > redis_password.txt
+        printf '%s' \"$$ENCRYPTION_KEY\" > encryption_key.txt
 
         # 设置权限：允许其他用户读取（backend 以非 root 用户运行）
         chmod 644 *.txt
