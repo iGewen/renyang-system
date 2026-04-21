@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { User } from '@/entities/user.entity';
+import { User, UserStatus } from '@/entities/user.entity';
 import { SmsCode } from '@/entities/sms-code.entity';
 import { PasswordUtil } from '@/common/utils/password.util';
 import { CryptoUtil } from '@/common/utils/crypto.util';
@@ -130,11 +130,11 @@ export class AuthService {
       throw new UnauthorizedException('用户不存在');
     }
 
-    if (user.status === 3) {
+    if (user.status === UserStatus.BANNED) {
       throw new UnauthorizedException('您的账号已被封禁，如有疑问请联系客服');
     }
 
-    if (user.status === 2) {
+    if (user.status === UserStatus.RESTRICTED) {
       // 受限用户可以登录，但在交易接口会被拦截
     }
 
@@ -185,11 +185,11 @@ export class AuthService {
       throw new UnauthorizedException('用户不存在');
     }
 
-    if (user.status === 3) {
+    if (user.status === UserStatus.BANNED) {
       throw new UnauthorizedException('您的账号已被封禁，如有疑问请联系客服');
     }
 
-    if (user.status === 2) {
+    if (user.status === UserStatus.RESTRICTED) {
       // 受限用户可以登录，但在交易接口会被拦截
     }
 
@@ -337,11 +337,11 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('用户不存在');
     }
-    if (user.status === 3) {
+    if (user.status === UserStatus.BANNED) {
       throw new UnauthorizedException('您的账号已被封禁，如有疑问请联系客服');
     }
 
-    if (user.status === 2) {
+    if (user.status === UserStatus.RESTRICTED) {
       // 受限用户可以登录，但在交易接口会被拦截
     }
     return user;

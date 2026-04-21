@@ -13,6 +13,7 @@ import { User } from './user.entity';
 import { Livestock } from './livestock.entity';
 import { Order } from './order.entity';
 import { FeedBill } from './feed-bill.entity';
+import { LivestockSnapshot } from './snapshots.interface';
 
 export enum AdoptionStatus {
   ACTIVE = 1, // 领养中
@@ -43,7 +44,7 @@ export class Adoption {
   livestockId: string;
 
   @Column({ name: 'livestock_snapshot', type: 'json', comment: '活体快照' })
-  livestockSnapshot: any;
+  livestockSnapshot: LivestockSnapshot;
 
   @Column({ name: 'start_date', type: 'date', comment: '领养开始日期' })
   startDate: Date;

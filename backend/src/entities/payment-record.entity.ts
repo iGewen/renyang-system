@@ -8,6 +8,7 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { User } from './user.entity';
+import { PaymentNotifyData } from './snapshots.interface';
 
 export enum PaymentStatus {
   PENDING = 1, // 待支付
@@ -59,7 +60,7 @@ export class PaymentRecord {
   notifyAt: Date;
 
   @Column({ name: 'notify_data', type: 'json', nullable: true, comment: '回调数据' })
-  notifyData: any;
+  notifyData: PaymentNotifyData;
 
   // 第三方交易号（支付宝trade_no/微信transaction_id）
   @Column({ name: 'transaction_id', length: 64, nullable: true, comment: '第三方交易号' })

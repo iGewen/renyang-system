@@ -12,6 +12,15 @@ import { Order } from './order.entity';
 import { Adoption } from './adoption.entity';
 import { BalanceLog } from './balance-log.entity';
 
+/**
+ * 用户状态枚举
+ */
+export enum UserStatus {
+  NORMAL = 1,   // 正常
+  RESTRICTED = 2, // 受限
+  BANNED = 3,   // 封禁
+}
+
 @Entity('users')
 export class User {
   @Column({ length: 32, primary: true, comment: '用户ID' })
@@ -42,7 +51,7 @@ export class User {
 
   @Column({
     type: 'tinyint',
-    default: 1,
+    default: UserStatus.NORMAL,
     comment: '状态：1正常 2限制 3封禁',
   })
   status: number;

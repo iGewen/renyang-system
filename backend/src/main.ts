@@ -12,6 +12,10 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  // 安全修复 S-11：配置 trust proxy，防止 X-Forwarded-For IP 伪造
+  // 当使用 Nginx 反向代理时，Express 需要信任代理服务器
+  app.set('trust proxy', 1);
+
   // 全局前缀
   app.setGlobalPrefix('api');
 

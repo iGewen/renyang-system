@@ -13,3 +13,4 @@ export * from './sms-code.entity';
 export * from './admin.entity';
 export * from './system-config.entity';
 export * from './audit-log.entity';
+export * from './snapshots.interface';

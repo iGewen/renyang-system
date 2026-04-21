@@ -12,6 +12,7 @@ import {
 import { User } from './user.entity';
 import { Livestock } from './livestock.entity';
 import { Adoption } from './adoption.entity';
+import { LivestockSnapshot } from './snapshots.interface';
 
 /**
  * 精度说明：
@@ -55,7 +56,7 @@ export class Order {
   livestockId: string;
 
   @Column({ name: 'livestock_snapshot', type: 'json', comment: '活体快照' })
-  livestockSnapshot: any;
+  livestockSnapshot: LivestockSnapshot;
 
   @Column({ type: 'int', default: 1, comment: '数量' })
   quantity: number;

@@ -5,13 +5,10 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { UserStatus } from '@/entities/user.entity';
 
-// 用户状态枚举
-export enum UserStatus {
-  NORMAL = 1,      // 正常
-  RESTRICTED = 2,  // 受限
-  BANNED = 3,      // 封禁
-}
+// 重新导出 UserStatus，方便其他模块使用
+export { UserStatus } from '@/entities/user.entity';
 
 // 定义需要的最小状态级别
 export const MIN_STATUS_KEY = 'min_status';
