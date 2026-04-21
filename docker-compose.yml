@@ -118,11 +118,6 @@ services:
       JWT_EXPIRES_IN: 7d
       # 加密密钥（与 JWT_SECRET 分离）
       ENCRYPTION_KEY_FILE: /run/secrets/encryption_key
-      # 短信配置（通过管理后台配置，此处仅为初始化默认值）
-      ALIYUN_SMS_ACCESS_KEY_ID: ${ALIYUN_SMS_ACCESS_KEY_ID:-}
-      ALIYUN_SMS_ACCESS_KEY_SECRET: ${ALIYUN_SMS_ACCESS_KEY_SECRET:-}
-      ALIYUN_SMS_SIGN_NAME: ${ALIYUN_SMS_SIGN_NAME:-}
-      ALIYUN_SMS_TEMPLATE_CODE: ${ALIYUN_SMS_TEMPLATE_CODE:-}
       # 管理员配置
       ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD:-}
       # CORS配置
@@ -243,27 +238,59 @@ services:
         max-file: "3"
 
   # Secrets 自动初始化服务 (I-C04)
-  # 首次启动时自动创建 secrets 文件（如果不存在）
+  # 从 .env 文件读取密码，自动创建 secrets 文件
   secrets-init:
     image: alpine:3.19
     container_name: cloud-ranch-secrets-init
     volumes:
       - ./secrets:/secrets
+      - ./.env:/.env:ro
+    environment:
+      # 从 .env 传递密码到环境变量
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-}"
+      REDIS_PASSWORD: "${REDIS_PASSWORD:-}"
+      JWT_SECRET: "${JWT_SECRET:-}"
+      ENCRYPTION_KEY: "${ENCRYPTION_KEY:-}"
     command: |
       sh -c "
         mkdir -p /secrets
         cd /secrets
 
-        # 检查并创建各个 secret 文件
-        for secret in jwt_secret db_password redis_password encryption_key; do
-          if [ ! -f $${secret}.txt ]; then
-            echo \"Creating $${secret}.txt...\"
-            head -c 48 /dev/urandom | hexdump -C | awk '{print $$2$$3$$4$$5}' | head -c 48 > $${secret}.txt
-            chmod 600 $${secret}.txt
-          fi
-        done
+        # 从环境变量写入 secrets 文件
+        # 如果 .env 中有配置则使用，否则生成随机密码（用于开发环境）
 
-        # 创建 .gitignore
+        # JWT Secret
+        if [ -n "$$JWT_SECRET" ]; then
+          echo "$$JWT_SECRET" > jwt_secret.txt
+        elif [ ! -f jwt_secret.txt ]; then
+          head -c 48 /dev/urandom | hexdump -C | awk '{print $$2$$3$$4$$5}' | head -c 48 > jwt_secret.txt
+        fi
+
+        # Database Password
+        if [ -n "$$MYSQL_ROOT_PASSWORD" ]; then
+          echo "$$MYSQL_ROOT_PASSWORD" > db_password.txt
+        elif [ ! -f db_password.txt ]; then
+          head -c 48 /dev/urandom | hexdump -C | awk '{print $$2$$3$$4$$5}' | head -c 48 > db_password.txt
+        fi
+
+        # Redis Password
+        if [ -n "$$REDIS_PASSWORD" ]; then
+          echo "$$REDIS_PASSWORD" > redis_password.txt
+        elif [ ! -f redis_password.txt ]; then
+          head -c 48 /dev/urandom | hexdump -C | awk '{print $$2$$3$$4$$5}' | head -c 48 > redis_password.txt
+        fi
+
+        # Encryption Key
+        if [ -n "$$ENCRYPTION_KEY" ]; then
+          echo "$$ENCRYPTION_KEY" > encryption_key.txt
+        elif [ ! -f encryption_key.txt ]; then
+          head -c 48 /dev/urandom | hexdump -C | awk '{print $$2$$3$$4$$5}' | head -c 48 > encryption_key.txt
+        fi
+
+        # 设置安全权限
+        chmod 600 *.txt
+
+        # 创建 .gitignore（防止提交到仓库）
         if [ ! -f .gitignore ]; then
           echo '# 此目录包含敏感信息，不要提交到 Git' > .gitignore
           echo '*' >> .gitignore
@@ -271,6 +298,7 @@ services:
         fi
 
         echo 'Secrets initialized successfully'
+        echo 'Files created:'
         ls -la /secrets/
       "
     # 此服务完成后即退出，其他服务依赖它

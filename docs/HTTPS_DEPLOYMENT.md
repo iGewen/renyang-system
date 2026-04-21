@@ -25,40 +25,26 @@ EMAIL=your-email@example.com
 # MySQL密码（务必修改）
 MYSQL_ROOT_PASSWORD=your_strong_password
 
-# JWT密钥（务必修改）
+# Redis密码（务必修改）
+REDIS_PASSWORD=your_redis_password
+
+# JWT密钥（务必修改，至少32位）
 JWT_SECRET=your-very-long-jwt-secret-key
+
+# 加密密钥（务必修改，至少32位）
+ENCRYPTION_KEY=your-encryption-key
 ```
 
-### 2. 创建安全密钥文件（重要！）
+> 💡 **提示**：secrets 密钥文件会自动从 `.env` 中的配置生成，无需手动创建。
 
-> ⚠️ **首次部署必须执行此步骤！** 本项目使用 Docker Secrets 管理敏感信息。
-
-```bash
-# 创建 secrets 目录
-mkdir -p secrets
-cd secrets
-
-# 生成所有密钥文件
-openssl rand -hex 24 > jwt_secret.txt
-openssl rand -hex 24 > db_password.txt
-openssl rand -hex 24 > redis_password.txt
-openssl rand -hex 24 > encryption_key.txt
-
-# 设置安全权限
-chmod 600 *.txt
-
-# 返回项目根目录
-cd ..
-```
-
-### 3. 启动服务
+### 2. 启动服务
 
 ```bash
 # 使用HTTPS模式启动
 docker compose -f docker-compose.https.yml up -d
 ```
 
-### 4. 验证部署
+### 3. 验证部署
 
 - HTTP访问会自动跳转到HTTPS
 - 证书自动申请，首次启动可能需要等待1-2分钟
