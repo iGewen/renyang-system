@@ -216,6 +216,7 @@ services:
       COMPRESSION: gzip
       DB_DUMP_KEEP: 7
       MD5: "true"
+      RUN_ONCE: "false"
     volumes:
       - mysql_backups:/backups
     depends_on:
@@ -223,6 +224,7 @@ services:
         condition: service_healthy
     networks:
       - cloud-ranch-network
+    command: ["dump", "--cron"]
     logging:
       driver: "json-file"
       options:
