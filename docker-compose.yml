@@ -289,8 +289,8 @@ services:
           head -c 48 /dev/urandom | hexdump -C | awk '{print $$2$$3$$4$$5}' | head -c 48 > encryption_key.txt
         fi
 
-        # 设置安全权限
-        chmod 600 *.txt
+        # 设置权限：允许其他用户读取（backend 以非 root 用户运行）
+        chmod 644 *.txt
 
         # 创建 .gitignore（防止提交到仓库）
         if [ ! -f .gitignore ]; then
