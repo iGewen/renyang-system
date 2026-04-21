@@ -2197,7 +2197,7 @@ export class AdminService {
 
     // 生成Base64
     const buffer = await workbook.xlsx.writeBuffer();
-    const base64 = buffer.toString('base64');
+    const base64 = Buffer.from(buffer).toString('base64');
 
     const filename = `${sheetName}_${new Date().toISOString().split('T')[0]}.xlsx`;
 

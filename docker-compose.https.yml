@@ -2,53 +2,24 @@
 # 云端牧场 Docker Compose 配置 - 支持自动HTTPS
 # ===========================================
 # 使用方式：
-#   1. 复制 .env.docker 为 .env 并配置 DOMAIN 和 EMAIL
+#   1. 复制 .env.docker 为 .env 并配置 DOMAIN、EMAIL 和密码
 #   2. docker compose -f docker-compose.https.yml up -d
 #   3. 系统自动申请SSL证书并配置HTTPS
 #   4. 证书每12小时自动检查续期
 # ===========================================
 
 services:
-  # Secrets 自动初始化服务
-  secrets-init:
-    image: alpine:3.19
-    container_name: cloud-ranch-secrets-init
-    volumes:
-      - ./secrets:/secrets
-    command: |
-      sh -c "
-        mkdir -p /secrets
-        cd /secrets
-        for secret in jwt_secret db_password redis_password encryption_key; do
-          if [ ! -f $${secret}.txt ]; then
-            echo \"Creating $${secret}.txt...\"
-            head -c 48 /dev/urandom | hexdump -C | awk '{print $$2$$3$$4$$5}' | head -c 48 > $${secret}.txt
-            chmod 600 $${secret}.txt
-          fi
-        done
-        if [ ! -f .gitignore ]; then
-          echo '# 敏感信息' > .gitignore
-          echo '*' >> .gitignore
-          echo '!.gitignore' >> .gitignore
-        fi
-        echo 'Secrets initialized'
-      "
-    restart: "no"
-
   # MySQL 数据库
   mysql:
     image: crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/mysql:8.0
     container_name: cloud-ranch-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_password
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:?ERROR: MYSQL_ROOT_PASSWORD must be set}"
       MYSQL_DATABASE: cloud_ranch
       MYSQL_CHARACTER_SET_SERVER: utf8mb4
       MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
       TZ: Asia/Shanghai
-    secrets:
-      - db_password
-    # 安全修复：仅绑定本地
     ports:
       - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
     volumes:
@@ -71,14 +42,17 @@ services:
 
   # Redis 缓存
   redis:
-    # 安全修复 INFRA-005：锁定镜像版本，避免浮动标签风险
     image: crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/redis:7.2-alpine
     container_name: cloud-ranch-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass_file /run/secrets/redis_password
-    secrets:
-      - redis_password
-    # 安全修复：仅绑定本地
+    environment:
+      REDIS_PASSWORD: "${REDIS_PASSWORD:?ERROR: REDIS_PASSWORD must be set}"
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - "${REDIS_PASSWORD:?ERROR: REDIS_PASSWORD must be set}"
     ports:
       - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
@@ -91,7 +65,7 @@ services:
         max-size: "20m"
         max-file: "3"
     healthcheck:
-      test: ["CMD", "sh", "-c", "REDISCLI_AUTH=$$(cat /run/secrets/redis_password) redis-cli ping | grep PONG"]
+      test: ["CMD", "sh", "-c", "REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping | grep PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -106,25 +80,25 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
+      # 数据库配置
       DB_HOST: mysql
       DB_PORT: 3306
       DB_USERNAME: root
-      DB_PASSWORD_FILE: /run/secrets/db_password
+      DB_PASSWORD: "${MYSQL_ROOT_PASSWORD:?ERROR: MYSQL_ROOT_PASSWORD must be set}"
       DB_DATABASE: cloud_ranch
+      # Redis配置
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD_FILE: /run/secrets/redis_password
-      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      REDIS_PASSWORD: "${REDIS_PASSWORD:?ERROR: REDIS_PASSWORD must be set}"
+      # JWT配置
+      JWT_SECRET: "${JWT_SECRET:?ERROR: JWT_SECRET must be set}"
       JWT_EXPIRES_IN: 7d
-      ENCRYPTION_KEY_FILE: /run/secrets/encryption_key
+      # 加密密钥
+      ENCRYPTION_KEY: "${ENCRYPTION_KEY:?ERROR: ENCRYPTION_KEY must be set}"
+      # 管理员配置
       ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD:-}
+      # CORS配置
       CORS_ORIGIN: ${CORS_ORIGIN:-}
-    secrets:
-      - jwt_secret
-      - db_password
-      - redis_password
-      - encryption_key
-    # 安全修复：不暴露端口，通过 nginx 代理
     expose:
       - "3001"
     depends_on:
@@ -132,8 +106,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      secrets-init:
-        condition: service_completed_successfully
     networks:
       - cloud-ranch-network
     volumes:
@@ -237,15 +209,13 @@ services:
     environment:
       DB_SERVER: mysql
       DB_USER: root
-      DB_PASS_FILE: /run/secrets/db_password
+      DB_PASS: "${MYSQL_ROOT_PASSWORD:?ERROR: MYSQL_ROOT_PASSWORD must be set}"
       DB_NAMES: cloud_ranch
       DB_DUMP_FREQ: 1440
       DB_DUMP_BEGIN: 0300
       COMPRESSION: gzip
       DB_DUMP_KEEP: 7
       MD5: "true"
-    secrets:
-      - db_password
     volumes:
       - mysql_backups:/backups
     depends_on:
@@ -262,16 +232,6 @@ services:
 networks:
   cloud-ranch-network:
     driver: bridge
-
-secrets:
-  jwt_secret:
-    file: ./secrets/jwt_secret.txt
-  db_password:
-    file: ./secrets/db_password.txt
-  redis_password:
-    file: ./secrets/redis_password.txt
-  encryption_key:
-    file: ./secrets/encryption_key.txt
 
 volumes:
   mysql_data:
