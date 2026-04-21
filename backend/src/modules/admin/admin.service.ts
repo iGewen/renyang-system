@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, Between, In } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
+import * as ExcelJS from 'exceljs';
 import {
   Admin,
   User,
@@ -2023,7 +2024,7 @@ export class AdminService {
       '注册时间': new Date(user.createdAt).toLocaleString('zh-CN'),
     }));
 
-    return this.generateExcelBase64(data, '用户数据');
+    return await this.generateExcelBase64(data, '用户数据');
   }
 
   /**
@@ -2064,7 +2065,7 @@ export class AdminService {
       '支付时间': order.paidAt ? new Date(order.paidAt).toLocaleString('zh-CN') : '',
     }));
 
-    return this.generateExcelBase64(data, '订单数据');
+    return await this.generateExcelBase64(data, '订单数据');
   }
 
   /**
@@ -2109,7 +2110,7 @@ export class AdminService {
       '创建时间': new Date(adoption.createdAt).toLocaleString('zh-CN'),
     }));
 
-    return this.generateExcelBase64(data, '领养数据');
+    return await this.generateExcelBase64(data, '领养数据');
   }
 
   /**
@@ -2153,32 +2154,49 @@ export class AdminService {
       '创建时间': new Date(bill.createdAt).toLocaleString('zh-CN'),
     }));
 
-    return this.generateExcelBase64(data, '饲料费账单');
+    return await this.generateExcelBase64(data, '饲料费账单');
   }
 
   /**
    * 生成Excel Base64
    */
-  private generateExcelBase64(data: any[], sheetName: string): { base64: string; filename: string } {
-    const XLSX = require('xlsx');
-
+  private async generateExcelBase64(data: any[], sheetName: string): Promise<{ base64: string; filename: string }> {
     // 创建工作簿
-    const workbook = XLSX.utils.book_new();
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = '云端牧场';
+    workbook.created = new Date();
 
     // 创建工作表
-    const worksheet = XLSX.utils.json_to_sheet(data);
+    const worksheet = workbook.addWorksheet(sheetName);
 
-    // 设置列宽
-    const colWidths = Object.keys(data[0] || {}).map(key => ({
-      wch: Math.max(key.length * 2, 15)
-    }));
-    worksheet['!cols'] = colWidths;
+    // 如果有数据，添加表头和数据
+    if (data && data.length > 0) {
+      // 获取所有列名
+      const headers = Object.keys(data[0]);
 
-    // 添加工作表到工作簿
-    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+      // 添加表头
+      worksheet.columns = headers.map(key => ({
+        header: key,
+        key: key,
+        width: Math.max(key.length * 2, 15)
+      }));
+
+      // 添加数据行
+      data.forEach(row => {
+        worksheet.addRow(row);
+      });
+
+      // 设置表头样式
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE0E0E0' }
+      };
+    }
 
     // 生成Base64
-    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    const buffer = await workbook.xlsx.writeBuffer();
     const base64 = buffer.toString('base64');
 
     const filename = `${sheetName}_${new Date().toISOString().split('T')[0]}.xlsx`;
