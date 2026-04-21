@@ -66,7 +66,8 @@ export class LivestockService {
       return 0;
     }
 
-    await this.redisService.set(stockKey, livestock.stock.toString());
+    // 安全修复 Q-07：添加缓存 TTL (60秒)，防止缓存与数据库长期不一致
+    await this.redisService.set(stockKey, livestock.stock.toString(), 60);
     return livestock.stock;
   }
 
@@ -131,7 +132,8 @@ export class LivestockService {
   private async refreshStockCache(id: string, stockKey: string): Promise<void> {
     const livestock = await this.livestockRepository.findOne({ where: { id } });
     if (livestock) {
-      await this.redisService.set(stockKey, livestock.stock.toString());
+      // 安全修复 Q-07：添加缓存 TTL (60秒)
+      await this.redisService.set(stockKey, livestock.stock.toString(), 60);
     }
   }
 }

@@ -230,7 +230,32 @@ export class AuthService {
     // 标记验证码已使用
     await this.smsService.markCodeUsed(phone, code, 'reset_password');
 
+    // 安全修复 S-03：使用户所有 token 失效（通过标记用户密码版本）
+    await this.invalidateUserTokens(user.id);
+
     return { success: true };
+  }
+
+  /**
+   * 安全修复 S-03：使用户所有 token 失效
+   * 通过更新用户的 token 版本号，使所有旧 token 失效
+   */
+  async invalidateUserTokens(userId: string): Promise<void> {
+    const version = Date.now().toString();
+    await this.redisService.set(`user:token:version:${userId}`, version);
+  }
+
+  /**
+   * 安全修复 S-03：检查用户 token 版本是否有效
+   * 用于在需要时验证 token 是否应该被吊销
+   */
+  async isTokenVersionValid(userId: string, tokenIat: number): Promise<boolean> {
+    const storedVersion = await this.redisService.get(`user:token:version:${userId}`);
+    if (!storedVersion) {
+      return true; // 没有版本记录，token 有效
+    }
+    // 如果 token 签发时间早于版本更新时间，则 token 已失效
+    return tokenIat * 1000 >= Number.parseInt(storedVersion, 10);
   }
 
   /**

@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, In } from 'typeorm';
 import { RedemptionOrder, RedemptionType, RedemptionStatus, Adoption, AdoptionStatus } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
 import { IdUtil } from '@/common/utils/id.util';
@@ -102,6 +102,15 @@ export class RedemptionService {
 
       if (existingRedemption) {
         throw new BadRequestException('已有待审核的买断申请');
+      }
+
+      // 安全修复 B-08：检查是否有未支付的饲料费账单（包括逾期状态）
+      const unpaidBillsCount = await manager.count('FeedBill' as any, {
+        where: { adoptionId, status: In([1, 3]) }, // 1=PENDING, 3=OVERDUE
+      });
+
+      if (unpaidBillsCount > 0) {
+        throw new BadRequestException(`存在 ${unpaidBillsCount} 笔未支付的饲料费账单，请先完成支付后再申请买断`);
       }
 
       // 计算买断金额

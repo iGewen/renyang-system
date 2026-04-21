@@ -113,15 +113,7 @@ services:
       JWT_EXPIRES_IN: 7d
       # 加密密钥（与 JWT_SECRET 分离）
       ENCRYPTION_KEY_FILE: /run/secrets/encryption_key
-      # 支付宝配置
-      ALIPAY_APP_ID: ${ALIPAY_APP_ID:-}
-      ALIPAY_PRIVATE_KEY: ${ALIPAY_PRIVATE_KEY:-}
-      ALIPAY_PUBLIC_KEY: ${ALIPAY_PUBLIC_KEY:-}
-      # 微信配置
-      WECHAT_APP_ID: ${WECHAT_APP_ID:-}
-      WECHAT_MCH_ID: ${WECHAT_MCH_ID:-}
-      WECHAT_PAY_KEY: ${WECHAT_PAY_KEY:-}
-      # 短信配置
+      # 短信配置（通过管理后台配置，此处仅为初始化默认值）
       ALIYUN_SMS_ACCESS_KEY_ID: ${ALIYUN_SMS_ACCESS_KEY_ID:-}
       ALIYUN_SMS_ACCESS_KEY_SECRET: ${ALIYUN_SMS_ACCESS_KEY_SECRET:-}
       ALIYUN_SMS_SIGN_NAME: ${ALIYUN_SMS_SIGN_NAME:-}
