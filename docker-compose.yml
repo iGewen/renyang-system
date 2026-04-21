@@ -240,67 +240,34 @@ services:
         max-file: "3"
 
   # Secrets 自动初始化服务 (I-C04)
-  # 从 .env 文件读取密码，自动创建 secrets 文件
+  # 从 .env 文件读取密码，覆盖占位文件
   secrets-init:
     image: alpine:3.19
     container_name: cloud-ranch-secrets-init
     volumes:
       - ./secrets:/secrets
-      - ./.env:/.env:ro
     environment:
-      # 从 .env 传递密码到环境变量
-      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-}"
-      REDIS_PASSWORD: "${REDIS_PASSWORD:-}"
-      JWT_SECRET: "${JWT_SECRET:-}"
-      ENCRYPTION_KEY: "${ENCRYPTION_KEY:-}"
+      # 从 .env 传递密码到环境变量（必须配置）
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:?ERROR: MYSQL_ROOT_PASSWORD must be set in .env}"
+      REDIS_PASSWORD: "${REDIS_PASSWORD:?ERROR: REDIS_PASSWORD must be set in .env}"
+      JWT_SECRET: "${JWT_SECRET:?ERROR: JWT_SECRET must be set in .env}"
+      ENCRYPTION_KEY: "${ENCRYPTION_KEY:?ERROR: ENCRYPTION_KEY must be set in .env}"
     command: |
       sh -c "
-        mkdir -p /secrets
         cd /secrets
 
-        # 从环境变量写入 secrets 文件
-        # 如果 .env 中有配置则使用，否则生成随机密码（用于开发环境）
+        echo 'Initializing secrets from .env...'
 
-        # JWT Secret
-        if [ -n "$$JWT_SECRET" ]; then
-          echo "$$JWT_SECRET" > jwt_secret.txt
-        elif [ ! -f jwt_secret.txt ]; then
-          head -c 48 /dev/urandom | hexdump -C | awk '{print $$2$$3$$4$$5}' | head -c 48 > jwt_secret.txt
-        fi
-
-        # Database Password
-        if [ -n "$$MYSQL_ROOT_PASSWORD" ]; then
-          echo "$$MYSQL_ROOT_PASSWORD" > db_password.txt
-        elif [ ! -f db_password.txt ]; then
-          head -c 48 /dev/urandom | hexdump -C | awk '{print $$2$$3$$4$$5}' | head -c 48 > db_password.txt
-        fi
-
-        # Redis Password
-        if [ -n "$$REDIS_PASSWORD" ]; then
-          echo "$$REDIS_PASSWORD" > redis_password.txt
-        elif [ ! -f redis_password.txt ]; then
-          head -c 48 /dev/urandom | hexdump -C | awk '{print $$2$$3$$4$$5}' | head -c 48 > redis_password.txt
-        fi
-
-        # Encryption Key
-        if [ -n "$$ENCRYPTION_KEY" ]; then
-          echo "$$ENCRYPTION_KEY" > encryption_key.txt
-        elif [ ! -f encryption_key.txt ]; then
-          head -c 48 /dev/urandom | hexdump -C | awk '{print $$2$$3$$4$$5}' | head -c 48 > encryption_key.txt
-        fi
+        # 直接从环境变量写入 secrets 文件（覆盖占位文件）
+        echo "$$JWT_SECRET" > jwt_secret.txt
+        echo "$$MYSQL_ROOT_PASSWORD" > db_password.txt
+        echo "$$REDIS_PASSWORD" > redis_password.txt
+        echo "$$ENCRYPTION_KEY" > encryption_key.txt
 
         # 设置权限：允许其他用户读取（backend 以非 root 用户运行）
         chmod 644 *.txt
 
-        # 创建 .gitignore（防止提交到仓库）
-        if [ ! -f .gitignore ]; then
-          echo '# 此目录包含敏感信息，不要提交到 Git' > .gitignore
-          echo '*' >> .gitignore
-          echo '!.gitignore' >> .gitignore
-        fi
-
-        echo 'Secrets initialized successfully'
-        echo 'Files created:'
+        echo 'Secrets initialized successfully:'
         ls -la /secrets/
       "
     # 此服务完成后即退出，其他服务依赖它
