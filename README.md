@@ -58,9 +58,21 @@ cd renyang-system
 cp .env.docker .env
 nano .env  # 编辑配置文件
 
-# 3. 启动服务
+# 3. 创建安全密钥文件（首次部署必须执行！）
+mkdir -p secrets
+cd secrets
+openssl rand -hex 24 > jwt_secret.txt
+openssl rand -hex 24 > db_password.txt
+openssl rand -hex 24 > redis_password.txt
+openssl rand -hex 24 > encryption_key.txt
+chmod 600 *.txt
+cd ..
+
+# 4. 启动服务
 docker compose up -d
 ```
+
+> ⚠️ **重要**：第 3 步创建密钥文件是必须的！Docker Compose 使用 Docker Secrets 机制管理敏感信息，需要这些文件存在才能正常启动。
 
 ### 启用 HTTPS（生产环境推荐）
 

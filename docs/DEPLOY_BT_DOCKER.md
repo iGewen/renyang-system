@@ -10,10 +10,11 @@
 - [2. 安装 Docker](#2-安装-docker)
 - [3. 上传代码](#3-上传代码)
 - [4. 配置环境变量](#4-配置环境变量)
-- [5. 启动服务](#5-启动服务)
-- [6. 使用宝塔管理数据库](#6-使用宝塔管理数据库)
-- [7. 配置网站（可选）](#7-配置网站可选)
-- [8. 常见问题](#8-常见问题)
+- [5. 创建安全密钥文件](#5-创建安全密钥文件重要)
+- [6. 启动服务](#6-启动服务)
+- [7. 使用宝塔管理数据库](#7-使用宝塔管理数据库)
+- [8. 配置网站（可选）](#8-配置网站可选)
+- [9. 常见问题](#9-常见问题)
 
 ---
 
@@ -129,9 +130,43 @@ openssl rand -base64 32
 
 ---
 
-## 5. 启动服务
+## 5. 创建安全密钥文件（重要！）
 
-### 5.1 启动 Docker 容器
+> ⚠️ **首次部署必须执行此步骤！** 本项目使用 Docker Secrets 管理敏感信息，需要预先创建密钥文件。
+
+### 5.1 创建 secrets 目录
+
+```bash
+cd /www/wwwroot/renyang-system
+mkdir -p secrets
+cd secrets
+```
+
+### 5.2 生成密钥文件
+
+```bash
+# 生成所有密钥文件
+openssl rand -hex 24 > jwt_secret.txt
+openssl rand -hex 24 > db_password.txt
+openssl rand -hex 24 > redis_password.txt
+openssl rand -hex 24 > encryption_key.txt
+
+# 设置安全权限
+chmod 600 *.txt
+```
+
+### 5.3 验证文件创建
+
+```bash
+ls -la secrets/
+# 应该看到 4 个 .txt 文件，权限为 -rw-------
+```
+
+---
+
+## 6. 启动服务
+
+### 6.1 启动 Docker 容器
 
 ```bash
 cd /www/wwwroot/renyang-system
@@ -143,7 +178,7 @@ docker compose -f docker-compose.https.yml up -d
 docker compose up -d
 ```
 
-### 5.2 查看状态
+### 6.2 查看状态
 
 ```bash
 # 查看运行容器
@@ -153,7 +188,7 @@ docker ps
 docker compose logs -f
 ```
 
-### 5.3 验证服务
+### 6.3 验证服务
 
 | 服务 | 访问地址 | 说明 |
 |------|----------|------|
@@ -162,9 +197,9 @@ docker compose logs -f
 
 ---
 
-## 6. 使用宝塔管理数据库
+## 7. 使用宝塔管理数据库
 
-### 6.1 暴露数据库端口
+### 7.1 暴露数据库端口
 
 **修改 `docker-compose.yml`，添加端口映射：**
 
@@ -195,7 +230,7 @@ docker compose down
 docker compose up -d
 ```
 
-### 6.2 宝塔连接 MySQL
+### 7.2 宝塔连接 MySQL
 
 **步骤：**
 
@@ -223,7 +258,7 @@ docker compose up -d
 
 连接成功后，找到 `cloud_ranch` 数据库，这就是项目的业务数据库。
 
-### 6.3 宝塔连接 Redis
+### 7.3 宝塔连接 Redis
 
 **安装 Redis 管理器：**
 
@@ -256,7 +291,7 @@ KEYS *
 - 连接地址：`127.0.0.1:6379`
 - 密码：`.env` 中的 `REDIS_PASSWORD`
 
-### 6.4 数据库备份
+### 7.4 数据库备份
 
 **手动备份：**
 
@@ -301,18 +336,18 @@ echo "备份完成: mysql_$DATE.sql"
 
 ---
 
-## 7. 配置网站（可选）
+## 8. 配置网站（可选）
 
 > 💡 如果使用 `docker-compose.https.yml` 启动，Docker 已经处理了 HTTPS，**跳过此章节**。
 
-### 7.1 两种部署方式对比
+### 8.1 两种部署方式对比
 
 | 方式 | 说明 | 适用场景 |
 |------|------|----------|
 | 纯 Docker | 使用 `docker-compose.https.yml` | 简单、一体化部署 |
 | Docker + 宝塔 Nginx | 使用 `docker-compose.yml` + 宝塔反向代理 | 需要宝塔管理网站 |
 
-### 7.2 Docker + 宝塔 Nginx 配置
+### 8.2 Docker + 宝塔 Nginx 配置
 
 **第一步：修改 Docker 端口**
 
@@ -368,9 +403,30 @@ docker compose up -d
 
 ---
 
-## 8. 常见问题
+## 9. 常见问题
 
-### Q1: 端口冲突怎么办？
+### Q1: 密钥文件不存在的错误？
+
+**错误信息：**
+```
+bind source path does not exist: /www/wwwroot/renyang-system/secrets/redis_password.txt
+```
+
+**原因：** 未创建 secrets 密钥文件
+
+**解决：** 执行第 5 章的命令创建密钥文件：
+```bash
+cd /www/wwwroot/renyang-system
+mkdir -p secrets
+cd secrets
+openssl rand -hex 24 > jwt_secret.txt
+openssl rand -hex 24 > db_password.txt
+openssl rand -hex 24 > redis_password.txt
+openssl rand -hex 24 > encryption_key.txt
+chmod 600 *.txt
+```
+
+### Q2: 端口冲突怎么办？
 
 **问题：** 启动 Docker 时提示端口被占用
 
@@ -386,7 +442,7 @@ systemctl stop nginx    # 停止宝塔 Nginx
 # 编辑 docker-compose.yml，改用其他端口
 ```
 
-### Q2: 宝塔连接 MySQL 失败？
+### Q3: 宝塔连接 MySQL 失败？
 
 **检查步骤：**
 
@@ -407,7 +463,7 @@ systemctl stop nginx    # 停止宝塔 Nginx
    docker exec -it renyang-mysql mysql -u root -p
    ```
 
-### Q3: 容器无法启动？
+### Q4: 容器无法启动？
 
 **查看日志：**
 ```bash

@@ -11,14 +11,17 @@
 - [3. 配置镜像加速](#3-配置镜像加速)
 - [4. 上传代码](#4-上传代码)
 - [5. 配置环境变量](#5-配置环境变量)
-- [6. 部署应用](#6-部署应用)
-- [7. 使用 1Panel 管理数据库](#7-使用-1panel-管理数据库)
-- [8. 配置域名和 SSL](#8-配置域名和-ssl)
-  - [8.2 两种部署方案对比](#82-两种部署方案对比)
-  - [8.3 方案一：Docker HTTPS 模式](#83-方案一docker-https-模式推荐)
-  - [8.4 方案二：Docker + 1Panel Nginx](#84-方案二docker--1panel-nginx)
-  - [8.5 方案选择建议](#85-方案选择建议)
-- [9. 常见问题](#9-常见问题)
+- [6. 创建安全密钥文件](#6-创建安全密钥文件重要)
+- [7. 部署应用](#7-部署应用)
+- [8. 使用 1Panel 管理数据库](#8-使用-1panel-管理数据库)
+- [9. 配置域名和 SSL](#9-配置域名和-ssl)
+  - [9.2 两种部署方案对比](#92-两种部署方案对比)
+  - [9.3 方案一：Docker HTTPS 模式](#93-方案一docker-https-模式推荐)
+  - [9.4 方案二：Docker + 1Panel Nginx](#94-方案二docker--1panel-nginx)
+  - [9.5 方案选择建议](#95-方案选择建议)
+- [10. 应用管理](#10-应用管理)
+- [11. 常见问题](#11-常见问题)
+- [12. 快速命令参考](#12-快速命令参考)
 
 ---
 
@@ -215,9 +218,54 @@ openssl rand -base64 32
 
 ---
 
-## 6. 部署应用
+## 6. 创建安全密钥文件（重要！）
 
-### 6.1 方式一：1Panel 编排（推荐）
+> ⚠️ **首次部署必须执行此步骤！** 本项目使用 Docker Secrets 管理敏感信息，需要预先创建密钥文件。
+
+### 6.1 创建 secrets 目录
+
+```bash
+cd /opt/renyang-system
+mkdir -p secrets
+cd secrets
+```
+
+### 6.2 生成密钥文件
+
+```bash
+# 生成所有密钥文件
+openssl rand -hex 24 > jwt_secret.txt
+openssl rand -hex 24 > db_password.txt
+openssl rand -hex 24 > redis_password.txt
+openssl rand -hex 24 > encryption_key.txt
+
+# 设置安全权限
+chmod 600 *.txt
+```
+
+### 6.3 验证文件创建
+
+```bash
+ls -la secrets/
+# 应该看到 4 个 .txt 文件，权限为 -rw-------
+```
+
+### 6.4 密钥文件说明
+
+| 文件 | 用途 | 说明 |
+|------|------|------|
+| `jwt_secret.txt` | JWT 令牌签名 | 用户登录凭证加密 |
+| `db_password.txt` | 数据库密码 | 后端连接 MySQL 使用 |
+| `redis_password.txt` | Redis 密码 | 后端连接 Redis 使用 |
+| `encryption_key.txt` | 数据加密密钥 | 敏感数据加密存储 |
+
+> 💡 **提示**：这些密钥文件与 `.env` 中的密码是独立的。`.env` 中的密码用于 MySQL/Redis 服务启动，secrets 文件中的密码用于后端服务连接数据库。
+
+---
+
+## 7. 部署应用
+
+### 7.1 方式一：1Panel 编排（推荐）
 
 **步骤：**
 
@@ -239,7 +287,7 @@ openssl rand -base64 32
 - 点击 **启动** 按钮
 - 等待所有容器启动完成
 
-### 6.2 方式二：命令行启动
+### 7.2 方式二：命令行启动
 
 ```bash
 cd /opt/renyang-system
@@ -251,7 +299,7 @@ docker compose up -d
 docker compose -f docker-compose.https.yml up -d
 ```
 
-### 6.3 查看运行状态
+### 7.3 查看运行状态
 
 **1Panel 界面：**
 
@@ -273,7 +321,7 @@ docker compose logs -f backend
 docker compose logs -f frontend
 ```
 
-### 6.4 验证部署
+### 7.4 验证部署
 
 | 服务 | 验证地址 | 预期结果 |
 |------|----------|----------|
@@ -283,9 +331,9 @@ docker compose logs -f frontend
 
 ---
 
-## 7. 使用 1Panel 管理数据库
+## 8. 使用 1Panel 管理数据库
 
-### 7.1 查看数据库端口
+### 8.1 查看数据库端口
 
 项目 `docker-compose.yml` 已配置数据库端口映射：
 
@@ -299,7 +347,7 @@ ports:
   - "127.0.0.1:6379:6379"
 ```
 
-### 7.2 连接 MySQL
+### 8.2 连接 MySQL
 
 **步骤：**
 
@@ -323,7 +371,7 @@ ports:
 - 点击数据库名称 `cloud_ranch`
 - 可以执行 SQL、导入导出、查看表结构
 
-### 7.3 连接 Redis
+### 8.3 连接 Redis
 
 1Panel 内置 Redis 管理功能：
 
@@ -353,7 +401,7 @@ KEYS *
 - 端口：`6379`
 - 密码：`.env` 中的 `REDIS_PASSWORD`
 
-### 7.4 数据库备份
+### 8.4 数据库备份
 
 **1Panel 定时任务：**
 
@@ -394,9 +442,9 @@ echo "备份完成: mysql_$DATE.sql.gz"
 
 ---
 
-## 8. 配置域名和 SSL
+## 9. 配置域名和 SSL
 
-### 8.1 配置域名解析
+### 9.1 配置域名解析
 
 在域名服务商添加 A 记录：
 
@@ -407,7 +455,7 @@ echo "备份完成: mysql_$DATE.sql.gz"
 
 ---
 
-### 8.2 两种部署方案对比
+### 9.2 两种部署方案对比
 
 > ⚠️ **重要**：Docker 容器内的 nginx 和 1Panel 安装的 nginx 都会监听 80 端口，**直接使用会冲突**。请根据需求选择以下方案之一。
 
@@ -418,7 +466,7 @@ echo "备份完成: mysql_$DATE.sql.gz"
 
 ---
 
-### 8.3 方案一：Docker HTTPS 模式（推荐）
+### 9.3 方案一：Docker HTTPS 模式（推荐）
 
 **架构示意：**
 
@@ -461,7 +509,7 @@ docker compose -f docker-compose.https.yml up -d
 
 ---
 
-### 8.4 方案二：Docker + 1Panel Nginx
+### 9.4 方案二：Docker + 1Panel Nginx
 
 **架构示意：**
 
@@ -567,7 +615,7 @@ services:
 
 ---
 
-### 8.5 方案选择建议
+### 9.5 方案选择建议
 
 | 你的需求 | 推荐方案 |
 |----------|----------|
@@ -579,9 +627,9 @@ services:
 
 ---
 
-## 9. 应用管理
+## 10. 应用管理
 
-### 9.1 容器管理
+### 10.1 容器管理
 
 **在 1Panel 界面可执行：**
 
@@ -592,7 +640,7 @@ services:
 | 进入终端 | 点击容器 → 终端标签 |
 | 资源监控 | 容器列表显示 CPU/内存 |
 
-### 9.2 更新应用
+### 10.2 更新应用
 
 ```bash
 cd /opt/renyang-system
@@ -609,7 +657,7 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
-### 9.3 查看资源使用
+### 10.3 查看资源使用
 
 1Panel → **监控**：
 
@@ -620,9 +668,30 @@ docker compose up -d
 
 ---
 
-## 10. 常见问题
+## 11. 常见问题
 
-### Q1: 镜像拉取超时？
+### Q1: 密钥文件不存在的错误？
+
+**错误信息：**
+```
+bind source path does not exist: /opt/renyang-system/secrets/redis_password.txt
+```
+
+**原因：** 未创建 secrets 密钥文件
+
+**解决：** 执行第 6 章的命令创建密钥文件：
+```bash
+cd /opt/renyang-system
+mkdir -p secrets
+cd secrets
+openssl rand -hex 24 > jwt_secret.txt
+openssl rand -hex 24 > db_password.txt
+openssl rand -hex 24 > redis_password.txt
+openssl rand -hex 24 > encryption_key.txt
+chmod 600 *.txt
+```
+
+### Q2: 镜像拉取超时？
 
 **原因：** Docker Hub 国内访问不稳定
 
@@ -632,7 +701,7 @@ docker compose up -d
 # 或使用项目已配置的阿里云 ACR 镜像
 ```
 
-### Q2: 容器启动失败？
+### Q3: 容器启动失败？
 
 **排查步骤：**
 
@@ -651,7 +720,7 @@ cat .env
 netstat -tlnp | grep -E '80|443|3001|3306|6379'
 ```
 
-### Q3: 数据库连接失败？
+### Q4: 数据库连接失败？
 
 **检查：**
 
@@ -662,7 +731,7 @@ netstat -tlnp | grep -E '80|443|3001|3306|6379'
    docker exec -it cloud-ranch-mysql mysql -u root -p
    ```
 
-### Q4: 域名无法访问？
+### Q5: 域名无法访问？
 
 **检查：**
 
@@ -674,7 +743,7 @@ netstat -tlnp | grep -E '80|443|3001|3306|6379'
    ```
 3. 容器状态：`docker ps`
 
-### Q5: SSL 证书申请失败？
+### Q6: SSL 证书申请失败？
 
 **原因：**
 - 域名未解析到服务器
@@ -692,7 +761,7 @@ docker logs certbot
 
 ---
 
-## 11. 快速命令参考
+## 12. 快速命令参考
 
 ```bash
 # 启动服务

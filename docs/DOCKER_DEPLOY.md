@@ -171,7 +171,38 @@ MYSQL_ROOT_PASSWORD=YourStrongPassword123!
 JWT_SECRET=your-very-long-and-secure-jwt-secret-key-at-least-32-characters
 ```
 
-### 步骤三：一键启动
+### 步骤三：创建安全密钥文件（重要！）
+
+> ⚠️ **首次部署必须执行此步骤！** 本项目使用 Docker Secrets 管理敏感信息，需要预先创建密钥文件。
+
+```bash
+# 创建 secrets 目录
+mkdir -p secrets
+cd secrets
+
+# 生成所有密钥文件
+openssl rand -hex 24 > jwt_secret.txt
+openssl rand -hex 24 > db_password.txt
+openssl rand -hex 24 > redis_password.txt
+openssl rand -hex 24 > encryption_key.txt
+
+# 设置安全权限
+chmod 600 *.txt
+
+# 返回项目根目录
+cd ..
+```
+
+**密钥文件说明：**
+
+| 文件 | 用途 |
+|------|------|
+| `jwt_secret.txt` | JWT 令牌签名密钥 |
+| `db_password.txt` | 数据库连接密码 |
+| `redis_password.txt` | Redis 连接密码 |
+| `encryption_key.txt` | 数据加密密钥 |
+
+### 步骤四：一键启动
 
 ```bash
 # 新版Docker命令（Docker Compose V2，推荐）
@@ -189,7 +220,7 @@ Docker Compose 会自动完成：
 5. ✅ 初始化数据库和表结构
 6. ✅ 启动所有服务并进行健康检查
 
-### 步骤四：验证部署
+### 步骤五：验证部署
 
 ```bash
 # 新版命令
@@ -206,7 +237,7 @@ docker-compose ps
 # cloud-ranch-frontend    running (healthy)
 ```
 
-### 步骤五：访问应用
+### 步骤六：访问应用
 
 - **前端页面**: http://服务器IP
 - **后端API文档**: http://服务器IP:3001/api/docs
