@@ -18,7 +18,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ignoreExpiration: false,
       secretOrKey: configService.get('jwt.secret'),
       passReqToCallback: true, // 安全修复 S-03：传递 request 以获取原始 token
-    });
+    } as any); // 类型断言以兼容 passport-jwt 类型定义
   }
 
   async validate(req: Request, payload: any) {

@@ -56,8 +56,14 @@ describe('OrderService', () => {
 
     mockDataSource = {
       transaction: jest.fn((fn) => fn({
-        save: jest.fn(),
-        create: jest.fn(),
+        save: jest.fn().mockResolvedValue(undefined),
+        create: jest.fn().mockReturnValue({ id: 'ORD1', orderNo: 'ORD20240101001' }),
+        findOne: jest.fn().mockResolvedValue({ id: 'L1', stock: 10, status: 1, price: 1000 }),
+        createQueryBuilder: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        set: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        execute: jest.fn().mockResolvedValue({ affected: 1 }),
       })),
     };
 
@@ -103,45 +109,26 @@ describe('OrderService', () => {
 
       mockRedisService.exists.mockResolvedValue(false);
       mockLivestockService.getById.mockResolvedValue(mockLivestock);
-      mockLivestockService.getStock.mockResolvedValue(10);
-      mockOrderRepository.create.mockReturnValue({
-        id: 'ORD1',
-        orderNo: 'ORD20240101001',
-      });
-      mockOrderRepository.save.mockResolvedValue({});
 
       const result = await service.create('U1', 'L1', 'CLIENT1');
 
       expect(result).toBeDefined();
     });
 
-    it('应该抛出库存不足异常', async () => {
-      const mockLivestock = {
-        id: 'L1',
-        name: '小羊',
-        price: 1000,
-        status: 1,
-      };
+    it('应该抛出活体已售罄或已下架异常', async () => {
+      // 库存检查在事务中，execute 返回 affected: 0
+      mockDataSource.transaction = jest.fn((fn) => fn({
+        save: jest.fn(),
+        create: jest.fn().mockReturnValue({ id: 'ORD1' }),
+        findOne: jest.fn().mockResolvedValue({ id: 'L1', stock: 0, status: 2, price: 1000 }),
+        createQueryBuilder: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        set: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        execute: jest.fn().mockResolvedValue({ affected: 0 }), // 库存不足或已下架
+      }));
 
       mockRedisService.exists.mockResolvedValue(false);
-      mockLivestockService.getById.mockResolvedValue(mockLivestock);
-      mockLivestockService.getStock.mockResolvedValue(0);
-
-      await expect(service.create('U1', 'L1', 'CLIENT1')).rejects.toThrow(
-        BadRequestException,
-      );
-    });
-
-    it('应该抛出活体已下架异常', async () => {
-      const mockLivestock = {
-        id: 'L1',
-        name: '小羊',
-        price: 1000,
-        status: 2,
-      };
-
-      mockRedisService.exists.mockResolvedValue(false);
-      mockLivestockService.getById.mockResolvedValue(mockLivestock);
 
       await expect(service.create('U1', 'L1', 'CLIENT1')).rejects.toThrow(
         BadRequestException,
@@ -194,7 +181,8 @@ describe('OrderService', () => {
       };
       mockOrderRepository.findOne.mockResolvedValue(mockOrder);
 
-      const result = await service.getById('ORD1', 'U1');
+      // 使用公共方法 getByIdForUser 而非私有方法 getById
+      const result = await service.getByIdForUser('ORD1', 'U1');
 
       expect(result).toEqual(mockOrder);
     });

@@ -8,6 +8,7 @@ import { User, SmsCode, SystemConfig } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import type { StringValue } from 'ms';
 
 @Global()
 @Module({
@@ -15,12 +16,16 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     TypeOrmModule.forFeature([User, SmsCode, SystemConfig]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('jwt.secret'),
-        signOptions: {
-          expiresIn: configService.get<string>('jwt.expiresIn'),
-        },
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const secret = configService.get<string>('jwt.secret');
+        const expiresIn = (configService.get<string>('jwt.expiresIn') || '2h') as StringValue;
+        return {
+          secret,
+          signOptions: {
+            expiresIn,
+          },
+        };
+      },
       inject: [ConfigService],
     }),
   ],

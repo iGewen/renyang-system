@@ -20,6 +20,7 @@ import {
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { NotificationModule } from '../notification/notification.module';
+import type { StringValue } from 'ms';
 
 @Module({
   imports: [
@@ -44,10 +45,11 @@ import { NotificationModule } from '../notification/notification.module';
         if (!secret) {
           throw new Error('JWT_SECRET 未配置，请检查环境变量');
         }
+        const expiresIn = (configService.get<string>('jwt.expiresIn') || '2h') as StringValue;
         return {
           secret,
           signOptions: {
-            expiresIn: configService.get<string>('jwt.expiresIn') || '2h',
+            expiresIn,
           },
         };
       },

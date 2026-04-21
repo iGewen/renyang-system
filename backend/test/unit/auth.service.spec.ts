@@ -6,6 +6,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { User } from '../../src/entities/user.entity';
 import { SmsCode } from '../../src/entities/sms-code.entity';
 import { RedisService } from '../../src/common/utils/redis.service';
+import { SmsService } from '../../src/services/sms.service';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 
@@ -16,6 +17,7 @@ describe('AuthService', () => {
   let mockJwtService: any;
   let mockConfigService: any;
   let mockRedisService: any;
+  let mockSmsService: any;
 
   beforeEach(async () => {
     mockUserRepository = {
@@ -50,6 +52,13 @@ describe('AuthService', () => {
       del: jest.fn(),
     };
 
+    mockSmsService = {
+      sendSms: jest.fn().mockResolvedValue({ success: true }),
+      sendVerificationCode: jest.fn().mockResolvedValue({ success: true }),
+      verifyCode: jest.fn().mockResolvedValue(true),
+      markCodeUsed: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -73,6 +82,10 @@ describe('AuthService', () => {
           provide: RedisService,
           useValue: mockRedisService,
         },
+        {
+          provide: SmsService,
+          useValue: mockSmsService,
+        },
       ],
     }).compile();
 
@@ -80,11 +93,9 @@ describe('AuthService', () => {
   });
 
   describe('sendSmsCode', () => {
-    it('应该发送验证码成功', async () => {
-      mockRedisService.exists.mockResolvedValue(false);
+    it('应该发送注册验证码成功', async () => {
+      // 注册类型需要用户不存在
       mockUserRepository.findOne.mockResolvedValue(null);
-      mockSmsCodeRepository.create.mockReturnValue({});
-      mockSmsCodeRepository.save.mockResolvedValue({});
 
       const result = await service.sendSmsCode({
         phone: '13800138000',
@@ -92,37 +103,61 @@ describe('AuthService', () => {
       });
 
       expect(result).toEqual({ success: true });
-      expect(mockRedisService.set).toHaveBeenCalled();
+      expect(mockSmsService.sendVerificationCode).toHaveBeenCalled();
     });
 
-    it('应该抛出发送频率限制异常', async () => {
-      mockRedisService.exists.mockResolvedValue(true);
+    it('应该发送重置密码验证码成功', async () => {
+      // reset_password 类型需要用户存在
+      mockUserRepository.findOne.mockResolvedValue({ id: 'U1', phone: '13800138000' });
+
+      const result = await service.sendSmsCode({
+        phone: '13800138000',
+        type: 'reset_password',
+      });
+
+      expect(result).toEqual({ success: true });
+    });
+
+    it('应该发送登录验证码成功', async () => {
+      // login 类型需要用户存在
+      mockUserRepository.findOne.mockResolvedValue({ id: 'U1', phone: '13800138000' });
+
+      const result = await service.sendSmsCode({
+        phone: '13800138000',
+        type: 'login',
+      });
+
+      expect(result).toEqual({ success: true });
+    });
+
+    it('应该抛出手机号已注册异常', async () => {
+      mockUserRepository.findOne.mockResolvedValue({ id: 'U1', phone: '13800138000' });
 
       await expect(
         service.sendSmsCode({ phone: '13800138000', type: 'register' }),
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('应该抛出手机号已注册异常', async () => {
-      mockRedisService.exists.mockResolvedValue(false);
-      mockUserRepository.findOne.mockResolvedValue({ id: '1', phone: '13800138000' });
+    it('应该抛出手机号未注册异常', async () => {
+      mockUserRepository.findOne.mockResolvedValue(null);
 
       await expect(
-        service.sendSmsCode({ phone: '13800138000', type: 'register' }),
+        service.sendSmsCode({ phone: '13800138000', type: 'login' }),
       ).rejects.toThrow(BadRequestException);
     });
   });
 
   describe('register', () => {
     it('应该注册成功', async () => {
-      mockRedisService.get.mockResolvedValue('123456');
       mockUserRepository.findOne.mockResolvedValue(null);
       mockUserRepository.create.mockReturnValue({
         id: 'U123',
         phone: '13800138000',
       });
-      mockUserRepository.save.mockResolvedValue({});
-      mockSmsCodeRepository.update.mockResolvedValue({});
+      mockUserRepository.save.mockResolvedValue({
+        id: 'U123',
+        phone: '13800138000',
+      });
 
       const result = await service.register({
         phone: '13800138000',
@@ -135,7 +170,7 @@ describe('AuthService', () => {
     });
 
     it('应该抛出验证码错误异常', async () => {
-      mockRedisService.get.mockResolvedValue(null);
+      mockSmsService.verifyCode.mockRejectedValueOnce(new BadRequestException('验证码错误'));
 
       await expect(
         service.register({

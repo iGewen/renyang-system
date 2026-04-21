@@ -5,6 +5,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UploadController } from './upload.controller';
 import { UploadService } from './upload.service';
+import type { StringValue } from 'ms';
 
 @Module({
   imports: [
@@ -18,12 +19,16 @@ import { UploadService } from './upload.service';
     // 安全修复 (B-H11): 添加 JwtModule 用于签名 URL
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('jwt.secret'),
-        signOptions: {
-          expiresIn: configService.get<string>('jwt.expiresIn'),
-        },
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const secret = configService.get<string>('jwt.secret');
+        const expiresIn = (configService.get<string>('jwt.expiresIn') || '2h') as StringValue;
+        return {
+          secret,
+          signOptions: {
+            expiresIn,
+          },
+        };
+      },
       inject: [ConfigService],
     }),
   ],

@@ -131,7 +131,8 @@ describe('LivestockService', () => {
       const result = await service.getStock('L1');
 
       expect(result).toBe(20);
-      expect(mockRedisService.set).toHaveBeenCalledWith('livestock:stock:L1', '20');
+      // 更新：set 现在包含 TTL 参数（60秒）
+      expect(mockRedisService.set).toHaveBeenCalledWith('livestock:stock:L1', '20', 60);
     });
   });
 
