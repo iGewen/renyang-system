@@ -28,7 +28,7 @@ services:
     restart: unless-stopped
     environment:
       # 安全修复：移除默认密码回退，强制要求配置
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?ERROR: MYSQL_ROOT_PASSWORD must be set}
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:?ERROR: MYSQL_ROOT_PASSWORD must be set}"
       MYSQL_DATABASE: cloud_ranch
       MYSQL_CHARACTER_SET_SERVER: utf8mb4
       MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
@@ -62,7 +62,12 @@ services:
     container_name: cloud-ranch-redis
     restart: unless-stopped
     # 安全修复：移除默认密码回退，强制要求配置
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?ERROR: REDIS_PASSWORD must be set}
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - "${REDIS_PASSWORD:?ERROR: REDIS_PASSWORD must be set}"
     # 安全修复：绑定到 localhost，不暴露到公网
     ports:
       - "127.0.0.1:${REDIS_PORT:-6379}:6379"
@@ -211,7 +216,7 @@ services:
       # 数据库连接配置
       DB_SERVER: mysql
       DB_USER: root
-      DB_PASS: ${MYSQL_ROOT_PASSWORD:?ERROR: MYSQL_ROOT_PASSWORD must be set}
+      DB_PASS: "${MYSQL_ROOT_PASSWORD:?ERROR: MYSQL_ROOT_PASSWORD must be set}"
       DB_NAMES: cloud_ranch
       # 备份频率：每 1440 分钟（24小时）备份一次
       DB_DUMP_FREQ: 1440
