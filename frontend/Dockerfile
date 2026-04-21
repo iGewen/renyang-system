@@ -45,7 +45,10 @@ RUN mkdir -p /var/www/certbot /etc/letsencrypt /etc/nginx/conf.d
 # 复制构建产物
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# 复制Nginx配置（HTTP模式默认配置）
+# 复制Nginx主配置文件
+COPY nginx-main.conf /etc/nginx/nginx.conf
+
+# 复制Nginx服务器配置（HTTP模式默认配置）
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # 复制配置监听脚本（内联创建）
