@@ -8,6 +8,7 @@ import { UserService } from '../user/user.service';
 import { NotificationService } from '../notification/notification.service';
 import { WechatPayService } from '@/services/wechat-pay.service';
 import { AlipayService } from '@/services/alipay.service';
+import { normalizePagination, buildPaginationResult } from '@/common/utils/pagination.util';
 
 @Injectable()
 export class RefundService {
@@ -543,29 +544,27 @@ export class RefundService {
   /**
    * 获取待审核退款列表（管理员）
    */
-  async getPendingRefunds(page: number = 1, pageSize: number = 10) {
+  async getPendingRefunds(page?: number, pageSize?: number) {
+    const { page: normalizedPage, pageSize: normalizedPageSize, skip } = normalizePagination(page, pageSize);
+
     const queryBuilder = this.refundRepository.createQueryBuilder('refund')
       .leftJoinAndSelect('refund.user', 'user')
       .where('refund.status = :status', { status: RefundStatus.PENDING_AUDIT })
       .orderBy('refund.createdAt', 'ASC')
-      .skip((page - 1) * pageSize)
-      .take(pageSize);
+      .skip(skip)
+      .take(normalizedPageSize);
 
     const [list, total] = await queryBuilder.getManyAndCount();
 
-    return {
-      list,
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
-    };
+    return buildPaginationResult(list, total, normalizedPage, normalizedPageSize);
   }
 
   /**
    * 获取所有退款列表（管理员）
    */
-  async getAllRefunds(page: number = 1, pageSize: number = 10, status?: RefundStatus) {
+  async getAllRefunds(page?: number, pageSize?: number, status?: RefundStatus) {
+    const { page: normalizedPage, pageSize: normalizedPageSize, skip } = normalizePagination(page, pageSize);
+
     const queryBuilder = this.refundRepository.createQueryBuilder('refund')
       .leftJoinAndSelect('refund.user', 'user');
 
@@ -575,17 +574,11 @@ export class RefundService {
 
     queryBuilder
       .orderBy('refund.createdAt', 'DESC')
-      .skip((page - 1) * pageSize)
-      .take(pageSize);
+      .skip(skip)
+      .take(normalizedPageSize);
 
     const [list, total] = await queryBuilder.getManyAndCount();
 
-    return {
-      list,
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
-    };
+    return buildPaginationResult(list, total, normalizedPage, normalizedPageSize);
   }
 }

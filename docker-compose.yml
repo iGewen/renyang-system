@@ -136,8 +136,11 @@ services:
       - db_password
       - redis_password
       - encryption_key
+    # 安全修复 I-02：绑定到 localhost，不暴露到公网
+    # 前端容器通过 Docker 内部网络访问后端，无需暴露到宿主机
+    # 如需外部访问 API，可通过 Nginx 反向代理
     ports:
-      - "${BACKEND_PORT:-3001}:3001"
+      - "127.0.0.1:${BACKEND_PORT:-3001}:3001"
     depends_on:
       mysql:
         condition: service_healthy

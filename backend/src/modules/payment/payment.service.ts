@@ -596,19 +596,40 @@ export class PaymentService {
       }
     }
 
+    // 安全修复 S-02：微信支付回调防重放攻击
+    // 检查 transaction_id 是否已处理过
+    const txProcessedKey = `wechat:tx:${transactionId}`;
+    const isProcessed = await this.redisService.exists(txProcessedKey);
+    if (isProcessed) {
+      this.logger.warn(`[WechatPay] 重复回调（transaction_id 已处理）: ${transactionId}`);
+      return { code: 'SUCCESS', message: '已处理' };
+    }
+
     const lockKey = `payment:notify:${payment.paymentNo}`;
     return this.redisService.withLock(lockKey, 30000, async () => {
-      // 幂等性检查：仅使用 status 判断
-      if (payment.status === PaymentStatus.SUCCESS) {
-        return { code: 'SUCCESS', message: '成功' };
+      // 修复 B-03：在锁内重新获取最新的支付记录状态
+      const latestPayment = await this.paymentRepository.findOne({
+        where: { id: payment.id },
+      });
+
+      if (!latestPayment) {
+        return { code: 'FAIL', message: '订单不存在' };
+      }
+
+      // 幂等性检查：使用最新数据判断
+      if (latestPayment.status === PaymentStatus.SUCCESS) {
+        return { code: 'SUCCESS', message: '已处理' };
       }
 
       // 修复：使用新字段存储第三方交易号
-      payment.transactionId = transactionId;
-      payment.notifyAt = new Date();
-      payment.notifyData = transactionData;
+      latestPayment.transactionId = transactionId;
+      latestPayment.notifyAt = new Date();
+      latestPayment.notifyData = transactionData;
 
-      await this.handlePaymentSuccess(payment);
+      await this.handlePaymentSuccess(latestPayment);
+
+      // 安全修复 S-02：标记 transaction_id 已处理，24小时过期
+      await this.redisService.set(txProcessedKey, payment.paymentNo, 86400);
 
       return { code: 'SUCCESS', message: '成功' };
     });

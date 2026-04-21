@@ -79,6 +79,7 @@ export class UploadService {
 
   /**
    * 验证文件类型
+   * 安全修复 S-06：添加文件头魔数验证，防止 MIME 类型伪造
    */
   private validateFile(file: Express.Multer.File, allowedTypes: string[]) {
     if (!allowedTypes.includes(file.mimetype)) {
@@ -87,6 +88,43 @@ export class UploadService {
 
     if (file.size > this.maxFileSize) {
       throw new BadRequestException(`文件大小超过限制: ${this.maxFileSize / 1024 / 1024}MB`);
+    }
+
+    // 安全修复 S-06：检查文件扩展名
+    const ext = path.extname(file.originalname).toLowerCase();
+    const allowedExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf', '.doc', '.docx'];
+    if (!allowedExts.includes(ext)) {
+      throw new BadRequestException(`不允许的文件扩展名: ${ext}`);
+    }
+
+    // 安全修复 S-06：检查文件头魔数（Magic Number）
+    this.validateFileMagicNumber(file);
+  }
+
+  /**
+   * 验证文件头魔数
+   * 防止攻击者将恶意文件伪装成图片或文档
+   */
+  private validateFileMagicNumber(file: Express.Multer.File): void {
+    const magicNumbers: Record<string, number[]> = {
+      'image/jpeg': [0xFF, 0xD8, 0xFF],
+      'image/png': [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
+      'image/gif': [0x47, 0x49, 0x46, 0x38], // GIF8
+      'image/webp': [0x52, 0x49, 0x46, 0x46], // RIFF (WebP container)
+      'application/pdf': [0x25, 0x50, 0x44, 0x46], // %PDF
+    };
+
+    const expectedMagic = magicNumbers[file.mimetype];
+    if (!expectedMagic || !file.buffer || file.buffer.length < expectedMagic.length) {
+      // 如果没有定义魔数或文件太小，跳过检查（doc/docx 等格式复杂）
+      return;
+    }
+
+    const header = Array.from(file.buffer.slice(0, expectedMagic.length));
+    const isValid = header.every((byte, i) => byte === expectedMagic[i]);
+
+    if (!isValid) {
+      throw new BadRequestException('文件内容与声明的类型不符，可能存在安全风险');
     }
   }
 

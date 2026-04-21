@@ -5,6 +5,7 @@ import { Order, OrderStatus, Livestock, Adoption, AdoptionStatus } from '@/entit
 import { RedisService } from '@/common/utils/redis.service';
 import { IdUtil } from '@/common/utils/id.util';
 import { LivestockService } from '../livestock/livestock.service';
+import { normalizePagination, buildPaginationResult } from '@/common/utils/pagination.util';
 
 // 常量定义
 const ORDER_EXPIRE_MINUTES = 15;
@@ -178,7 +179,9 @@ export class OrderService {
     return order;
   }
 
-  async getUserOrders(userId: string, status?: OrderStatus, page: number = 1, pageSize: number = 10) {
+  async getUserOrders(userId: string, status?: OrderStatus, page?: number, pageSize?: number) {
+    const { page: normalizedPage, pageSize: normalizedPageSize, skip } = normalizePagination(page, pageSize);
+
     const queryBuilder = this.orderRepository.createQueryBuilder('order')
       .leftJoinAndSelect('order.livestock', 'livestock')
       .leftJoinAndSelect('order.adoption', 'adoption')
@@ -190,18 +193,12 @@ export class OrderService {
 
     queryBuilder
       .orderBy('order.createdAt', 'DESC')
-      .skip((page - 1) * pageSize)
-      .take(pageSize);
+      .skip(skip)
+      .take(normalizedPageSize);
 
     const [list, total] = await queryBuilder.getManyAndCount();
 
-    return {
-      list,
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
-    };
+    return buildPaginationResult(list, total, normalizedPage, normalizedPageSize);
   }
 
   async handlePaymentSuccess(orderId: string, paymentNo: string, paymentMethod: string) {

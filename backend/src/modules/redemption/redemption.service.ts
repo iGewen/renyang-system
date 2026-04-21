@@ -7,6 +7,7 @@ import { IdUtil } from '@/common/utils/id.util';
 import { AdoptionService } from '../adoption/adoption.service';
 import { PaymentService } from '../payment/payment.service';
 import { NotificationService } from '../notification/notification.service';
+import { normalizePagination, buildPaginationResult } from '@/common/utils/pagination.util';
 
 @Injectable()
 export class RedemptionService {
@@ -444,31 +445,29 @@ export class RedemptionService {
   /**
    * 获取待审核的买断列表（管理员）
    */
-  async getPendingRedemptions(page: number = 1, pageSize: number = 10) {
+  async getPendingRedemptions(page?: number, pageSize?: number) {
+    const { page: normalizedPage, pageSize: normalizedPageSize, skip } = normalizePagination(page, pageSize);
+
     const queryBuilder = this.redemptionRepository.createQueryBuilder('redemption')
       .leftJoinAndSelect('redemption.adoption', 'adoption')
       .leftJoinAndSelect('redemption.livestock', 'livestock')
       .leftJoinAndSelect('redemption.user', 'user')
       .where('redemption.status = :status', { status: RedemptionStatus.PENDING_AUDIT })
       .orderBy('redemption.createdAt', 'ASC')
-      .skip((page - 1) * pageSize)
-      .take(pageSize);
+      .skip(skip)
+      .take(normalizedPageSize);
 
     const [list, total] = await queryBuilder.getManyAndCount();
 
-    return {
-      list,
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
-    };
+    return buildPaginationResult(list, total, normalizedPage, normalizedPageSize);
   }
 
   /**
    * 获取所有买断列表（管理员）
    */
-  async getAllRedemptions(page: number = 1, pageSize: number = 10, status?: RedemptionStatus) {
+  async getAllRedemptions(page?: number, pageSize?: number, status?: RedemptionStatus) {
+    const { page: normalizedPage, pageSize: normalizedPageSize, skip } = normalizePagination(page, pageSize);
+
     const queryBuilder = this.redemptionRepository.createQueryBuilder('redemption')
       .leftJoinAndSelect('redemption.adoption', 'adoption')
       .leftJoinAndSelect('redemption.livestock', 'livestock')
@@ -480,18 +479,12 @@ export class RedemptionService {
 
     queryBuilder
       .orderBy('redemption.createdAt', 'DESC')
-      .skip((page - 1) * pageSize)
-      .take(pageSize);
+      .skip(skip)
+      .take(normalizedPageSize);
 
     const [list, total] = await queryBuilder.getManyAndCount();
 
-    return {
-      list,
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
-    };
+    return buildPaginationResult(list, total, normalizedPage, normalizedPageSize);
   }
 
   /**

@@ -4,6 +4,7 @@ import { Repository, DataSource } from 'typeorm';
 import { FeedBill, FeedBillStatus, Adoption, AdoptionStatus } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
 import { IdUtil } from '@/common/utils/id.util';
+import { normalizePagination, buildPaginationResult } from '@/common/utils/pagination.util';
 
 @Injectable()
 export class FeedService {
@@ -337,21 +338,17 @@ export class FeedService {
   /**
    * 获取异常领养列表
    */
-  async getExceptionAdoptions(page: number = 1, pageSize: number = 10) {
+  async getExceptionAdoptions(page?: number, pageSize?: number) {
+    const { page: normalizedPage, pageSize: normalizedPageSize, skip } = normalizePagination(page, pageSize);
+
     const [list, total] = await this.adoptionRepository.findAndCount({
       where: { isException: 1 },
       order: { exceptionAt: 'DESC' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+      skip,
+      take: normalizedPageSize,
     });
 
-    return {
-      list,
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
-    };
+    return buildPaginationResult(list, total, normalizedPage, normalizedPageSize);
   }
 
   /**
@@ -386,11 +383,13 @@ export class FeedService {
    * 获取饲料费账单列表（管理员）
    */
   async getFeedBillList(params: {
-    page: number;
-    pageSize: number;
+    page?: number;
+    pageSize?: number;
     status?: number;
     keyword?: string;
   }) {
+    const { page, pageSize, skip } = normalizePagination(params.page, params.pageSize);
+
     const queryBuilder = this.feedBillRepository.createQueryBuilder('bill')
       .leftJoinAndSelect('bill.adoption', 'adoption')
       .leftJoinAndSelect('bill.livestock', 'livestock')
@@ -409,17 +408,11 @@ export class FeedService {
 
     queryBuilder
       .orderBy('bill.createdAt', 'DESC')
-      .skip((params.page - 1) * params.pageSize)
-      .take(params.pageSize);
+      .skip(skip)
+      .take(pageSize);
 
     const [list, total] = await queryBuilder.getManyAndCount();
 
-    return {
-      list,
-      total,
-      page: params.page,
-      pageSize: params.pageSize,
-      totalPages: Math.ceil(total / params.pageSize),
-    };
+    return buildPaginationResult(list, total, page, pageSize);
   }
 }

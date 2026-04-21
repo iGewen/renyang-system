@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Livestock, LivestockType } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
+import { normalizePagination, buildPaginationResult } from '@/common/utils/pagination.util';
 
 @Injectable()
 export class LivestockService {
@@ -22,33 +23,27 @@ export class LivestockService {
   }
 
   async getList(options: { typeId?: string; status?: number; page?: number; pageSize?: number }) {
-    const { typeId, status = 1, page = 1, pageSize = 10 } = options;
+    const { page, pageSize, skip } = normalizePagination(options.page, options.pageSize);
 
     const queryBuilder = this.livestockRepository.createQueryBuilder('livestock')
       .leftJoinAndSelect('livestock.type', 'type');
 
-    if (typeId) {
-      queryBuilder.andWhere('livestock.typeId = :typeId', { typeId });
+    if (options.typeId) {
+      queryBuilder.andWhere('livestock.typeId = :typeId', { typeId: options.typeId });
     }
 
-    if (status) {
-      queryBuilder.andWhere('livestock.status = :status', { status });
+    if (options.status) {
+      queryBuilder.andWhere('livestock.status = :status', { status: options.status });
     }
 
     queryBuilder
       .orderBy('livestock.sortOrder', 'ASC')
-      .skip((page - 1) * pageSize)
+      .skip(skip)
       .take(pageSize);
 
     const [list, total] = await queryBuilder.getManyAndCount();
 
-    return {
-      list,
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
-    };
+    return buildPaginationResult(list, total, page, pageSize);
   }
 
   async getById(id: string) {
@@ -121,7 +116,7 @@ export class LivestockService {
       soldCountUpdate = () => `soldCount`;
     }
 
-    updateBuilder
+    await updateBuilder
       .set({
         stock: () => `stock + ${quantity}`,
         soldCount: soldCountUpdate,
