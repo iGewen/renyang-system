@@ -164,11 +164,20 @@ echo "域名: $DOMAIN"
 echo "邮箱: $EMAIL"
 echo "=========================================="
 
-# 检查证书是否已存在
-if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
-    echo "证书已存在，配置HTTPS..."
+# 检查证书是否已存在（检查目录和证书文件）
+if [ -d "/etc/letsencrypt/live/$DOMAIN" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/privkey.pem" ]; then
+    echo "=========================================="
+    echo "证书已存在，跳过申请"
+    echo "证书路径: /etc/letsencrypt/live/$DOMAIN"
+    echo "=========================================="
     configure_https
     exit 0
+fi
+
+# 检查目录存在但证书文件不完整的情况
+if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
+    echo "警告: 证书目录存在但证书文件不完整，将重新申请"
+    rm -rf "/etc/letsencrypt/live/$DOMAIN"
 fi
 
 # 等待nginx启动
