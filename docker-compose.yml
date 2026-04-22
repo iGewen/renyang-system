@@ -54,7 +54,7 @@ services:
 
   # Redis 缓存 - 使用阿里云ACR镜像
   redis:
-    image: crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/redis:latest
+    image: crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/redis:7.2-alpine
     container_name: cloud-ranch-redis
     restart: unless-stopped
     environment:
