@@ -17,6 +17,9 @@ export class AuditLog {
   @Column({ name: 'admin_name', length: 50, nullable: true, comment: '管理员用户名' })
   adminName: string;
 
+  @Column({ length: 50, nullable: true, comment: '模块' })
+  module: string;
+
   @Column({ length: 50, comment: '操作类型' })
   action: string;
 
@@ -27,11 +30,14 @@ export class AuditLog {
   @Column({ name: 'target_id', length: 32, nullable: true, comment: '目标ID' })
   targetId: string;
 
-  @Column({ name: 'old_value', type: 'json', nullable: true, comment: '旧值' })
-  oldValue: any;
+  @Column({ name: 'before_data', type: 'json', nullable: true, comment: '操作前数据' })
+  beforeData: any;
 
-  @Column({ name: 'new_value', type: 'json', nullable: true, comment: '新值' })
-  newValue: any;
+  @Column({ name: 'after_data', type: 'json', nullable: true, comment: '操作后数据' })
+  afterData: any;
+
+  @Column({ length: 500, nullable: true, comment: '备注' })
+  remark: string;
 
   @Column({ length: 45, nullable: true, comment: 'IP地址' })
   ip: string;
