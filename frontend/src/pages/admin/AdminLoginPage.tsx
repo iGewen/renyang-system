@@ -151,8 +151,9 @@ export const AdminLoginPage: React.FC = () => {
         navigate('/admin');
       }
     } catch (err: any) {
-      // 不显示具体错误信息，只显示通用提示
-      setError('登录失败，请检查用户名和密码');
+      // 显示后端返回的错误信息（如剩余次数提示）
+      const errorMsg = err?.response?.data?.message || err?.message || '登录失败，请检查用户名和密码';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }

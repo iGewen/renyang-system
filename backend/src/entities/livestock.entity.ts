@@ -33,7 +33,7 @@ export class Livestock {
   id: string;
 
   @Index()
-  @Column({ name: 'livestock_no', length: 20, nullable: true, comment: '活体编号(领养编号)' })
+  @Column({ name: 'livestock_no', length: 24, nullable: true, comment: '活体编号(领养编号)' })
   livestockNo: string;
 
   @Column({ name: 'type_id', length: 32, comment: '类型ID' })

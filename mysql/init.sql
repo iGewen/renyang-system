@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS livestock_types (
 -- 活体表
 CREATE TABLE IF NOT EXISTS livestock (
     id VARCHAR(32) NOT NULL COMMENT '活体ID',
-    livestock_no VARCHAR(20) NULL COMMENT '活体编号(领养编号)',
+    livestock_no VARCHAR(24) NULL COMMENT '活体编号(领养编号)',
     type_id VARCHAR(32) NOT NULL COMMENT '类型ID',
     name VARCHAR(100) NOT NULL COMMENT '活体名称',
     price DECIMAL(10,2) NOT NULL COMMENT '领养价格',
