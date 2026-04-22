@@ -159,9 +159,13 @@ async function request<T>(url: string, options?: RequestInit, isAdminRequest: bo
       }
       // 生产环境不暴露具体错误信息，只返回通用提示
       // 开发环境可以显示具体错误便于调试
+      // 但登录接口需要返回具体错误信息（如剩余次数提示）
       const isDev = import.meta.env?.DEV === true;
-      const errorMessage = isDev ? (data.message || '请求失败') : '操作失败，请稍后重试';
-      throw new Error(errorMessage);
+      const isLoginEndpoint = url.includes('/auth/login');
+      if (isDev || isLoginEndpoint) {
+        throw new Error(data.message || '请求失败');
+      }
+      throw new Error('操作失败，请稍后重试');
     }
 
     return data.data || data;
