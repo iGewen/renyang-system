@@ -2108,7 +2108,7 @@ const AdminLoginPageWrapper: React.FC = () => {
 // ==================== 管理后台路由守卫 ====================
 
 const AdminProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const adminToken = localStorage.getItem('admin_token');
+  const adminToken = sessionStorage.getItem('admin_token');
 
   // 检查 Token 是否有效
   if (!adminToken) {
@@ -2119,13 +2119,13 @@ const AdminProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children
   try {
     const payload = JSON.parse(atob(adminToken.split('.')[1]));
     if (payload.exp && payload.exp * 1000 < Date.now()) {
-      localStorage.removeItem('admin_token');
-      localStorage.removeItem('adminInfo');
+      sessionStorage.removeItem('admin_token');
+      sessionStorage.removeItem('admin_info');
       return <Navigate to="/admin-login" replace />;
     }
   } catch {
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('adminInfo');
+    sessionStorage.removeItem('admin_token');
+    sessionStorage.removeItem('admin_info');
     return <Navigate to="/admin-login" replace />;
   }
 

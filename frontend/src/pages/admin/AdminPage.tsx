@@ -3291,8 +3291,8 @@ const AdminPage: React.FC<AdminPageProps> = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('admin_token');
-    const info = localStorage.getItem('admin_info');
+    const token = sessionStorage.getItem('admin_token');
+    const info = sessionStorage.getItem('admin_info');
     if (!token) {
       navigate('/admin-login');
       return;
@@ -3316,8 +3316,8 @@ const AdminPage: React.FC<AdminPageProps> = () => {
   }, [location.pathname, activeMenu]);
 
   const handleLogout = () => {
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('admin_info');
+    sessionStorage.removeItem('admin_token');
+    sessionStorage.removeItem('admin_info');
     globalThis.location.href = '/admin-login';
   };
 
