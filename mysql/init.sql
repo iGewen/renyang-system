@@ -14,8 +14,8 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(255) NULL COMMENT '密码（加密）',
     nickname VARCHAR(50) NULL COMMENT '昵称',
     avatar VARCHAR(500) NULL COMMENT '头像',
-    gender TINYINT DEFAULT 0 COMMENT '性别：0未知 1男 2女',
-    birthday DATE NULL COMMENT '生日',
+    wechat_openid VARCHAR(64) NULL COMMENT '微信OpenID',
+    wechat_unionid VARCHAR(64) NULL COMMENT '微信UnionID',
     balance DECIMAL(10,2) DEFAULT 0.00 COMMENT '余额',
     status TINYINT DEFAULT 1 COMMENT '状态：1正常 2禁用',
     last_login_at DATETIME NULL COMMENT '最后登录时间',
@@ -25,7 +25,8 @@ CREATE TABLE IF NOT EXISTS users (
     deleted_at DATETIME(6) NULL COMMENT '软删除时间',
     version INT DEFAULT 1 COMMENT '乐观锁版本号',
     PRIMARY KEY (id),
-    UNIQUE INDEX IDX_users_phone (phone)
+    UNIQUE INDEX IDX_users_phone (phone),
+    UNIQUE INDEX IDX_users_wechat_openid (wechat_openid)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
 -- 管理员表
@@ -236,8 +237,9 @@ CREATE TABLE IF NOT EXISTS payment_records (
     payment_method VARCHAR(20) NOT NULL COMMENT '支付方式：alipay/wechat/balance',
     status TINYINT DEFAULT 1 COMMENT '状态：1待支付 2支付成功 3支付失败 4已关闭',
     paid_at DATETIME NULL COMMENT '支付时间',
-    transaction_id VARCHAR(64) NULL COMMENT '第三方交易ID',
+    notify_at DATETIME NULL COMMENT '回调时间',
     notify_data JSON NULL COMMENT '回调数据',
+    transaction_id VARCHAR(64) NULL COMMENT '第三方交易ID',
     created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
     updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
     version INT DEFAULT 1 COMMENT '乐观锁版本号',
@@ -286,9 +288,10 @@ CREATE TABLE IF NOT EXISTS balance_logs (
     amount DECIMAL(10,2) NOT NULL COMMENT '变动金额',
     balance_before DECIMAL(10,2) NOT NULL COMMENT '变动前余额',
     balance_after DECIMAL(10,2) NOT NULL COMMENT '变动后余额',
-    order_type VARCHAR(20) NULL COMMENT '关联订单类型',
-    order_id VARCHAR(32) NULL COMMENT '关联订单ID',
+    related_type VARCHAR(20) NULL COMMENT '关联类型',
+    related_id VARCHAR(64) NULL COMMENT '关联ID',
     remark VARCHAR(255) NULL COMMENT '备注',
+    operator_id VARCHAR(32) NULL COMMENT '操作管理员ID',
     created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
     PRIMARY KEY (id),
     INDEX IDX_balance_user_id (user_id),
