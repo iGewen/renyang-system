@@ -1054,10 +1054,17 @@ export class AdminService {
     'contact_phone', 'contact_email', 'contact_address', 'contact_wechat',
     // 支付配置
     'alipay_app_id', 'alipay_private_key', 'alipay_public_key', 'alipay_notify_url',
+    'alipay_return_url',
     'wechat_app_id', 'wechat_mch_id', 'wechat_api_key', 'wechat_notify_url',
+    'wechat_pay_key', 'wechat_api_v3_key', 'wechat_serial_no', 'wechat_private_key',
+    'wechat_template_adoption_success', 'wechat_template_feed_bill', 'wechat_template_feed_bill_overdue',
+    'wechat_template_redemption_audit', 'wechat_template_redemption_success',
+    'payment_alipay_enabled', 'payment_wechat_enabled',
     // 短信配置
     'aliyun_access_key_id', 'aliyun_access_key_secret', 'aliyun_sign_name', 'aliyun_template_code',
     'sms_enabled', 'sms_daily_limit',
+    'sms_template_login', 'sms_template_register', 'sms_template_reset_password',
+    'sms_template_order', 'sms_template_feed_bill',
     // 功能配置
     'order_expire_minutes', 'feed_fee_rate', 'late_fee_rate', 'redemption_fee_rate',
     'max_adoptions_per_user', 'balance_min_recharge', 'balance_max_balance',
