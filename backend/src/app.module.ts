@@ -77,17 +77,17 @@ import { AppLogger, LoggerMiddleware } from './common/logger';
       {
         name: 'short',
         ttl: 1000,    // 1秒窗口
-        limit: 3,     // 最多3次请求
+        limit: 10,    // 最多10次请求（放宽限制）
       },
       {
         name: 'medium',
         ttl: 10000,   // 10秒窗口
-        limit: 20,    // 最多20次请求
+        limit: 50,    // 最多50次请求
       },
       {
         name: 'long',
         ttl: 60000,   // 1分钟窗口
-        limit: 100,   // 最多100次请求
+        limit: 200,   // 最多200次请求
       },
     ]),
 

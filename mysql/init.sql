@@ -105,7 +105,7 @@ CREATE TABLE IF NOT EXISTS orders (
     expire_at DATETIME NULL COMMENT '过期时间',
     cancel_reason VARCHAR(255) NULL COMMENT '取消原因',
     canceled_at DATETIME NULL COMMENT '取消时间',
-    client_order_id VARCHAR(36) NULL COMMENT '客户端订单ID',
+    client_order_id VARCHAR(64) NULL COMMENT '客户端幂等键',
     created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
     updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
     version INT DEFAULT 1 COMMENT '乐观锁版本号',
