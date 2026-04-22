@@ -1446,7 +1446,10 @@ export class AdminService {
     ip?: string;
     userAgent?: string;
   }) {
-    const log = this.auditLogRepository.create(params);
+    const log = this.auditLogRepository.create({
+      id: IdUtil.generate('AUD'),
+      ...params,
+    });
     return this.auditLogRepository.save(log);
   }
 
