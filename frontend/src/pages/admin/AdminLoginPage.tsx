@@ -122,8 +122,10 @@ export const AdminLoginPage: React.FC = () => {
       setError('两次密码输入不一致');
       return false;
     }
-    if (newPassword.length < 6) {
-      setError('密码长度至少6位');
+    // 与后端保持一致：大小写字母+数字，8-20位
+    const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,20}$/;
+    if (!passwordPattern.test(newPassword)) {
+      setError('密码需包含大小写字母和数字，长度8-20位');
       return false;
     }
     return true;
@@ -149,7 +151,8 @@ export const AdminLoginPage: React.FC = () => {
         navigate('/admin');
       }
     } catch (err: any) {
-      setError(err.message || '登录失败，请检查用户名和密码');
+      // 不显示具体错误信息，只显示通用提示
+      setError('登录失败，请检查用户名和密码');
     } finally {
       setLoading(false);
     }
@@ -164,21 +167,36 @@ export const AdminLoginPage: React.FC = () => {
       sessionStorage.setItem('admin_token', adminData.token);
       await adminApi.updatePassword({ oldPassword, newPassword });
 
-      // 清除状态，重新登录
+      // 清除临时状态
       sessionStorage.removeItem('admin_token');
       setNeedChangePassword(false);
-      setAdminData(null);
       setError('');
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
 
-      // 提示用户重新登录
-      success('密码修改成功，请使用新密码重新登录');
+      // 密码修改成功，自动使用新密码登录
+      const result = await adminApi.login({
+        username: adminData.admin.username,
+        password: newPassword
+      });
+
+      // 保存登录信息并跳转
+      sessionStorage.setItem('admin_token', result.token);
+      sessionStorage.setItem('admin_info', JSON.stringify({
+        id: result.admin.id,
+        username: result.admin.username,
+        name: result.admin.name,
+        role: result.admin.role,
+      }));
+
+      success('密码修改成功，欢迎进入管理后台');
+      navigate('/admin');
     } catch (err: any) {
       // 修改失败时清除 token
       sessionStorage.removeItem('admin_token');
-      setError(err.message || '修改密码失败');
+      // 不显示具体错误信息，只显示通用提示
+      setError('操作失败，请稍后重试');
     } finally {
       setChangingPassword(false);
     }
@@ -276,13 +294,14 @@ export const AdminLoginPage: React.FC = () => {
           >
             <AnimatePresence mode="wait">
               {needChangePassword ? (
-                <motion.div
+                <motion.form
                   key="change-password"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
                   className="space-y-5"
+                  onSubmit={(e) => { e.preventDefault(); handleChangePassword(); }}
                 >
                   {/* 强制修改密码提示 */}
                   <motion.div
@@ -331,7 +350,7 @@ export const AdminLoginPage: React.FC = () => {
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         className="w-full bg-slate-50/80 border border-slate-200 rounded-xl py-3.5 pl-12 pr-12 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all duration-200"
-                        placeholder="请输入新密码（至少6位）"
+                        placeholder="请输入新密码（大小写字母+数字，8-20位）"
                       />
                       <button
                         type="button"
@@ -459,7 +478,7 @@ export const AdminLoginPage: React.FC = () => {
                       )}
                     </motion.button>
                   </div>
-                </motion.div>
+                </motion.form>
               ) : (
                 <motion.form
                   key="login"

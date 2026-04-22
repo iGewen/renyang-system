@@ -135,7 +135,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   // 处理未知错误
   private handleError(exception: Error): { status: number; message: string; code: number } {
+    // 生产环境记录完整错误日志，但不返回给客户端
     this.logger.error('Unhandled exception', exception.stack);
+
+    // 生产环境返回通用错误信息，不暴露具体错误
+    if (process.env.NODE_ENV === 'production') {
+      return { status: HttpStatus.INTERNAL_SERVER_ERROR, message: '服务器内部错误', code: -1 };
+    }
+
+    // 开发环境可以返回更多错误信息便于调试
     return { status: HttpStatus.INTERNAL_SERVER_ERROR, message: translateMessage(exception.message), code: -1 };
   }
 

@@ -44,8 +44,8 @@ function safeParseJwtPayload(token: string): { exp?: number; sub?: string; [key:
     );
     return JSON.parse(payload);
   } catch (error) {
+    // 生产环境不输出日志
     // 解析失败，返回 null
-    console.warn('[JWT] 解析 token 失败:', error);
     return null;
   }
 }
@@ -157,7 +157,11 @@ async function request<T>(url: string, options?: RequestInit, isAdminRequest: bo
           globalThis.dispatchEvent(new CustomEvent('auth:user-expired'));
         }
       }
-      throw new Error(data.message || '请求失败');
+      // 生产环境不暴露具体错误信息，只返回通用提示
+      // 开发环境可以显示具体错误便于调试
+      const isDev = import.meta.env?.DEV === true;
+      const errorMessage = isDev ? (data.message || '请求失败') : '操作失败，请稍后重试';
+      throw new Error(errorMessage);
     }
 
     return data.data || data;
