@@ -167,6 +167,10 @@ export const AdminLoginPage: React.FC = () => {
       sessionStorage.setItem('admin_token', adminData.token);
       await adminApi.updatePassword({ oldPassword, newPassword });
 
+      // 保存新密码用于自动登录（在清空状态之前）
+      const loginUsername = adminData.admin.username;
+      const loginPassword = newPassword;
+
       // 清除临时状态
       sessionStorage.removeItem('admin_token');
       setNeedChangePassword(false);
@@ -177,8 +181,8 @@ export const AdminLoginPage: React.FC = () => {
 
       // 密码修改成功，自动使用新密码登录
       const result = await adminApi.login({
-        username: adminData.admin.username,
-        password: newPassword
+        username: loginUsername,
+        password: loginPassword
       });
 
       // 保存登录信息并跳转
