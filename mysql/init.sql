@@ -313,6 +313,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE TABLE IF NOT EXISTS audit_logs (
     id VARCHAR(32) NOT NULL COMMENT '日志ID',
     admin_id VARCHAR(32) NULL COMMENT '管理员ID',
+    admin_name VARCHAR(50) NULL COMMENT '管理员用户名',
     action VARCHAR(50) NOT NULL COMMENT '操作类型',
     target_type VARCHAR(50) NULL COMMENT '目标类型',
     target_id VARCHAR(32) NULL COMMENT '目标ID',
