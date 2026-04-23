@@ -6,6 +6,9 @@ import { Repository } from 'typeorm';
 import { SmsCode, SystemConfig } from '@/entities';
 import { CryptoUtil } from '@/common/utils/crypto.util';
 import { IdUtil } from '@/common/utils/id.util';
+import Dysmsapi20170525, * as $Dysmsapi20170525 from '@alicloud/dysmsapi20170525';
+import * as $OpenApi from '@alicloud/openapi-client';
+import * as $Util from '@alicloud/tea-util';
 
 // 短信频率限制配置
 const SMS_MAX_COUNT_PER_MINUTE = 5;
@@ -236,48 +239,29 @@ export class SmsService {
 
     this.logger.log(`[SMS] 调用阿里云API - 手机: ${phone.substring(0, 3)}****${phone.substring(7)}, 签名: ${config.signName}, 模板: ${templateCode}`);
 
-    const params = {
-      AccessKeyId: config.accessKeyId,
-      Action: 'SendSms',
-      Format: 'JSON',
-      PhoneNumbers: phone,
-      RegionId: 'cn-hangzhou',
-      SignName: config.signName,
-      SignatureMethod: 'HMAC-SHA1',
-      SignatureNonce: Date.now().toString(),
-      SignatureVersion: '1.0',
-      TemplateCode: templateCode,
-      TemplateParam: JSON.stringify({ code }),
-      Timestamp: new Date().toISOString(),
-      Version: '2017-05-25',
-    };
+    // 使用阿里云V2.0 SDK发送短信
+    const clientConfig = new $OpenApi.Config({
+      accessKeyId: config.accessKeyId,
+      accessKeySecret: config.accessKeySecret,
+    });
+    // Endpoint 请参考 https://api.aliyun.com/product/Dysmsapi
+    clientConfig.endpoint = 'dysmsapi.aliyuncs.com';
 
-    // 构建签名字符串
-    const queryString = Object.keys(params)
-      .sort((a, b) => a.localeCompare(b))
-      .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(params[key as keyof typeof params])}`)
-      .join('&');
+    const client = new Dysmsapi20170525(clientConfig);
 
-    const stringToSign = `POST&${encodeURIComponent('/')}&${encodeURIComponent(queryString)}`;
-
-    // 计算签名
-    const signature = await this.hmacSha1(config.accessKeySecret + '&', stringToSign);
-
-    // 发送请求
-    const response = await fetch('https://dysmsapi.aliyuncs.com/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: `${queryString}&Signature=${encodeURIComponent(signature)}`,
+    const sendSmsRequest = new $Dysmsapi20170525.SendSmsRequest({
+      phoneNumbers: phone,
+      signName: config.signName,
+      templateCode: templateCode,
+      templateParam: JSON.stringify({ code }),
     });
 
-    const result = await response.json();
+    const result = await client.sendSmsWithOptions(sendSmsRequest, new $Util.RuntimeOptions({}));
 
-    this.logger.log(`[SMS] 阿里云响应: ${JSON.stringify(result)}`);
+    this.logger.log(`[SMS] 阿里云响应: ${JSON.stringify(result.body)}`);
 
-    if (result.Code !== 'OK') {
-      throw new Error(result.Message || '短信发送失败');
+    if (result.body?.code !== 'OK') {
+      throw new Error(result.body?.message || '短信发送失败');
     }
 
     this.logger.log(`[SMS] 发送成功 - 手机: ${phone.substring(0, 3)}****${phone.substring(7)}`);
