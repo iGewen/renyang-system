@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SmsCode, SystemConfig } from '@/entities';
 import { CryptoUtil } from '@/common/utils/crypto.util';
+import { IdUtil } from '@/common/utils/id.util';
 
 // 短信频率限制配置
 const SMS_MAX_COUNT_PER_MINUTE = 5;
@@ -115,6 +116,7 @@ export class SmsService {
     // 存储验证码到数据库
     const expireAt = new Date(Date.now() + 5 * 60 * 1000); // 5分钟过期
     const smsCode = this.smsCodeRepository.create({
+      id: IdUtil.generate('SMS'),
       phone,
       code,
       type,
