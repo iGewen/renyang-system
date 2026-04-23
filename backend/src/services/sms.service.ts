@@ -14,6 +14,8 @@ import * as $Util from '@alicloud/tea-util';
 const SMS_MAX_COUNT_PER_MINUTE = 5;
 const SMS_BLACKLIST_DURATION = 600; // 10分钟
 const SMS_IP_MAX_COUNT_PER_HOUR = 20; // 每小时每个IP最多20条
+const SMS_RETRY_COUNT = 3; // 重试次数
+const SMS_RETRY_DELAY = 1000; // 重试延迟（毫秒）
 
 /**
  * 阿里云短信服务
@@ -149,24 +151,54 @@ export class SmsService {
       }
     }
 
-    // 发送短信
-    try {
-      const config = await this.getSmsConfig();
+    // 异步发送短信（不阻塞主线程）
+    this.sendSmsAsync(phone, code, type).catch((error) => {
+      this.logger.error(`[SMS] 异步发送失败: ${error.message}`);
+    });
 
-      // 获取对应类型的模板
-      const templateCode = config.templates[type as keyof typeof config.templates] || config.templates.login;
-
-      await this.sendSms(phone, code, config, templateCode);
-      return { success: true };
-    } catch (error) {
-      this.logger.error(`[SMS] 发送失败: ${error.message}`);
-      // 开发环境返回验证码（安全修复：不在日志中打印完整验证码）
-      if (this.configService.get('app.env') === 'development') {
-        this.logger.log(`[SMS] 开发模式 - 验证码已发送至 ${phone.substring(0, 3)}****${phone.substring(7)}`);
-        return { success: true, code };
-      }
-      throw new BadRequestException('短信发送失败，请稍后重试');
+    // 立即返回成功响应
+    if (this.configService.get('app.env') === 'development') {
+      this.logger.log(`[SMS] 开发模式 - 验证码已发送至 ${phone.substring(0, 3)}****${phone.substring(7)}`);
+      return { success: true, code };
     }
+    return { success: true };
+  }
+
+  /**
+   * 异步发送短信（后台任务，不阻塞主线程）
+   * 使用 setImmediate 将发送任务放入事件循环的下一个迭代
+   * 包含重试机制，最多重试3次
+   */
+  private async sendSmsAsync(phone: string, code: string, type: string): Promise<void> {
+    // 使用 setImmediate 确保不阻塞当前事件循环
+    return new Promise((resolve, reject) => {
+      setImmediate(async () => {
+        let lastError: Error | null = null;
+
+        for (let attempt = 1; attempt <= SMS_RETRY_COUNT; attempt++) {
+          try {
+            const config = await this.getSmsConfig();
+            const templateCode = config.templates[type as keyof typeof config.templates] || config.templates.login;
+            await this.sendSms(phone, code, config, templateCode);
+            resolve();
+            return;
+          } catch (error) {
+            lastError = error;
+            this.logger.warn(`[SMS] 发送失败 (尝试 ${attempt}/${SMS_RETRY_COUNT}): ${error.message}`);
+
+            if (attempt < SMS_RETRY_COUNT) {
+              // 指数退避：1s, 2s, 4s...
+              const delay = SMS_RETRY_DELAY * Math.pow(2, attempt - 1);
+              await new Promise((r) => setTimeout(r, delay));
+            }
+          }
+        }
+
+        // 所有重试都失败
+        this.logger.error(`[SMS] 发送彻底失败 - 手机: ${phone.substring(0, 3)}****${phone.substring(7)}, 错误: ${lastError?.message}`);
+        reject(lastError);
+      });
+    });
   }
 
   /**
