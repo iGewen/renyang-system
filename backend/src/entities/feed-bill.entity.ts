@@ -59,11 +59,17 @@ export class FeedBill {
   @Column({ name: 'bill_date', type: 'date', comment: '账单日期' })
   billDate: Date;
 
+  @Column({ name: 'due_date', type: 'date', comment: '应缴日期' })
+  dueDate: Date;
+
   @Column({ name: 'original_amount', type: 'decimal', precision: 10, scale: 2, comment: '原金额' })
   originalAmount: number;
 
   @Column({ name: 'adjusted_amount', type: 'decimal', precision: 10, scale: 2, nullable: true, comment: '调整后金额' })
   adjustedAmount: number;
+
+  @Column({ name: 'final_amount', type: 'decimal', precision: 10, scale: 2, comment: '最终金额' })
+  finalAmount: number;
 
   @Column({ name: 'late_fee_rate', type: 'decimal', precision: 5, scale: 4, nullable: true, comment: '滞纳金比例（日）' })
   lateFeeRate: number;

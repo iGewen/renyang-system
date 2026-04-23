@@ -30,7 +30,7 @@ export class WechatPayService {
    */
   private async getConfig(key: string): Promise<string> {
     // 先从缓存获取
-    const cacheKey = `config:${key}`;
+    const cacheKey = `system:config:${key}`;
     const cached = await this.redisService.get(cacheKey);
     if (cached) {
       return cached;

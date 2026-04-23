@@ -357,12 +357,14 @@ CREATE TABLE IF NOT EXISTS sms_codes (
     id VARCHAR(32) NOT NULL COMMENT 'ID',
     phone VARCHAR(11) NOT NULL COMMENT '手机号',
     code VARCHAR(6) NOT NULL COMMENT '验证码',
-    type TINYINT NOT NULL COMMENT '类型：1登录 2注册 3重置密码',
+    type VARCHAR(20) NOT NULL COMMENT '类型：register/login/reset_password',
     is_used TINYINT DEFAULT 0 COMMENT '是否已使用：0否 1是',
     expire_at DATETIME NOT NULL COMMENT '过期时间',
     created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
     PRIMARY KEY (id),
-    INDEX IDX_sms_phone (phone)
+    INDEX IDX_sms_phone (phone),
+    INDEX IDX_sms_phone_code (phone, code),
+    INDEX IDX_sms_phone_type_isused (phone, type, is_used)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='短信验证码表';
 
 -- 插入默认活体类型

@@ -1,6 +1,5 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
   UpdateDateColumn,
@@ -9,7 +8,7 @@ import {
 
 @Entity('system_configs')
 export class SystemConfig {
-  @PrimaryGeneratedColumn('uuid')
+  @Column({ length: 32, primary: true, comment: '配置ID' })
   id: string;
 
   @Index()
@@ -19,7 +18,7 @@ export class SystemConfig {
   @Column({ name: 'config_value', type: 'text', nullable: true, comment: '配置值（JSON）' })
   configValue: string;
 
-  @Column({ name: 'config_type', length: 20, comment: '配置类型：payment/sms/business/other' })
+  @Column({ name: 'config_type', length: 20, nullable: true, default: 'basic', comment: '配置类型：payment/sms/business/other' })
   configType: string;
 
   @Column({ length: 255, nullable: true, comment: '配置说明' })

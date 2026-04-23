@@ -324,6 +324,30 @@ export class AuditRefundDto {
   remark?: string;
 }
 
+export class AdminRefundDto {
+  @ApiProperty({ description: '用户ID' })
+  @IsString()
+  userId: string;
+
+  @ApiProperty({ description: '退款金额' })
+  @IsNumber()
+  amount: number;
+
+  @ApiProperty({ description: '退款原因' })
+  @IsString()
+  reason: string;
+
+  @ApiPropertyOptional({ description: '订单类型' })
+  @IsString()
+  @IsOptional()
+  orderType?: string;
+
+  @ApiPropertyOptional({ description: '订单ID' })
+  @IsString()
+  @IsOptional()
+  orderId?: string;
+}
+
 // =============== 活体状态相关 DTO ===============
 
 export class UpdateLivestockStatusDto {

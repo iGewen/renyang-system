@@ -23,6 +23,7 @@ import {
   SendNotificationDto,
   AuditRedemptionDto,
   AuditRefundDto,
+  AdminRefundDto,
 } from './dto';
 
 @ApiTags('管理员')
@@ -149,6 +150,17 @@ export class AdminController {
   @ApiParam({ name: 'id', description: '用户ID' })
   async getUserDetail(@Param('id') id: string) {
     return this.adminService.getUserDetail(id);
+  }
+
+  /**
+   * 获取用户领养记录
+   */
+  @Get('users/:id/adoptions')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '获取用户领养记录' })
+  @ApiParam({ name: 'id', description: '用户ID' })
+  async getUserAdoptions(@Param('id') id: string) {
+    return this.adminService.getUserAdoptions(id);
   }
 
   /**
@@ -511,6 +523,38 @@ export class AdminController {
     return this.adminService.getAdoptionDetail(id);
   }
 
+  /**
+   * 获取异常领养列表
+   */
+  @Get('adoptions/exception')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '获取异常领养列表' })
+  @ApiQuery({ name: 'page', required: false, description: '页码' })
+  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
+  async getExceptionAdoptions(
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.adminService.getExceptionAdoptions({
+      page: page ? Number.parseInt(page) : 1,
+      pageSize: pageSize ? Number.parseInt(pageSize) : 20,
+    });
+  }
+
+  /**
+   * 处理异常领养
+   */
+  @Put('adoptions/:id/resolve')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '处理异常领养' })
+  @ApiParam({ name: 'id', description: '领养ID' })
+  async resolveException(
+    @Param('id') id: string,
+    @Body() body: { action: 'contact' | 'terminate' | 'continue'; remark: string },
+  ) {
+    return this.adminService.resolveException(id, body.action, body.remark);
+  }
+
   // =============== 饲料费管理 ===============
 
   /**
@@ -537,6 +581,54 @@ export class AdminController {
     });
   }
 
+  /**
+   * 调整饲料费账单金额
+   */
+  @Put('feed-bills/:id/adjust')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '调整饲料费账单金额' })
+  @ApiParam({ name: 'id', description: '账单ID' })
+  async adjustFeedBill(
+    @Param('id') id: string,
+    @Body() body: { adjustedAmount: number; reason: string },
+    @Req() req: any,
+  ) {
+    const adminId = req.user?.id;
+    return this.adminService.adjustFeedBill(id, body.adjustedAmount, body.reason || '', adminId);
+  }
+
+  /**
+   * 免除饲料费账单
+   */
+  @Put('feed-bills/:id/waive')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '免除饲料费账单' })
+  @ApiParam({ name: 'id', description: '账单ID' })
+  async waiveFeedBill(
+    @Param('id') id: string,
+    @Body() body: { reason: string },
+    @Req() req: any,
+  ) {
+    const adminId = req.user?.id;
+    return this.adminService.waiveFeedBill(id, body.reason || '', adminId);
+  }
+
+  /**
+   * 免除滞纳金
+   */
+  @Put('feed-bills/:id/waive-late-fee')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '免除滞纳金' })
+  @ApiParam({ name: 'id', description: '账单ID' })
+  async waiveLateFee(
+    @Param('id') id: string,
+    @Body() body: { reason: string },
+    @Req() req: any,
+  ) {
+    const adminId = req.user?.id;
+    return this.adminService.waiveLateFee(id, body.reason || '', adminId);
+  }
+
   // =============== 系统配置 ===============
 
   /**
@@ -561,6 +653,27 @@ export class AdminController {
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.updateSystemConfig(dto.configKey, dto.configValue, adminId, adminName, ip);
+  }
+
+  /**
+   * 测试支付配置
+   */
+  @Post('configs/test-payment/:type')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '测试支付配置' })
+  @ApiParam({ name: 'type', description: '支付类型：alipay/wechat' })
+  async testPayment(@Param('type') type: 'alipay' | 'wechat') {
+    return this.adminService.testPayment(type);
+  }
+
+  /**
+   * 测试短信配置
+   */
+  @Post('configs/test-sms')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '测试短信配置' })
+  async testSms(@Body() body: { phone: string }) {
+    return this.adminService.testSms(body.phone);
   }
 
   // =============== 公告管理 ===============
@@ -904,6 +1017,31 @@ export class AdminController {
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     return this.adminService.auditRefund(id, dto.approved, dto.remark, adminId, adminName, ip);
+  }
+
+  /**
+   * 管理员直接退款
+   */
+  @Post('refunds/refund')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '管理员直接退款' })
+  async adminRefund(
+    @Body() dto: AdminRefundDto,
+    @Req() req: any,
+  ) {
+    const adminId = req.user?.id;
+    const adminName = req.user?.username;
+    const ip = this.getClientIp(req);
+    return this.adminService.adminRefund({
+      adminId,
+      adminName,
+      userId: dto.userId,
+      amount: dto.amount,
+      reason: dto.reason,
+      orderType: dto.orderType,
+      orderId: dto.orderId,
+      ip,
+    });
   }
 
   // =============== 协议管理 ===============

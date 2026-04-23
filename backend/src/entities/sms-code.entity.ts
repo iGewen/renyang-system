@@ -1,6 +1,5 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
   Index,
@@ -10,7 +9,7 @@ import {
 @Index(['phone', 'code']) // 复合索引：优化验证码查询
 @Index(['phone', 'type', 'isUsed']) // 复合索引：优化发送频率检查和验证查询
 export class SmsCode {
-  @PrimaryGeneratedColumn('uuid')
+  @Column({ length: 32, primary: true, comment: '验证码ID' })
   id: string;
 
   @Column({ length: 11, comment: '手机号' })

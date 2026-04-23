@@ -15,6 +15,8 @@ import {
   FeedBillStatus,
   RedemptionOrder,
   RefundOrder,
+  RefundType,
+  RefundStatus,
   Notification,
   SystemConfig,
   AuditLog,
@@ -26,6 +28,9 @@ import { JwtService } from '@nestjs/jwt';
 import { IdUtil } from '@/common/utils/id.util';
 import { NotificationService } from '../notification/notification.service';
 import { CryptoUtil } from '@/common/utils/crypto.util';
+import { AlipayService } from '@/services/alipay.service';
+import { WechatPayService } from '@/services/wechat-pay.service';
+import { SmsService } from '@/services/sms.service';
 
 @Injectable()
 export class AdminService {
@@ -59,6 +64,9 @@ export class AdminService {
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
     private readonly notificationService: NotificationService,
+    private readonly alipayService: AlipayService,
+    private readonly wechatPayService: WechatPayService,
+    private readonly smsService: SmsService,
   ) {}
 
   // =============== 管理员认证相关 ===============
@@ -325,6 +333,18 @@ export class AdminService {
       adoptionCount,
       orderCount,
     };
+  }
+
+  /**
+   * 获取用户领养记录
+   */
+  async getUserAdoptions(userId: string) {
+    const adoptions = await this.adoptionRepository.find({
+      where: { userId },
+      relations: ['livestock'],
+      order: { createdAt: 'DESC' },
+    });
+    return adoptions;
   }
 
   /**
@@ -1050,7 +1070,7 @@ export class AdminService {
   // 安全修复：系统配置键白名单
   private readonly SYSTEM_CONFIG_ALLOWED_KEYS = [
     // 基础配置
-    'site_name', 'site_logo', 'site_description', 'site_keywords',
+    'site_name', 'site_title', 'site_logo', 'site_description', 'site_keywords',
     'contact_phone', 'contact_email', 'contact_address', 'contact_wechat',
     // 支付配置
     'alipay_app_id', 'alipay_private_key', 'alipay_public_key', 'alipay_notify_url',
@@ -1066,10 +1086,10 @@ export class AdminService {
     'sms_template_login', 'sms_template_register', 'sms_template_reset_password',
     'sms_template_order', 'sms_template_feed_bill',
     // 功能配置
-    'order_expire_minutes', 'feed_fee_rate', 'late_fee_rate', 'redemption_fee_rate',
-    'max_adoptions_per_user', 'balance_min_recharge', 'balance_max_balance',
+    'order_expire_minutes', 'feed_fee_rate', 'late_fee_rate', 'late_fee_cap_rate', 'late_fee_start_days',
+    'redemption_fee_rate', 'max_adoptions_per_user', 'balance_min_recharge', 'balance_max_balance',
     // 其他配置
-    'user_agreement', 'privacy_policy', 'about_us', 'faq',
+    'user_agreement', 'adoption_agreement', 'privacy_policy', 'disclaimer', 'about_us', 'faq',
   ];
 
   /**
@@ -2241,5 +2261,326 @@ export class AdminService {
       return '已取消';
     }
     return '已退款';
+  }
+
+  /**
+   * 管理员直接退款
+   * 安全修复：所有数据库操作移入事务内确保原子性
+   */
+  async adminRefund(params: {
+    adminId: string;
+    userId: string;
+    amount: number;
+    reason: string;
+    orderType?: string;
+    orderId?: string;
+    adminName?: string;
+    ip?: string;
+  }) {
+    const { adminId, userId, amount, reason, orderType, orderId, adminName, ip } = params;
+
+    // 验证用户是否存在
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('用户不存在');
+    }
+
+    // 使用事务确保所有数据库操作的原子性
+    const refund = await this.dataSource.transaction(async (manager) => {
+      const refundEntity = manager.create(RefundOrder, {
+        id: IdUtil.generate('RFD'),
+        refundNo: IdUtil.generateRefundNo(),
+        userId,
+        orderType: orderType || 'admin',
+        orderId: orderId || '',
+        originalAmount: amount,
+        refundAmount: amount,
+        refundLivestock: 2, // 管理员操作不涉及活体
+        reason,
+        type: RefundType.ADMIN_OPERATE,
+        status: RefundStatus.REFUNDED,
+        auditAdminId: adminId,
+        auditAt: new Date(),
+        operatorId: adminId,
+        refundMethod: 'balance',
+        refundAt: new Date(),
+      });
+
+      await manager.save(refundEntity);
+
+      // 退款到用户余额（在事务内）
+      const userEntity = await manager.findOne(User, {
+        where: { id: userId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (userEntity) {
+        const beforeBalance = Number(userEntity.balance) || 0;
+        const afterBalance = Math.round((beforeBalance + amount) * 100) / 100;
+        userEntity.balance = afterBalance;
+        await manager.save(userEntity);
+
+        // 记录余额变动日志
+        const balanceLog = manager.create('BalanceLog', {
+          id: IdUtil.generate('BL'),
+          userId,
+          type: 3, // 退款
+          amount,
+          balanceBefore: beforeBalance,
+          balanceAfter: afterBalance,
+          relatedType: 'admin_refund',
+          relatedId: refundEntity.id,
+          remark: `管理员退款: ${refundEntity.refundNo}`,
+        } as any);
+        await manager.save(balanceLog);
+      }
+
+      // 更新订单状态（在事务内）
+      if (orderType === 'adoption' && orderId) {
+        const order = await manager.findOne(Order, {
+          where: { id: orderId },
+        });
+
+        if (order) {
+          order.status = OrderStatus.REFUNDED;
+          await manager.save(Order, order);
+
+          // 更新领养状态
+          const adoption = await manager.findOne(Adoption, {
+            where: { orderId: order.id },
+          });
+
+          if (adoption) {
+            adoption.status = AdoptionStatus.TERMINATED;
+            await manager.save(Adoption, adoption);
+          }
+        }
+      }
+
+      // 记录审计日志（在事务内）
+      const auditLog = manager.create(AuditLog, {
+        id: IdUtil.generate('AL'),
+        adminId,
+        adminName: adminName || 'admin',
+        module: 'refund',
+        action: 'refund',
+        targetType: orderType || 'admin',
+        targetId: orderId || refundEntity.id,
+        afterData: {
+          refundNo: refundEntity.refundNo,
+          userId,
+          amount,
+          reason,
+          orderType,
+          orderId,
+        },
+        remark: `管理员退款: ¥${amount}, 原因: ${reason}`,
+        ip,
+      });
+      await manager.save(auditLog);
+
+      return refundEntity;
+    });
+
+    // 发送通知（在事务外执行，不影响事务）
+    this.notificationService.sendBalanceNotification(
+      userId,
+      '退款通知',
+      `您已收到一笔退款¥${amount}，原因：${reason}`,
+    ).catch(err => console.error('发送退款通知失败:', err));
+
+    return refund;
+  }
+
+  /**
+   * 调整饲料费账单金额
+   */
+  async adjustFeedBill(billId: string, adjustedAmount: number, reason: string, operatorId: string) {
+    const bill = await this.feedBillRepository.findOne({ where: { id: billId } });
+    if (!bill) {
+      throw new NotFoundException('账单不存在');
+    }
+
+    bill.adjustedAmount = adjustedAmount;
+    bill.adjustReason = reason;
+    bill.operatorId = operatorId;
+
+    await this.feedBillRepository.save(bill);
+    return bill;
+  }
+
+  /**
+   * 免除饲料费
+   */
+  async waiveFeedBill(billId: string, reason: string, operatorId: string) {
+    const bill = await this.feedBillRepository.findOne({ where: { id: billId } });
+    if (!bill) {
+      throw new NotFoundException('账单不存在');
+    }
+
+    bill.status = FeedBillStatus.WAIVED;
+    bill.adjustReason = reason;
+    bill.operatorId = operatorId;
+    bill.paidAmount = 0;
+
+    await this.feedBillRepository.save(bill);
+    return bill;
+  }
+
+  /**
+   * 免除滞纳金
+   */
+  async waiveLateFee(billId: string, reason: string, operatorId: string) {
+    const bill = await this.feedBillRepository.findOne({ where: { id: billId } });
+    if (!bill) {
+      throw new NotFoundException('账单不存在');
+    }
+
+    bill.lateFeeAmount = 0;
+    bill.totalLateFee = 0;
+    bill.adjustReason = reason;
+    bill.operatorId = operatorId;
+
+    await this.feedBillRepository.save(bill);
+    return bill;
+  }
+
+  /**
+   * 获取异常领养列表
+   */
+  async getExceptionAdoptions(params: { page?: number; pageSize?: number }) {
+    const { page = 1, pageSize = 20 } = params;
+    const skip = (page - 1) * pageSize;
+
+    const [list, total] = await this.adoptionRepository.findAndCount({
+      where: { isException: 1 },
+      relations: ['user', 'livestock'],
+      order: { exceptionAt: 'DESC' },
+      skip,
+      take: pageSize,
+    });
+
+    return {
+      list,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  /**
+   * 处理异常领养
+   */
+  async resolveException(adoptionId: string, action: 'contact' | 'terminate' | 'continue', _remark: string) {
+    const adoption = await this.adoptionRepository.findOne({ where: { id: adoptionId } });
+    if (!adoption) {
+      throw new NotFoundException('领养记录不存在');
+    }
+
+    switch (action) {
+      case 'contact':
+        // 仅记录，不做状态变更
+        break;
+      case 'terminate':
+        adoption.status = AdoptionStatus.TERMINATED;
+        break;
+      case 'continue':
+        adoption.status = AdoptionStatus.ACTIVE;
+        adoption.isException = 0;
+        adoption.exceptionReason = null as any;
+        adoption.exceptionAt = null as any;
+        break;
+    }
+
+    await this.adoptionRepository.save(adoption);
+    return adoption;
+  }
+
+  /**
+   * 测试支付配置
+   */
+  async testPayment(type: 'alipay' | 'wechat'): Promise<{ success: boolean; message: string }> {
+    try {
+      if (type === 'alipay') {
+        // 检查支付宝配置是否完整
+        const [appId, privateKey, alipayPublicKey] = await Promise.all([
+          this.getConfig('alipay_app_id'),
+          this.getConfig('alipay_private_key'),
+          this.getConfig('alipay_public_key'),
+        ]);
+
+        if (!appId || !privateKey || !alipayPublicKey) {
+          return { success: false, message: '支付宝配置不完整，请检查AppId、私钥和公钥' };
+        }
+
+        // 简单验证配置格式
+        if (appId.length < 10) {
+          return { success: false, message: '支付宝AppId格式不正确' };
+        }
+
+        return { success: true, message: '支付宝配置验证通过' };
+      } else if (type === 'wechat') {
+        // 检查微信支付配置是否完整
+        const [appId, mchId, apiKey] = await Promise.all([
+          this.getConfig('wechat_app_id'),
+          this.getConfig('wechat_mch_id'),
+          this.getConfig('wechat_api_key'),
+        ]);
+
+        if (!appId || !mchId || !apiKey) {
+          return { success: false, message: '微信支付配置不完整，请检查AppId、商户号和API密钥' };
+        }
+
+        return { success: true, message: '微信支付配置验证通过' };
+      }
+
+      return { success: false, message: '不支持的支付类型' };
+    } catch (error: any) {
+      return { success: false, message: `测试失败: ${error.message}` };
+    }
+  }
+
+  /**
+   * 测试短信配置
+   */
+  async testSms(phone: string): Promise<{ success: boolean; message: string }> {
+    try {
+      // 检查短信配置是否完整
+      const [accessKeyId, accessKeySecret, signName] = await Promise.all([
+        this.getConfig('aliyun_access_key_id'),
+        this.getConfig('aliyun_access_key_secret'),
+        this.getConfig('aliyun_sign_name'),
+      ]);
+
+      if (!accessKeyId || !accessKeySecret || !signName) {
+        return { success: false, message: '短信配置不完整，请检查AccessKeyId、AccessKeySecret和签名' };
+      }
+
+      // 发送测试验证码
+      await this.smsService.sendVerificationCode(phone, 'login');
+
+      return { success: true, message: `测试短信已发送到 ${phone}` };
+    } catch (error: any) {
+      return { success: false, message: `测试失败: ${error.message}` };
+    }
+  }
+
+  /**
+   * 获取配置（内部方法）
+   */
+  private async getConfig(key: string): Promise<string> {
+    const cacheKey = `system:config:${key}`;
+    const cached = await this.redisService.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const config = await this.systemConfigRepository.findOne({
+      where: { configKey: key },
+    });
+
+    const value = config?.configValue || '';
+    await this.redisService.set(cacheKey, value, 300);
+    return value;
   }
 }

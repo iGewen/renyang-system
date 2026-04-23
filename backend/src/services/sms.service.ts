@@ -32,7 +32,7 @@ export class SmsService {
    * 从数据库获取配置
    */
   private async getConfig(key: string): Promise<string> {
-    const cacheKey = `config:${key}`;
+    const cacheKey = `system:config:${key}`;
     const cached = await this.redisService.get(cacheKey);
     if (cached) {
       return cached;

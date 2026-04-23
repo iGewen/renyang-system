@@ -763,7 +763,7 @@ export const adminApi = {
   },
 
   auditRefund: async (id: string, data: { passed: boolean; refundAmount: number; remark?: string; confirmToken?: string }): Promise<any> => {
-    return adminRequest(`/refunds/admin/${id}/audit`, {
+    return adminRequest(`/admin/refunds/${id}/audit`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -771,7 +771,7 @@ export const adminApi = {
 
   // 管理员直接退款（无需审核）
   adminRefund: async (data: { userId: string; amount: number; reason: string; orderType?: string; orderId?: string }): Promise<RefundOrder> => {
-    return adminRequest('/refunds/admin/refund', {
+    return adminRequest('/admin/refunds/refund', {
       method: 'POST',
       body: JSON.stringify(data),
     });
