@@ -246,30 +246,32 @@ const AuthPage: React.FC = () => {
           <AnimatePresence mode="wait">
             {mode === 'login' && (
               <motion.div key="login" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                <div className="mb-8">
-                  <h1 className="text-3xl font-display font-bold text-brand-primary mb-2">欢迎回来</h1>
-                  <p className="text-slate-500">登录您的云端牧场账号</p>
-                </div>
-                <div className="flex gap-2 mb-6 p-1 bg-slate-100 rounded-xl">
-                  <button onClick={() => setLoginType('code')} className={cn("flex-1 py-2 rounded-lg text-sm font-medium transition-colors", loginType === 'code' ? 'bg-white text-brand-primary shadow-sm' : 'text-slate-500')}>验证码登录</button>
-                  <button onClick={() => setLoginType('password')} className={cn("flex-1 py-2 rounded-lg text-sm font-medium transition-colors", loginType === 'password' ? 'bg-white text-brand-primary shadow-sm' : 'text-slate-500')}>密码登录</button>
-                </div>
-                <div className="space-y-4">
-                  <Input label="手机号" placeholder="请输入手机号" value={phone} onChange={e => setPhone(e.target.value)} icon={<Icons.Smartphone className="w-5 h-5" />} error={errors.phone} />
-                  {loginType === 'password' ? (
-                    <Input label="密码" type={showPassword ? 'text' : 'password'} placeholder="请输入密码" value={password} onChange={e => setPassword(e.target.value)} icon={<Icons.Lock className="w-5 h-5" />}
-                      suffix={<button onClick={() => setShowPassword(!showPassword)} className="text-slate-400">{showPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}</button>} error={errors.password} />
-                  ) : (
-                    <Input label="验证码" placeholder="请输入验证码" value={code} onChange={e => setCode(e.target.value)} icon={<Icons.Key className="w-5 h-5" />}
-                      suffix={<button onClick={handleSendCode} disabled={countdown > 0} className="text-brand-primary font-medium text-sm disabled:text-slate-300">{countdown > 0 ? `${countdown}s` : '获取验证码'}</button>} error={errors.code} />
-                  )}
-                </div>
-                {errors.submit && <p className="text-red-500 text-sm mt-4 text-center">{errors.submit}</p>}
-                <div className="flex justify-between items-center mt-4 text-sm">
-                  <button onClick={() => setMode('forgot')} className="text-slate-500">忘记密码？</button>
-                  <button onClick={() => setMode('register')} className="text-brand-primary font-medium">注册账号</button>
-                </div>
-                <Button className="w-full mt-6" size="lg" onClick={handleLogin} loading={loading}>登录</Button>
+                <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
+                  <div className="mb-8">
+                    <h1 className="text-3xl font-display font-bold text-brand-primary mb-2">欢迎回来</h1>
+                    <p className="text-slate-500">登录您的云端牧场账号</p>
+                  </div>
+                  <div className="flex gap-2 mb-6 p-1 bg-slate-100 rounded-xl">
+                    <button type="button" onClick={() => setLoginType('code')} className={cn("flex-1 py-2 rounded-lg text-sm font-medium transition-colors", loginType === 'code' ? 'bg-white text-brand-primary shadow-sm' : 'text-slate-500')}>验证码登录</button>
+                    <button type="button" onClick={() => setLoginType('password')} className={cn("flex-1 py-2 rounded-lg text-sm font-medium transition-colors", loginType === 'password' ? 'bg-white text-brand-primary shadow-sm' : 'text-slate-500')}>密码登录</button>
+                  </div>
+                  <div className="space-y-4">
+                    <Input label="手机号" placeholder="请输入手机号" value={phone} onChange={e => setPhone(e.target.value)} icon={<Icons.Smartphone className="w-5 h-5" />} error={errors.phone} />
+                    {loginType === 'password' ? (
+                      <Input label="密码" type={showPassword ? 'text' : 'password'} placeholder="请输入密码" value={password} onChange={e => setPassword(e.target.value)} icon={<Icons.Lock className="w-5 h-5" />} name="password" autoComplete="current-password"
+                        suffix={<button type="button" onClick={() => setShowPassword(!showPassword)} className="text-slate-400">{showPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}</button>} error={errors.password} />
+                    ) : (
+                      <Input label="验证码" placeholder="请输入验证码" value={code} onChange={e => setCode(e.target.value)} icon={<Icons.Key className="w-5 h-5" />}
+                        suffix={<button type="button" onClick={handleSendCode} disabled={countdown > 0} className="text-brand-primary font-medium text-sm disabled:text-slate-300">{countdown > 0 ? `${countdown}s` : '获取验证码'}</button>} error={errors.code} />
+                    )}
+                  </div>
+                  {errors.submit && <p className="text-red-500 text-sm mt-4 text-center">{errors.submit}</p>}
+                  <div className="flex justify-between items-center mt-4 text-sm">
+                    <button type="button" onClick={() => setMode('forgot')} className="text-slate-500">忘记密码？</button>
+                    <button type="button" onClick={() => setMode('register')} className="text-brand-primary font-medium">注册账号</button>
+                  </div>
+                  <Button type="submit" className="w-full mt-6" size="lg" loading={loading}>登录</Button>
+                </form>
                 <div className="mt-8">
                   <div className="flex items-center gap-4 mb-6">
                     <div className="flex-1 h-px bg-slate-200" /><span className="text-xs text-slate-400">其他登录方式</span><div className="flex-1 h-px bg-slate-200" />
@@ -282,57 +284,61 @@ const AuthPage: React.FC = () => {
             )}
             {mode === 'register' && (
               <motion.div key="register" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                <div className="mb-8">
-                  <h1 className="text-3xl font-display font-bold text-brand-primary mb-2">创建账号</h1>
-                  <p className="text-slate-500">注册成为云端牧场会员</p>
-                </div>
-                <div className="space-y-4">
-                  <Input label="手机号" placeholder="请输入手机号" value={phone} onChange={e => setPhone(e.target.value)} icon={<Icons.Smartphone className="w-5 h-5" />} error={errors.phone} />
-                  <Input label="验证码" placeholder="请输入验证码" value={code} onChange={e => setCode(e.target.value)} icon={<Icons.Key className="w-5 h-5" />}
-                    suffix={<button onClick={handleSendCode} disabled={countdown > 0} className="text-brand-primary font-medium text-sm disabled:text-slate-300">{countdown > 0 ? `${countdown}s` : '获取验证码'}</button>} error={errors.code} />
-                  <Input label="设置密码" type={showPassword ? 'text' : 'password'} placeholder="请设置登录密码（至少6位）" value={password} onChange={e => setPassword(e.target.value)} icon={<Icons.Lock className="w-5 h-5" />}
-                    suffix={<button onClick={() => setShowPassword(!showPassword)} className="text-slate-400">{showPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}</button>} error={errors.password} />
-                  <Input label="确认密码" type="password" placeholder="请再次输入密码" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} icon={<Icons.Lock className="w-5 h-5" />} error={errors.confirmPassword} />
-                </div>
-                <div className="mt-4 flex items-start gap-2">
-                  <button onClick={() => setAgreed(!agreed)} className={cn("w-5 h-5 rounded flex-shrink-0 flex items-center justify-center border transition-colors mt-0.5", agreed ? "bg-brand-primary border-brand-primary text-white" : "border-slate-300 text-transparent")}>
-                    <Icons.Check className="w-3.5 h-3.5" />
-                  </button>
-                  <span className="text-sm text-slate-500">
-                    我已阅读并同意{' '}
-                    <button type="button" onClick={() => handleShowAgreement('user')} className="text-brand-primary cursor-pointer font-medium">《用户协议》</button>
-                    {' '}和{' '}
-                    <button type="button" onClick={() => handleShowAgreement('privacy')} className="text-brand-primary cursor-pointer font-medium">《隐私政策》</button>
-                  </span>
-                </div>
-                {errors.agreed && <p className="text-red-500 text-sm mt-2">{errors.agreed}</p>}
-                {errors.submit && <p className="text-red-500 text-sm mt-4 text-center">{errors.submit}</p>}
-                <div className="flex justify-center items-center mt-4 text-sm">
-                  <span className="text-slate-500">已有账号？</span>
-                  <button onClick={() => setMode('login')} className="text-brand-primary font-medium ml-1">立即登录</button>
-                </div>
-                <Button className="w-full mt-6" size="lg" onClick={handleRegister} loading={loading}>注册</Button>
+                <form onSubmit={(e) => { e.preventDefault(); handleRegister(); }}>
+                  <div className="mb-8">
+                    <h1 className="text-3xl font-display font-bold text-brand-primary mb-2">创建账号</h1>
+                    <p className="text-slate-500">注册成为云端牧场会员</p>
+                  </div>
+                  <div className="space-y-4">
+                    <Input label="手机号" placeholder="请输入手机号" value={phone} onChange={e => setPhone(e.target.value)} icon={<Icons.Smartphone className="w-5 h-5" />} error={errors.phone} />
+                    <Input label="验证码" placeholder="请输入验证码" value={code} onChange={e => setCode(e.target.value)} icon={<Icons.Key className="w-5 h-5" />}
+                      suffix={<button type="button" onClick={handleSendCode} disabled={countdown > 0} className="text-brand-primary font-medium text-sm disabled:text-slate-300">{countdown > 0 ? `${countdown}s` : '获取验证码'}</button>} error={errors.code} />
+                    <Input label="设置密码" type={showPassword ? 'text' : 'password'} placeholder="请设置登录密码（至少6位）" value={password} onChange={e => setPassword(e.target.value)} icon={<Icons.Lock className="w-5 h-5" />} name="password" autoComplete="new-password"
+                      suffix={<button type="button" onClick={() => setShowPassword(!showPassword)} className="text-slate-400">{showPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}</button>} error={errors.password} />
+                    <Input label="确认密码" type="password" placeholder="请再次输入密码" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} icon={<Icons.Lock className="w-5 h-5" />} name="confirmPassword" autoComplete="new-password" error={errors.confirmPassword} />
+                  </div>
+                  <div className="mt-4 flex items-start gap-2">
+                    <button type="button" onClick={() => setAgreed(!agreed)} className={cn("w-5 h-5 rounded flex-shrink-0 flex items-center justify-center border transition-colors mt-0.5", agreed ? "bg-brand-primary border-brand-primary text-white" : "border-slate-300 text-transparent")}>
+                      <Icons.Check className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="text-sm text-slate-500">
+                      我已阅读并同意{' '}
+                      <button type="button" onClick={() => handleShowAgreement('user')} className="text-brand-primary cursor-pointer font-medium">《用户协议》</button>
+                      {' '}和{' '}
+                      <button type="button" onClick={() => handleShowAgreement('privacy')} className="text-brand-primary cursor-pointer font-medium">《隐私政策》</button>
+                    </span>
+                  </div>
+                  {errors.agreed && <p className="text-red-500 text-sm mt-2">{errors.agreed}</p>}
+                  {errors.submit && <p className="text-red-500 text-sm mt-4 text-center">{errors.submit}</p>}
+                  <div className="flex justify-center items-center mt-4 text-sm">
+                    <span className="text-slate-500">已有账号？</span>
+                    <button type="button" onClick={() => setMode('login')} className="text-brand-primary font-medium ml-1">立即登录</button>
+                  </div>
+                  <Button type="submit" className="w-full mt-6" size="lg" loading={loading}>注册</Button>
+                </form>
               </motion.div>
             )}
             {mode === 'forgot' && (
               <motion.div key="forgot" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                <div className="mb-8">
-                  <h1 className="text-3xl font-display font-bold text-brand-primary mb-2">重置密码</h1>
-                  <p className="text-slate-500">通过手机验证码重置您的密码</p>
-                </div>
-                <div className="space-y-4">
-                  <Input label="手机号" placeholder="请输入手机号" value={phone} onChange={e => setPhone(e.target.value)} icon={<Icons.Smartphone className="w-5 h-5" />} error={errors.phone} />
-                  <Input label="验证码" placeholder="请输入验证码" value={code} onChange={e => setCode(e.target.value)} icon={<Icons.Key className="w-5 h-5" />}
-                    suffix={<button onClick={handleSendCode} disabled={countdown > 0} className="text-brand-primary font-medium text-sm disabled:text-slate-300">{countdown > 0 ? `${countdown}s` : '获取验证码'}</button>} error={errors.code} />
-                  <Input label="新密码" type={showPassword ? 'text' : 'password'} placeholder="请设置新密码（至少6位）" value={password} onChange={e => setPassword(e.target.value)} icon={<Icons.Lock className="w-5 h-5" />}
-                    suffix={<button onClick={() => setShowPassword(!showPassword)} className="text-slate-400">{showPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}</button>} error={errors.password} />
-                </div>
-                {errors.submit && <p className="text-red-500 text-sm mt-4 text-center">{errors.submit}</p>}
-                <div className="flex justify-center items-center mt-4 text-sm">
-                  <span className="text-slate-500">想起密码了？</span>
-                  <button onClick={() => setMode('login')} className="text-brand-primary font-medium ml-1">返回登录</button>
-                </div>
-                <Button className="w-full mt-6" size="lg" onClick={handleResetPassword} loading={loading}>重置密码</Button>
+                <form onSubmit={(e) => { e.preventDefault(); handleResetPassword(); }}>
+                  <div className="mb-8">
+                    <h1 className="text-3xl font-display font-bold text-brand-primary mb-2">重置密码</h1>
+                    <p className="text-slate-500">通过手机验证码重置您的密码</p>
+                  </div>
+                  <div className="space-y-4">
+                    <Input label="手机号" placeholder="请输入手机号" value={phone} onChange={e => setPhone(e.target.value)} icon={<Icons.Smartphone className="w-5 h-5" />} error={errors.phone} />
+                    <Input label="验证码" placeholder="请输入验证码" value={code} onChange={e => setCode(e.target.value)} icon={<Icons.Key className="w-5 h-5" />}
+                      suffix={<button type="button" onClick={handleSendCode} disabled={countdown > 0} className="text-brand-primary font-medium text-sm disabled:text-slate-300">{countdown > 0 ? `${countdown}s` : '获取验证码'}</button>} error={errors.code} />
+                    <Input label="新密码" type={showPassword ? 'text' : 'password'} placeholder="请设置新密码（至少6位）" value={password} onChange={e => setPassword(e.target.value)} icon={<Icons.Lock className="w-5 h-5" />} name="newPassword" autoComplete="new-password"
+                      suffix={<button type="button" onClick={() => setShowPassword(!showPassword)} className="text-slate-400">{showPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}</button>} error={errors.password} />
+                  </div>
+                  {errors.submit && <p className="text-red-500 text-sm mt-4 text-center">{errors.submit}</p>}
+                  <div className="flex justify-center items-center mt-4 text-sm">
+                    <span className="text-slate-500">想起密码了？</span>
+                    <button type="button" onClick={() => setMode('login')} className="text-brand-primary font-medium ml-1">返回登录</button>
+                  </div>
+                  <Button type="submit" className="w-full mt-6" size="lg" loading={loading}>重置密码</Button>
+                </form>
               </motion.div>
             )}
           </AnimatePresence>
