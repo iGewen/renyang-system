@@ -18,7 +18,7 @@ export class NotificationService {
    * 创建通知
    */
   async createNotification(params: {
-    userId?: string;
+    userId?: string | null;
     title: string;
     content: string;
     type: string;
@@ -102,9 +102,16 @@ export class NotificationService {
   /**
    * 获取用户通知列表
    */
-  async getUserNotifications(userId: string, page: number = 1, pageSize: number = 20) {
+  async getUserNotifications(userId: string, page: number = 1, pageSize: number = 20, isRead?: number) {
     const queryBuilder = this.notificationRepository.createQueryBuilder('notification')
-      .where('notification.userId = :userId OR notification.userId IS NULL', { userId })
+      .where('notification.userId = :userId OR notification.userId IS NULL', { userId });
+
+    // 如果指定了 isRead 参数，添加筛选条件
+    if (isRead !== undefined) {
+      queryBuilder.andWhere('notification.isRead = :isRead', { isRead });
+    }
+
+    queryBuilder
       .orderBy('notification.createdAt', 'DESC')
       .skip((page - 1) * pageSize)
       .take(pageSize);
@@ -124,15 +131,15 @@ export class NotificationService {
    * 获取未读数量
    */
   async getUnreadCount(userId: string) {
-    // 只获取用户专属的未读通知数量
-    // 系统公告（userId为null）不计入未读数量，避免重复计数
-    const userUnreadCount = await this.notificationRepository.count({
-      where: { userId, isRead: 0 },
-    });
+    const count = await this.notificationRepository
+      .createQueryBuilder('notification')
+      .where('(notification.userId = :userId OR notification.userId IS NULL)', { userId })
+      .andWhere('notification.isRead = 0')
+      .getCount();
 
     return {
-      unreadCount: userUnreadCount,
-      totalCount: userUnreadCount,
+      unreadCount: count,
+      totalCount: count,
     };
   }
 

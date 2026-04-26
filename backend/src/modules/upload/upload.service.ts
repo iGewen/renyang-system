@@ -22,7 +22,7 @@ export class UploadService {
 
   constructor(private readonly configService: ConfigService) {
     this.uploadDir = this.configService.get('UPLOAD_DIR') || path.join(process.cwd(), 'uploads');
-    this.baseUrl = this.configService.get('APP_URL') || 'http://localhost:3001';
+    this.baseUrl = this.configService.get('APP_URL') || 'http://localhost:3000';
     this.ensureUploadDir();
   }
 

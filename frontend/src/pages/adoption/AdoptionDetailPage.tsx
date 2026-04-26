@@ -36,8 +36,14 @@ const REDEMPTION_STATUS_CONFIG: Record<number, { label: string; color: string }>
 
 // 工具函数
 const getStatusConfig = (status: number, redemptionStatus?: number) => {
+  // 如果有审核通过的买断订单，显示待支付状态
   if (status === 5 && redemptionStatus === RedemptionStatus.AUDIT_PASSED) {
     return { label: '待支付', variant: 'info', color: 'text-blue-600 bg-blue-50' };
+  }
+  // 如果买断审核中但没有有效的买断订单（已取消），按领养状态处理
+  if (status === 5 && !redemptionStatus) {
+    // 没有活跃的买断订单，可能已被取消，显示为领养中
+    return { label: '领养中', variant: 'success', color: 'text-green-600 bg-green-50' };
   }
   return STATUS_CONFIG[status] || { label: '未知', variant: 'default', color: 'text-slate-600 bg-slate-100' };
 };
@@ -295,7 +301,7 @@ const AdoptionDetailPage: React.FC = () => {
       const activeRedemption = redemptions.find(r =>
         r.adoptionId === adoptionId && (r.status === RedemptionStatus.PENDING_AUDIT || r.status === RedemptionStatus.AUDIT_PASSED)
       );
-      if (activeRedemption) setRedemption(activeRedemption);
+      setRedemption(activeRedemption || null);
     } catch (e) {
       console.error('Failed to fetch redemption:', e);
     }

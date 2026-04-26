@@ -55,6 +55,11 @@ export class AuthService {
       if (!existUser) {
         throw new BadRequestException('该手机号未注册');
       }
+    } else if (type === 'change_phone') {
+      const existUser = await this.userRepository.findOne({ where: { phone } });
+      if (existUser) {
+        throw new BadRequestException('该手机号已被其他用户使用');
+      }
     }
 
     // 调用短信服务发送验证码（频率限制在SmsService中统一处理）

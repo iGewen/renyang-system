@@ -38,6 +38,10 @@ export enum OrderStatus {
   PAID = 2, // 已支付
   CANCELLED = 3, // 已取消
   REFUNDED = 4, // 已退款
+  REFUND_REVIEW = 5, // 退款审核中
+  REFUND_PROCESSING = 6, // 退款处理中
+  REFUND_FAILED = 7, // 退款失败
+  ADMIN_CANCELLED = 8, // 管理员强制取消
 }
 
 @Entity('orders')

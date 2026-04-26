@@ -19,6 +19,9 @@ const OrdersPage: React.FC = () => {
   const [refundOrder, setRefundOrder] = useState<Order | null>(null);
   const [refundReason, setRefundReason] = useState('');
   const [refundLoading, setRefundLoading] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelOrder, setCancelOrder] = useState<Order | null>(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -104,16 +107,25 @@ const OrdersPage: React.FC = () => {
   };
 
   // 取消订单
-  const handleCancelOrder = async (orderId: string) => {
-    if (confirm('确定要取消订单吗？')) {
-      await orderApi.cancel(orderId);
-      setOrders(prev => prev.filter(o => o.id !== orderId));
+  const handleCancelOrder = async () => {
+    if (!cancelOrder) return;
+    setCancelLoading(true);
+    try {
+      await orderApi.cancel(cancelOrder.id);
+      setOrders(prev => prev.filter(o => o.id !== cancelOrder.id));
+      success('订单已取消');
+      setShowCancelModal(false);
+      setCancelOrder(null);
+    } catch (error: any) {
+      toastError(error.message || '取消订单失败');
+    } finally {
+      setCancelLoading(false);
     }
   };
 
-  // 跳转支付
+  // 跳转支付 - 使用URL参数传递orderId，避免刷新后state丢失
   const handleGoToPayment = (order: Order) => {
-    navigate('/payment', { state: { orderId: order.id, orderNo: order.orderNo, livestock: order.livestockSnapshot } });
+    navigate(`/payment?orderId=${order.id}`);
   };
 
   // 查看领养详情
@@ -226,7 +238,7 @@ const OrdersPage: React.FC = () => {
                           variant="outline"
                           size="sm"
                           className="flex-1"
-                          onClick={() => handleCancelOrder(order.id)}
+                          onClick={() => { setCancelOrder(order); setShowCancelModal(true); }}
                         >
                           取消订单
                         </Button>
@@ -303,6 +315,35 @@ const OrdersPage: React.FC = () => {
                 disabled={refundLoading}
               >
                 {refundLoading ? '提交中...' : '提交申请'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* 取消订单弹窗 */}
+        <Modal open={showCancelModal} onClose={() => setShowCancelModal(false)} title="取消订单">
+          <div className="space-y-4">
+            {cancelOrder && (
+              <div className="p-3 bg-slate-50 rounded-lg">
+                <p className="text-sm text-slate-500">订单编号</p>
+                <p className="font-mono text-slate-900">{cancelOrder.orderNo}</p>
+                <p className="text-sm text-slate-500 mt-2">商品名称</p>
+                <p className="text-slate-900">{cancelOrder.livestockSnapshot?.name}</p>
+                <p className="text-sm text-slate-500 mt-2">订单金额</p>
+                <p className="text-lg font-bold text-brand-primary">¥{cancelOrder.totalAmount}</p>
+              </div>
+            )}
+            <p className="text-sm text-slate-500">确定要取消该订单吗？取消后订单将无法恢复。</p>
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => setShowCancelModal(false)}>
+                再想想
+              </Button>
+              <Button
+                className="flex-1 bg-red-500 hover:bg-red-600"
+                onClick={handleCancelOrder}
+                disabled={cancelLoading}
+              >
+                {cancelLoading ? '取消中...' : '确认取消'}
               </Button>
             </div>
           </div>

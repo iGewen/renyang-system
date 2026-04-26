@@ -13,8 +13,8 @@ export class Notification {
   id: string;
 
   @Index()
-  @Column({ name: 'user_id', length: 32, nullable: true, comment: '用户ID（为空则全员）' })
-  userId: string;
+  @Column({ name: 'user_id', type: 'varchar', length: 32, nullable: true, comment: '用户ID（为空则全员）' })
+  userId: string | null;
 
   @Column({ length: 100, comment: '标题' })
   title: string;

@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS orders (
     payment_method VARCHAR(20) NULL COMMENT '支付方式',
     payment_no VARCHAR(64) NULL COMMENT '支付平台订单号',
     paid_at DATETIME NULL COMMENT '支付时间',
-    status TINYINT DEFAULT 1 COMMENT '状态：1待支付 2已支付 3已取消 4已退款',
+    status TINYINT DEFAULT 1 COMMENT '状态：1待支付 2已支付 3已取消 4已退款 5退款审核中 6退款处理中 7退款失败 8管理员强制取消',
     expire_at DATETIME NULL COMMENT '过期时间',
     cancel_reason VARCHAR(255) NULL COMMENT '取消原因',
     canceled_at DATETIME NULL COMMENT '取消时间',
@@ -117,6 +117,22 @@ CREATE TABLE IF NOT EXISTS orders (
     CONSTRAINT FK_orders_user FOREIGN KEY (user_id) REFERENCES users(id),
     CONSTRAINT FK_orders_livestock FOREIGN KEY (livestock_id) REFERENCES livestock(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单表';
+
+-- 订单历史记录表
+CREATE TABLE IF NOT EXISTS order_history (
+    id VARCHAR(32) NOT NULL COMMENT '历史记录ID',
+    order_id VARCHAR(32) NOT NULL COMMENT '订单ID',
+    from_status TINYINT NULL COMMENT '变更前状态',
+    to_status TINYINT NOT NULL COMMENT '变更后状态',
+    operator_id VARCHAR(32) NULL COMMENT '操作人ID',
+    operator_type VARCHAR(20) NOT NULL COMMENT '操作人类型: user/admin/system',
+    remark VARCHAR(500) NULL COMMENT '变更原因/备注',
+    created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
+    PRIMARY KEY (id),
+    INDEX IDX_order_history_order_id (order_id),
+    INDEX IDX_order_history_created_at (created_at),
+    CONSTRAINT FK_order_history_order FOREIGN KEY (order_id) REFERENCES orders(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单历史记录表';
 
 -- 领养记录表
 CREATE TABLE IF NOT EXISTS adoptions (
@@ -396,3 +412,41 @@ INSERT IGNORE INTO livestock_types (id, name, icon, description, sort_order, sta
 --   DB_USERNAME: cloud_ranch_app
 --   DB_PASSWORD: ${APP_DB_PASSWORD}
 -- 并在首次启动后手动执行授权语句，或使用 secrets 管理
+
+-- ============================================================================
+-- 性能优化索引（2026-04-25）
+-- 注意：MySQL不支持 IF NOT EXISTS，全新部署时自动创建
+-- ============================================================================
+
+-- 订单表
+CREATE INDEX idx_orders_user_status ON orders(user_id, status);
+CREATE INDEX idx_orders_status_created ON orders(status, created_at);
+
+-- 领养表（IDX_adoptions_order_id 已在表定义中，这里只添加复合索引）
+CREATE INDEX idx_adoptions_user_status ON adoptions(user_id, status);
+
+-- 退款订单表
+CREATE INDEX idx_refund_orders_order_status ON refund_orders(order_id, status);
+CREATE INDEX idx_refund_orders_user_status ON refund_orders(user_id, status);
+
+-- 余额变动记录表
+CREATE INDEX idx_balance_logs_user_created ON balance_logs(user_id, created_at);
+
+-- 支付记录表
+CREATE INDEX idx_payment_records_order ON payment_records(order_type, order_id);
+CREATE INDEX idx_payment_records_user ON payment_records(user_id, created_at);
+
+-- 买断订单表
+CREATE INDEX idx_redemption_orders_user_status ON redemption_orders(user_id, status);
+CREATE INDEX idx_redemption_orders_adoption ON redemption_orders(adoption_id, status);
+
+-- 饲料费账单表
+CREATE INDEX idx_feed_bills_user_status ON feed_bills(user_id, status);
+CREATE INDEX idx_feed_bills_adoption ON feed_bills(adoption_id, status);
+
+-- 通知表
+CREATE INDEX idx_notifications_user_read ON notifications(user_id, is_read, created_at);
+
+-- 审计日志表
+CREATE INDEX idx_audit_logs_admin ON audit_logs(admin_id, created_at);
+CREATE INDEX idx_audit_logs_module ON audit_logs(module, created_at);

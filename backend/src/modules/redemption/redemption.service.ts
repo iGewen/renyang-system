@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, In } from 'typeorm';
+import { OnEvent } from '@nestjs/event-emitter';
 import { RedemptionOrder, RedemptionType, RedemptionStatus, Adoption, AdoptionStatus } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
 import { IdUtil } from '@/common/utils/id.util';
@@ -221,18 +222,15 @@ export class RedemptionService {
     redemption.status = RedemptionStatus.CANCELLED;
     await this.redemptionRepository.save(redemption);
 
-    // 修复 B-BIZ-011：取消买断申请时，需要重新计算领养状态
-    // 不能简单地恢复为 ACTIVE，应该根据 feedMonthsPaid 判断
+    // 取消买断申请时，仅当领养仍为买断审核中时才恢复状态
     const adoption = redemption.adoption;
-    const requiredMonths = adoption.redemptionMonths - 1; // 首月免费
-    if (adoption.feedMonthsPaid >= requiredMonths) {
-      // 已达到买断条件，恢复为可买断状态
-      adoption.status = AdoptionStatus.REDEEMABLE;
-    } else {
-      // 未达到买断条件，恢复为正常领养状态
-      adoption.status = AdoptionStatus.ACTIVE;
+    if (adoption.status === AdoptionStatus.REDEMPTION_PENDING) {
+      const requiredMonths = adoption.redemptionMonths - 1;
+      adoption.status = adoption.feedMonthsPaid >= requiredMonths
+        ? AdoptionStatus.REDEEMABLE
+        : AdoptionStatus.ACTIVE;
+      await this.adoptionRepository.save(adoption);
     }
-    await this.adoptionRepository.save(adoption);
 
     return { success: true };
   }
@@ -279,8 +277,8 @@ export class RedemptionService {
         redemption.auditAdminId = adminId;
         redemption.auditAt = new Date();
         redemption.auditRemark = remark || '';
-        // 设置24小时过期时间
-        redemption.expireAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        // 设置12小时过期时间
+        redemption.expireAt = new Date(Date.now() + 12 * 60 * 60 * 1000);
 
         // 如果有调整金额
         if (adjustedAmount !== undefined && adjustedAmount !== null) {
@@ -311,10 +309,15 @@ export class RedemptionService {
 
         await this.redemptionRepository.save(redemption);
 
-        // 恢复领养状态
+        // 恢复领养状态，仅当领养仍为买断审核中时才恢复
         const adoption = redemption.adoption;
-        adoption.status = AdoptionStatus.ACTIVE;
-        await this.adoptionRepository.save(adoption);
+        if (adoption.status === AdoptionStatus.REDEMPTION_PENDING) {
+          const requiredMonths = adoption.redemptionMonths - 1;
+          adoption.status = adoption.feedMonthsPaid >= requiredMonths
+            ? AdoptionStatus.REDEEMABLE
+            : AdoptionStatus.ACTIVE;
+          await this.adoptionRepository.save(adoption);
+        }
 
         // 发送审核拒绝通知
         const livestock = redemption.livestock;
@@ -398,8 +401,11 @@ export class RedemptionService {
 
   /**
    * 支付成功后处理
+   * 通过事件监听器解耦，由 PaymentService 触发
    */
-  async handlePaymentSuccess(redemptionId: string, paymentNo: string, paymentMethod: string) {
+  @OnEvent('redemption.payment.success')
+  async handlePaymentSuccess(payload: { redemptionId: string; paymentNo: string; paymentMethod: string }) {
+    const { redemptionId, paymentNo, paymentMethod } = payload;
     // 使用分布式锁确保幂等性
     const lockKey = `redemption:payment:${redemptionId}`;
     return this.redisService.withLock(lockKey, 30000, async () => {
@@ -433,9 +439,10 @@ export class RedemptionService {
         await manager.save(redemption);
 
         // 更新领养状态
-        const adoption = redemption.adoption;
-        adoption.status = AdoptionStatus.REDEEMED;
-        await manager.save(adoption);
+        if (redemption.adoption) {
+          redemption.adoption.status = AdoptionStatus.REDEEMED;
+          await manager.save(redemption.adoption);
+        }
 
         return redemption;
       });
@@ -446,9 +453,10 @@ export class RedemptionService {
    * 完成买断
    */
   private async completeRedemption(redemption: RedemptionOrder) {
-    const adoption = redemption.adoption;
-    adoption.status = AdoptionStatus.REDEEMED;
-    await this.adoptionRepository.save(adoption);
+    if (redemption.adoption) {
+      redemption.adoption.status = AdoptionStatus.REDEEMED;
+      await this.adoptionRepository.save(redemption.adoption);
+    }
   }
 
   /**
@@ -517,12 +525,15 @@ export class RedemptionService {
       freshRedemption.status = RedemptionStatus.CANCELLED;
       await this.redemptionRepository.save(freshRedemption);
 
-      // 恢复领养状态为原来的领养中状态
+      // 恢复领养状态，仅当领养仍为买断审核中时才恢复
       const adoption = await this.adoptionRepository.findOne({
         where: { id: freshRedemption.adoptionId },
       });
-      if (adoption) {
-        adoption.status = AdoptionStatus.ACTIVE;
+      if (adoption && adoption.status === AdoptionStatus.REDEMPTION_PENDING) {
+        const requiredMonths = adoption.redemptionMonths - 1;
+        adoption.status = adoption.feedMonthsPaid >= requiredMonths
+          ? AdoptionStatus.REDEEMABLE
+          : AdoptionStatus.ACTIVE;
         await this.adoptionRepository.save(adoption);
       }
 
@@ -531,7 +542,7 @@ export class RedemptionService {
       await this.notificationService.sendRedemptionNotification(
         freshRedemption.userId,
         '买断订单已过期取消',
-        `您的买断申请（${livestock?.name || '活体'}）因超过24小时未支付已自动取消，领养状态已恢复。如需买断请重新申请。`,
+        `您的买断申请（${livestock?.name || '活体'}）因超过12小时未支付已自动取消，领养状态已恢复。如需买断请重新申请。`,
         freshRedemption.id,
       );
     });
@@ -540,20 +551,25 @@ export class RedemptionService {
   /**
    * 定时任务：取消所有过期的买断订单
    * 安全修复：使用分布式锁确保多实例部署时不会重复处理
+   * 修复：同时处理expire_at为null但audit_at已超时的旧订单
    */
   async cancelExpiredRedemptions() {
     // 安全修复：全局锁，确保同一时间只有一个实例在处理过期订单
     const globalLockKey = 'redemption:cancel:global';
     return this.redisService.withLock(globalLockKey, 60000, async () => {
       const now = new Date();
+      const expireThreshold = new Date(now.getTime() - 12 * 60 * 60 * 1000); // 12小时前
 
       // 查找所有已过期且状态为审核通过的买断订单
+      // 条件：(expire_at有值且已过期) 或 (expire_at为null但audit_at超过12小时)
       const expiredRedemptions = await this.redemptionRepository
         .createQueryBuilder('redemption')
         .leftJoinAndSelect('redemption.livestock', 'livestock')
         .where('redemption.status = :status', { status: RedemptionStatus.AUDIT_PASSED })
-        .andWhere('redemption.expireAt IS NOT NULL')
-        .andWhere('redemption.expireAt < :now', { now })
+        .andWhere(
+          '(redemption.expireAt IS NOT NULL AND redemption.expireAt < :now) OR (redemption.expireAt IS NULL AND redemption.auditAt < :expireThreshold)',
+          { now, expireThreshold }
+        )
         .getMany();
 
       if (!expiredRedemptions || expiredRedemptions.length === 0) {

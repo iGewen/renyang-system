@@ -32,6 +32,10 @@ export enum OrderStatus {
   PAID = 2,             // 已支付
   CANCELLED = 3,        // 已取消
   REFUNDED = 4,         // 已退款
+  REFUND_REVIEW = 5,    // 退款审核中
+  REFUND_PROCESSING = 6, // 退款处理中
+  REFUND_FAILED = 7,    // 退款失败
+  ADMIN_CANCELLED = 8,  // 管理员强制取消
 }
 
 // 领养状态
@@ -129,6 +133,10 @@ export const OrderStatusMap: Record<number, string> = {
   [OrderStatus.PAID]: '已支付',
   [OrderStatus.CANCELLED]: '已取消',
   [OrderStatus.REFUNDED]: '已退款',
+  [OrderStatus.REFUND_REVIEW]: '退款审核中',
+  [OrderStatus.REFUND_PROCESSING]: '退款处理中',
+  [OrderStatus.REFUND_FAILED]: '退款失败',
+  [OrderStatus.ADMIN_CANCELLED]: '管理员强制取消',
 };
 
 // 领养状态映射

@@ -16,11 +16,13 @@ export class NotificationController {
     @CurrentUser('id') userId: string,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
+    @Query('isRead') isRead?: string,
   ) {
     return this.notificationService.getUserNotifications(
       userId,
       page ? Number.parseInt(page) : 1,
       pageSize ? Number.parseInt(pageSize) : 20,
+      isRead !== undefined ? Number.parseInt(isRead) : undefined,
     );
   }
 

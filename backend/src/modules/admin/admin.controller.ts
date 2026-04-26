@@ -1,39 +1,22 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
+import { AdminManagementService } from './services';
 import { Public } from '@/common/decorators/public.decorator';
 import { AdminGuard } from '@/common/guards/admin.guard';
 import { RequireAdmin, AdminRole } from '@/common/decorators/admin-role.decorator';
-import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { Request } from 'express';
-// DTOs 从独立文件导入
-import {
-  LoginDto,
-  ChangePasswordDto,
-  CreateLivestockTypeDto,
-  UpdateLivestockTypeDto,
-  CreateLivestockDto,
-  UpdateLivestockDto,
-  UpdateSystemConfigDto,
-  SendAnnouncementDto,
-  SaveAgreementDto,
-  CreateAdminDto,
-  AdjustBalanceDto,
-  UpdateUserInfoDto,
-  SendNotificationDto,
-  AuditRedemptionDto,
-  AuditRefundDto,
-  AdminRefundDto,
-} from './dto';
+import { LoginDto, ChangePasswordDto, CreateAdminDto } from './dto';
 
 @ApiTags('管理员')
 @Controller('admin')
 @UseGuards(AdminGuard)
 @RequireAdmin()
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly adminManagementService: AdminManagementService,
+  ) {}
 
-  // 获取真实 IP 地址
   private getClientIp(req: any): string {
     return req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
            req.headers['x-real-ip'] ||
@@ -42,16 +25,12 @@ export class AdminController {
            '';
   }
 
-  // 获取 User-Agent
   private getUserAgent(req: any): string {
     return req.headers['user-agent'] || '';
   }
 
   // =============== 认证相关 ===============
 
-  /**
-   * 管理员登录
-   */
   @Public()
   @Post('auth/login')
   @ApiOperation({ summary: '管理员登录' })
@@ -63,9 +42,6 @@ export class AdminController {
     return this.adminService.login(dto.username, dto.password, ip, userAgent);
   }
 
-  /**
-   * 获取当前管理员信息
-   */
   @Get('auth/info')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取当前管理员信息' })
@@ -75,9 +51,6 @@ export class AdminController {
     return this.adminService.getAdminInfo(adminId);
   }
 
-  /**
-   * 修改密码
-   */
   @Post('auth/change-password')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '修改密码' })
@@ -89,9 +62,6 @@ export class AdminController {
     return this.adminService.changePassword(adminId, dto.oldPassword, dto.newPassword, ip, userAgent);
   }
 
-  /**
-   * 验证密码（用于敏感操作确认）
-   */
   @Post('auth/verify-password')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '验证密码' })
@@ -104,9 +74,6 @@ export class AdminController {
 
   // =============== 仪表盘 ===============
 
-  /**
-   * 获取仪表盘统计数据
-   */
   @Get('dashboard/stats')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取仪表盘统计数据' })
@@ -115,626 +82,8 @@ export class AdminController {
     return this.adminService.getDashboardStats();
   }
 
-  // =============== 用户管理 ===============
-
-  /**
-   * 获取用户列表
-   */
-  @Get('users')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取用户列表' })
-  @ApiQuery({ name: 'page', required: false, description: '页码' })
-  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
-  @ApiQuery({ name: 'keyword', required: false, description: '搜索关键词' })
-  @ApiQuery({ name: 'status', required: false, description: '状态' })
-  async getUserList(
-    @Query('page') page?: string,
-    @Query('pageSize') pageSize?: string,
-    @Query('keyword') keyword?: string,
-    @Query('status') status?: string,
-  ) {
-    return this.adminService.getUserList({
-      page: page ? Number.parseInt(page) : 1,
-      pageSize: pageSize ? Number.parseInt(pageSize) : 20,
-      keyword,
-      status: status ? Number.parseInt(status) : undefined,
-    });
-  }
-
-  /**
-   * 获取用户详情
-   */
-  @Get('users/:id')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取用户详情' })
-  @ApiParam({ name: 'id', description: '用户ID' })
-  async getUserDetail(@Param('id') id: string) {
-    return this.adminService.getUserDetail(id);
-  }
-
-  /**
-   * 获取用户领养记录
-   */
-  @Get('users/:id/adoptions')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取用户领养记录' })
-  @ApiParam({ name: 'id', description: '用户ID' })
-  async getUserAdoptions(@Param('id') id: string) {
-    return this.adminService.getUserAdoptions(id);
-  }
-
-  /**
-   * 更新用户状态
-   */
-  @Post('users/:id/status')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '更新用户状态' })
-  @ApiParam({ name: 'id', description: '用户ID' })
-  async updateUserStatus(
-    @Param('id') id: string,
-    @Body('status') status: number,
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
-    const ip = this.getClientIp(req);
-    const userAgent = this.getUserAgent(req);
-    return this.adminService.updateUserStatus(id, status, adminId, adminName, ip, userAgent);
-  }
-
-  /**
-   * 更新用户信息
-   */
-  @Put('users/:id')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '更新用户信息' })
-  @ApiParam({ name: 'id', description: '用户ID' })
-  async updateUserInfo(
-    @Param('id') id: string,
-    @Body() dto: UpdateUserInfoDto,
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
-    const ip = this.getClientIp(req);
-    return this.adminService.updateUserInfo(id, dto, adminId, adminName, ip);
-  }
-
-  /**
-   * 调整用户余额
-   */
-  @Post('users/:id/balance')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '调整用户余额' })
-  @ApiParam({ name: 'id', description: '用户ID' })
-  async adjustUserBalance(
-    @Param('id') id: string,
-    @Body() dto: AdjustBalanceDto,
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
-    const ip = this.getClientIp(req);
-    return this.adminService.adjustUserBalance(id, dto.amount, dto.reason, adminId, adminName, ip);
-  }
-
-  /**
-   * 获取用户订单列表
-   */
-  @Get('users/:id/orders')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取用户订单列表' })
-  @ApiParam({ name: 'id', description: '用户ID' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'pageSize', required: false, type: Number })
-  async getUserOrders(
-    @Param('id') id: string,
-    @Query('page') page?: number,
-    @Query('pageSize') pageSize?: number,
-  ) {
-    return this.adminService.getUserOrders(id, page || 1, pageSize || 10);
-  }
-
-  /**
-   * 获取用户余额明细
-   */
-  @Get('users/:id/balance-logs')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取用户余额明细' })
-  @ApiParam({ name: 'id', description: '用户ID' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'pageSize', required: false, type: Number })
-  async getUserBalanceLogs(
-    @Param('id') id: string,
-    @Query('page') page?: number,
-    @Query('pageSize') pageSize?: number,
-  ) {
-    return this.adminService.getUserBalanceLogs(id, page || 1, pageSize || 10);
-  }
-
-  /**
-   * 获取用户支付记录
-   */
-  @Get('users/:id/payments')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取用户支付记录' })
-  @ApiParam({ name: 'id', description: '用户ID' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'pageSize', required: false, type: Number })
-  async getUserPayments(
-    @Param('id') id: string,
-    @Query('page') page?: number,
-    @Query('pageSize') pageSize?: number,
-  ) {
-    return this.adminService.getUserPayments(id, page || 1, pageSize || 10);
-  }
-
-  // =============== 活体类型管理 ===============
-
-  /**
-   * 获取活体类型列表
-   */
-  @Get('livestock-types')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取活体类型列表' })
-  async getLivestockTypeList() {
-    return this.adminService.getLivestockTypeList();
-  }
-
-  /**
-   * 创建活体类型
-   */
-  @Post('livestock-types')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '创建活体类型' })
-  async createLivestockType(@Body() dto: CreateLivestockTypeDto, @Req() req: any) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
-    const ip = this.getClientIp(req);
-    return this.adminService.createLivestockType(dto, adminId, adminName, ip);
-  }
-
-  /**
-   * 更新活体类型
-   */
-  @Put('livestock-types/:id')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '更新活体类型' })
-  @ApiParam({ name: 'id', description: '类型ID' })
-  async updateLivestockType(
-    @Param('id') id: string,
-    @Body() dto: UpdateLivestockTypeDto,
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
-    const ip = this.getClientIp(req);
-    return this.adminService.updateLivestockType(id, dto, adminId, adminName, ip);
-  }
-
-  /**
-   * 删除活体类型
-   */
-  @Delete('livestock-types/:id')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '删除活体类型' })
-  @ApiParam({ name: 'id', description: '类型ID' })
-  async deleteLivestockType(@Param('id') id: string, @Req() req: any) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
-    const ip = this.getClientIp(req);
-    return this.adminService.deleteLivestockType(id, adminId, adminName, ip);
-  }
-
-  // =============== 活体管理 ===============
-
-  /**
-   * 获取活体列表
-   */
-  @Get('livestock')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取活体列表' })
-  @ApiQuery({ name: 'page', required: false, description: '页码' })
-  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
-  @ApiQuery({ name: 'typeId', required: false, description: '类型ID' })
-  @ApiQuery({ name: 'status', required: false, description: '状态' })
-  @ApiQuery({ name: 'keyword', required: false, description: '搜索关键词' })
-  async getLivestockList(
-    @Query('page') page?: string,
-    @Query('pageSize') pageSize?: string,
-    @Query('typeId') typeId?: string,
-    @Query('status') status?: string,
-    @Query('keyword') keyword?: string,
-  ) {
-    return this.adminService.getLivestockList({
-      page: page ? Number.parseInt(page) : 1,
-      pageSize: pageSize ? Number.parseInt(pageSize) : 20,
-      typeId,
-      status: status ? Number.parseInt(status) : undefined,
-      keyword,
-    });
-  }
-
-  /**
-   * 创建活体
-   */
-  @Post('livestock')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '创建活体' })
-  async createLivestock(@Body() dto: CreateLivestockDto, @Req() req: any) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
-    const ip = this.getClientIp(req);
-    return this.adminService.createLivestock(dto, adminId, adminName, ip);
-  }
-
-  /**
-   * 更新活体
-   */
-  @Put('livestock/:id')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '更新活体' })
-  @ApiParam({ name: 'id', description: '活体ID' })
-  async updateLivestock(
-    @Param('id') id: string,
-    @Body() dto: UpdateLivestockDto,
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
-    const ip = this.getClientIp(req);
-    return this.adminService.updateLivestock(id, dto, adminId, adminName, ip);
-  }
-
-  /**
-   * 更新活体状态
-   */
-  @Post('livestock/:id/status')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '更新活体状态' })
-  @ApiParam({ name: 'id', description: '活体ID' })
-  async updateLivestockStatus(
-    @Param('id') id: string,
-    @Body('status') status: string | number,
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
-    const ip = this.getClientIp(req);
-    // 支持 'on_sale'/'off_sale' 字符串和数字
-    let statusCode: number;
-    if (typeof status === 'string') {
-      statusCode = status === 'on_sale' ? 1 : 2;
-    } else {
-      statusCode = status;
-    }
-    return this.adminService.updateLivestockStatus(id, statusCode, adminId, adminName, ip);
-  }
-
-  /**
-   * 删除活体
-   */
-  @Delete('livestock/:id')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '删除活体' })
-  @ApiParam({ name: 'id', description: '活体ID' })
-  async deleteLivestock(@Param('id') id: string, @Req() req: any) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
-    const ip = this.getClientIp(req);
-    const userAgent = this.getUserAgent(req);
-    return this.adminService.deleteLivestock(id, adminId, adminName, ip, userAgent);
-  }
-
-  // =============== 订单管理 ===============
-
-  /**
-   * 获取订单列表
-   */
-  @Get('orders')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取订单列表' })
-  @ApiQuery({ name: 'page', required: false, description: '页码' })
-  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
-  @ApiQuery({ name: 'status', required: false, description: '状态' })
-  @ApiQuery({ name: 'keyword', required: false, description: '搜索关键词' })
-  @ApiQuery({ name: 'startDate', required: false, description: '开始日期' })
-  @ApiQuery({ name: 'endDate', required: false, description: '结束日期' })
-  async getOrderList(
-    @Query('page') page?: string,
-    @Query('pageSize') pageSize?: string,
-    @Query('status') status?: string,
-    @Query('keyword') keyword?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
-    return this.adminService.getOrderList({
-      page: page ? Number.parseInt(page) : 1,
-      pageSize: pageSize ? Number.parseInt(pageSize) : 20,
-      status: status ? Number.parseInt(status) : undefined,
-      keyword,
-      startDate,
-      endDate,
-    });
-  }
-
-  /**
-   * 获取订单详情
-   */
-  @Get('orders/:id')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取订单详情' })
-  @ApiParam({ name: 'id', description: '订单ID' })
-  async getOrderDetail(@Param('id') id: string) {
-    return this.adminService.getOrderDetail(id);
-  }
-
-  /**
-   * 删除订单
-   */
-  @Delete('orders/:id')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '删除订单' })
-  @ApiParam({ name: 'id', description: '订单ID' })
-  async deleteOrder(
-    @Param('id') id: string,
-    @CurrentUser('id') adminId: string,
-    @CurrentUser('username') adminName: string,
-    @Req() req: Request,
-  ) {
-    const ip = req.ip || req.socket?.remoteAddress || '';
-    return this.adminService.deleteOrder(id, adminId, adminName, ip);
-  }
-
-  // =============== 领养管理 ===============
-
-  /**
-   * 获取领养列表
-   */
-  @Get('adoptions')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取领养列表' })
-  @ApiQuery({ name: 'page', required: false, description: '页码' })
-  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
-  @ApiQuery({ name: 'status', required: false, description: '状态' })
-  @ApiQuery({ name: 'keyword', required: false, description: '搜索关键词' })
-  async getAdoptionList(
-    @Query('page') page?: string,
-    @Query('pageSize') pageSize?: string,
-    @Query('status') status?: string,
-    @Query('keyword') keyword?: string,
-  ) {
-    return this.adminService.getAdoptionList({
-      page: page ? Number.parseInt(page) : 1,
-      pageSize: pageSize ? Number.parseInt(pageSize) : 20,
-      status: status ? Number.parseInt(status) : undefined,
-      keyword,
-    });
-  }
-
-  /**
-   * 获取领养详情
-   */
-  @Get('adoptions/:id')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取领养详情' })
-  @ApiParam({ name: 'id', description: '领养ID' })
-  async getAdoptionDetail(@Param('id') id: string) {
-    return this.adminService.getAdoptionDetail(id);
-  }
-
-  /**
-   * 获取异常领养列表
-   */
-  @Get('adoptions/exception')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取异常领养列表' })
-  @ApiQuery({ name: 'page', required: false, description: '页码' })
-  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
-  async getExceptionAdoptions(
-    @Query('page') page?: string,
-    @Query('pageSize') pageSize?: string,
-  ) {
-    return this.adminService.getExceptionAdoptions({
-      page: page ? Number.parseInt(page) : 1,
-      pageSize: pageSize ? Number.parseInt(pageSize) : 20,
-    });
-  }
-
-  /**
-   * 处理异常领养
-   */
-  @Put('adoptions/:id/resolve')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '处理异常领养' })
-  @ApiParam({ name: 'id', description: '领养ID' })
-  async resolveException(
-    @Param('id') id: string,
-    @Body() body: { action: 'contact' | 'terminate' | 'continue'; remark: string },
-  ) {
-    return this.adminService.resolveException(id, body.action, body.remark);
-  }
-
-  // =============== 饲料费管理 ===============
-
-  /**
-   * 获取饲料费账单列表
-   */
-  @Get('feed-bills')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取饲料费账单列表' })
-  @ApiQuery({ name: 'page', required: false, description: '页码' })
-  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
-  @ApiQuery({ name: 'status', required: false, description: '状态' })
-  @ApiQuery({ name: 'keyword', required: false, description: '搜索关键词' })
-  async getFeedBillList(
-    @Query('page') page?: string,
-    @Query('pageSize') pageSize?: string,
-    @Query('status') status?: string,
-    @Query('keyword') keyword?: string,
-  ) {
-    return this.adminService.getFeedBillList({
-      page: page ? Number.parseInt(page) : 1,
-      pageSize: pageSize ? Number.parseInt(pageSize) : 20,
-      status: status ? Number.parseInt(status) : undefined,
-      keyword,
-    });
-  }
-
-  /**
-   * 调整饲料费账单金额
-   */
-  @Put('feed-bills/:id/adjust')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '调整饲料费账单金额' })
-  @ApiParam({ name: 'id', description: '账单ID' })
-  async adjustFeedBill(
-    @Param('id') id: string,
-    @Body() body: { adjustedAmount: number; reason: string },
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.id;
-    return this.adminService.adjustFeedBill(id, body.adjustedAmount, body.reason || '', adminId);
-  }
-
-  /**
-   * 免除饲料费账单
-   */
-  @Put('feed-bills/:id/waive')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '免除饲料费账单' })
-  @ApiParam({ name: 'id', description: '账单ID' })
-  async waiveFeedBill(
-    @Param('id') id: string,
-    @Body() body: { reason: string },
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.id;
-    return this.adminService.waiveFeedBill(id, body.reason || '', adminId);
-  }
-
-  /**
-   * 免除滞纳金
-   */
-  @Put('feed-bills/:id/waive-late-fee')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '免除滞纳金' })
-  @ApiParam({ name: 'id', description: '账单ID' })
-  async waiveLateFee(
-    @Param('id') id: string,
-    @Body() body: { reason: string },
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.id;
-    return this.adminService.waiveLateFee(id, body.reason || '', adminId);
-  }
-
-  // =============== 系统配置 ===============
-
-  /**
-   * 获取系统配置
-   */
-  @Get('system-config')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取系统配置' })
-  @ApiQuery({ name: 'type', required: false, description: '配置类型' })
-  async getSystemConfig(@Query('type') type?: string) {
-    return this.adminService.getSystemConfig(type);
-  }
-
-  /**
-   * 更新系统配置
-   */
-  @Post('system-config')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '更新系统配置' })
-  async updateSystemConfig(@Body() dto: UpdateSystemConfigDto, @Req() req: any) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
-    const ip = this.getClientIp(req);
-    return this.adminService.updateSystemConfig(dto.configKey, dto.configValue, adminId, adminName, ip);
-  }
-
-  /**
-   * 测试支付配置
-   */
-  @Post('configs/test-payment/:type')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '测试支付配置' })
-  @ApiParam({ name: 'type', description: '支付类型：alipay/wechat' })
-  async testPayment(@Param('type') type: 'alipay' | 'wechat') {
-    return this.adminService.testPayment(type);
-  }
-
-  /**
-   * 测试短信配置
-   */
-  @Post('configs/test-sms')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '测试短信配置' })
-  async testSms(@Body() body: { phone: string }) {
-    return this.adminService.testSms(body.phone);
-  }
-
-  // =============== 公告管理 ===============
-
-  /**
-   * 发送系统公告
-   */
-  @Post('announcements')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '发送系统公告' })
-  async sendAnnouncement(@Body() dto: SendAnnouncementDto, @Req() req: any) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
-    const ip = this.getClientIp(req);
-    return this.adminService.sendSystemAnnouncement(dto.title, dto.content, adminId, adminName, ip);
-  }
-
-  // =============== 通知管理 ===============
-
-  /**
-   * 获取通知列表
-   */
-  @Get('notifications')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取通知列表' })
-  @ApiQuery({ name: 'page', required: false, description: '页码' })
-  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
-  @ApiQuery({ name: 'type', required: false, description: '通知类型' })
-  async getNotificationList(
-    @Query('page') page?: string,
-    @Query('pageSize') pageSize?: string,
-    @Query('type') type?: string,
-  ) {
-    return this.adminService.getNotificationList({
-      page: page ? Number.parseInt(page) : 1,
-      pageSize: pageSize ? Number.parseInt(pageSize) : 20,
-      type,
-    });
-  }
-
-  /**
-   * 发送通知
-   */
-  @Post('notifications/send')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '发送通知' })
-  async sendNotification(
-    @Body() dto: SendNotificationDto,
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
-    const ip = this.getClientIp(req);
-    return this.adminService.sendNotification(dto, adminId, adminName, ip);
-  }
-
   // =============== 管理员管理 ===============
 
-  /**
-   * 获取管理员列表
-   */
   @Get('admins')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取管理员列表' })
@@ -744,15 +93,12 @@ export class AdminController {
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
   ) {
-    return this.adminService.getAdminList(
+    return this.adminManagementService.getAdminList(
       page ? Number.parseInt(page) : 1,
       pageSize ? Number.parseInt(pageSize) : 20,
     );
   }
 
-  /**
-   * 创建管理员
-   */
   @Post('admins')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建管理员' })
@@ -760,12 +106,9 @@ export class AdminController {
     const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
-    return this.adminService.createAdmin(dto, adminId, adminName, ip);
+    return this.adminManagementService.createAdmin(dto, adminId, adminName, ip);
   }
 
-  /**
-   * 更新管理员状态
-   */
   @Post('admins/:id/status')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '更新管理员状态' })
@@ -778,14 +121,11 @@ export class AdminController {
     const adminId = req.user?.id;
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
-    return this.adminService.updateAdminStatus(id, status, adminId, adminName, ip);
+    return this.adminManagementService.updateAdminStatus(id, status, adminId, adminName, ip);
   }
 
   // =============== 审计日志 ===============
 
-  /**
-   * 获取审计日志
-   */
   @Get('audit-logs')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取审计日志' })
@@ -803,7 +143,7 @@ export class AdminController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    return this.adminService.getAuditLogs({
+    return this.adminManagementService.getAuditLogs({
       page: page ? Number.parseInt(page) : 1,
       pageSize: pageSize ? Number.parseInt(pageSize) : 20,
       module,
@@ -813,10 +153,6 @@ export class AdminController {
     });
   }
 
-  /**
-   * 清空审计日志
-   * 安全修复：仅超级管理员（role=1）可操作
-   */
   @Delete('audit-logs')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '清空审计日志（仅超级管理员）' })
@@ -826,271 +162,6 @@ export class AdminController {
     const adminName = req.user?.username;
     const ip = this.getClientIp(req);
     const userAgent = this.getUserAgent(req);
-    return this.adminService.clearAuditLogs(adminId, adminName, ip, userAgent);
-  }
-
-  // =============== 数据导出 ===============
-
-  /**
-   * 导出用户数据
-   */
-  @Get('export/users')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '导出用户数据' })
-  @ApiQuery({ name: 'status', required: false, description: '用户状态' })
-  @ApiQuery({ name: 'startDate', required: false, description: '开始日期' })
-  @ApiQuery({ name: 'endDate', required: false, description: '结束日期' })
-  async exportUsers(
-    @Query('status') status?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
-    return this.adminService.exportUsers({
-      status: status ? Number.parseInt(status) : undefined,
-      startDate,
-      endDate,
-    });
-  }
-
-  /**
-   * 导出订单数据
-   */
-  @Get('export/orders')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '导出订单数据' })
-  @ApiQuery({ name: 'status', required: false, description: '订单状态' })
-  @ApiQuery({ name: 'startDate', required: false, description: '开始日期' })
-  @ApiQuery({ name: 'endDate', required: false, description: '结束日期' })
-  async exportOrders(
-    @Query('status') status?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
-    return this.adminService.exportOrders({
-      status: status ? Number.parseInt(status) : undefined,
-      startDate,
-      endDate,
-    });
-  }
-
-  /**
-   * 导出领养数据
-   */
-  @Get('export/adoptions')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '导出领养数据' })
-  @ApiQuery({ name: 'status', required: false, description: '领养状态' })
-  @ApiQuery({ name: 'startDate', required: false, description: '开始日期' })
-  @ApiQuery({ name: 'endDate', required: false, description: '结束日期' })
-  async exportAdoptions(
-    @Query('status') status?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
-    return this.adminService.exportAdoptions({
-      status: status ? Number.parseInt(status) : undefined,
-      startDate,
-      endDate,
-    });
-  }
-
-  /**
-   * 导出饲料费账单数据
-   */
-  @Get('export/feed-bills')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '导出饲料费账单数据' })
-  @ApiQuery({ name: 'status', required: false, description: '账单状态' })
-  @ApiQuery({ name: 'startDate', required: false, description: '开始日期' })
-  @ApiQuery({ name: 'endDate', required: false, description: '结束日期' })
-  async exportFeedBills(
-    @Query('status') status?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
-    return this.adminService.exportFeedBills({
-      status: status ? Number.parseInt(status) : undefined,
-      startDate,
-      endDate,
-    });
-  }
-
-  // =============== 买断管理 ===============
-
-  /**
-   * 获取买断订单列表
-   */
-  @Get('redemptions')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取买断订单列表' })
-  @ApiQuery({ name: 'page', required: false, description: '页码' })
-  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
-  @ApiQuery({ name: 'status', required: false, description: '状态' })
-  async getRedemptionList(
-    @Query('page') page?: string,
-    @Query('pageSize') pageSize?: string,
-    @Query('status') status?: string,
-  ) {
-    return this.adminService.getRedemptionList({
-      page: page ? Number.parseInt(page) : 1,
-      pageSize: pageSize ? Number.parseInt(pageSize) : 20,
-      status: status ? Number.parseInt(status) : undefined,
-    });
-  }
-
-  /**
-   * 获取买断订单详情
-   */
-  @Get('redemptions/:id')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取买断订单详情' })
-  @ApiParam({ name: 'id', description: '买断订单ID' })
-  async getRedemptionDetail(@Param('id') id: string) {
-    return this.adminService.getRedemptionDetail(id);
-  }
-
-  /**
-   * 审核买断申请
-   */
-  @Post('redemptions/:id/audit')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '审核买断申请' })
-  @ApiParam({ name: 'id', description: '买断订单ID' })
-  async auditRedemption(
-    @Param('id') id: string,
-    @Body() dto: AuditRedemptionDto,
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
-    const ip = this.getClientIp(req);
-    return this.adminService.auditRedemption(id, dto.approved, dto.adjustedAmount, dto.remark, adminId, adminName, ip);
-  }
-
-  // =============== 退款管理 ===============
-
-  /**
-   * 获取退款订单列表
-   */
-  @Get('refunds')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取退款订单列表' })
-  @ApiQuery({ name: 'page', required: false, description: '页码' })
-  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量' })
-  @ApiQuery({ name: 'status', required: false, description: '状态' })
-  async getRefundList(
-    @Query('page') page?: string,
-    @Query('pageSize') pageSize?: string,
-    @Query('status') status?: string,
-  ) {
-    return this.adminService.getRefundList({
-      page: page ? Number.parseInt(page) : 1,
-      pageSize: pageSize ? Number.parseInt(pageSize) : 20,
-      status: status ? Number.parseInt(status) : undefined,
-    });
-  }
-
-  /**
-   * 获取退款订单详情
-   */
-  @Get('refunds/:id')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取退款订单详情' })
-  @ApiParam({ name: 'id', description: '退款订单ID' })
-  async getRefundDetail(@Param('id') id: string) {
-    return this.adminService.getRefundDetail(id);
-  }
-
-  /**
-   * 审核退款申请
-   */
-  @Post('refunds/:id/audit')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '审核退款申请' })
-  @ApiParam({ name: 'id', description: '退款订单ID' })
-  async auditRefund(
-    @Param('id') id: string,
-    @Body() dto: AuditRefundDto,
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
-    const ip = this.getClientIp(req);
-    return this.adminService.auditRefund(id, dto.approved, dto.remark, adminId, adminName, ip);
-  }
-
-  /**
-   * 管理员直接退款
-   */
-  @Post('refunds/refund')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '管理员直接退款' })
-  async adminRefund(
-    @Body() dto: AdminRefundDto,
-    @Req() req: any,
-  ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
-    const ip = this.getClientIp(req);
-    return this.adminService.adminRefund({
-      adminId,
-      adminName,
-      userId: dto.userId,
-      amount: dto.amount,
-      reason: dto.reason,
-      orderType: dto.orderType,
-      orderId: dto.orderId,
-      ip,
-    });
-  }
-
-  // =============== 协议管理 ===============
-
-  /**
-   * 获取协议列表
-   */
-  @Get('agreements')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取协议列表' })
-  async getAgreements() {
-    return this.adminService.getAgreements();
-  }
-
-  /**
-   * 获取单个协议
-   */
-  @Get('agreements/:key')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取单个协议' })
-  @ApiParam({ name: 'key', description: '协议键名' })
-  async getAgreement(@Param('key') key: string) {
-    return this.adminService.getAgreement(key);
-  }
-
-  /**
-   * 保存协议
-   */
-  @Post('agreements')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '保存协议' })
-  async saveAgreement(@Body() dto: SaveAgreementDto, @Req() req: any) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
-    const ip = this.getClientIp(req);
-    return this.adminService.saveAgreement(dto, adminId, adminName, ip);
-  }
-
-  /**
-   * 删除协议
-   */
-  @Delete('agreements/:key')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '删除协议' })
-  @ApiParam({ name: 'key', description: '协议键名' })
-  async deleteAgreement(@Param('key') key: string, @Req() req: any) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
-    const ip = this.getClientIp(req);
-    return this.adminService.deleteAgreement(key, adminId, adminName, ip);
+    return this.adminManagementService.clearAuditLogs(adminId, adminName, ip, userAgent);
   }
 }

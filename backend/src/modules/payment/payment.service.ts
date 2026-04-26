@@ -1,7 +1,8 @@
-import { Injectable, BadRequestException, Inject, forwardRef, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PaymentRecord, PaymentStatus, OrderStatus } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
 import { IdUtil } from '@/common/utils/id.util';
@@ -9,7 +10,6 @@ import { OrderService } from '../order/order.service';
 import { UserService } from '../user/user.service';
 import { AlipayService } from '@/services/alipay.service';
 import { WechatPayService } from '@/services/wechat-pay.service';
-import { RedemptionService } from '../redemption/redemption.service';
 import { FeedBill } from '@/entities/feed-bill.entity';
 
 @Injectable()
@@ -28,8 +28,7 @@ export class PaymentService {
     private readonly userService: UserService,
     private readonly alipayService: AlipayService,
     private readonly wechatPayService: WechatPayService,
-    @Inject(forwardRef(() => RedemptionService))
-    private readonly redemptionService: RedemptionService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /**
@@ -109,7 +108,9 @@ export class PaymentService {
    * 获取买断订单金额
    */
   private async getRedemptionOrderAmount(orderId: string, userId: string): Promise<number> {
-    const redemption = await this.redemptionService.getRedemptionDetail(orderId, userId);
+    const redemption = await this.paymentRepository.manager.findOne('RedemptionOrder' as any, {
+      where: { id: orderId, userId },
+    } as any);
     if (!redemption) {
       throw new BadRequestException('买断订单不存在');
     }
@@ -165,7 +166,8 @@ export class PaymentService {
    * 余额支付
    */
   private async payWithBalance(payment: PaymentRecord) {
-    const lockKey = `payment:balance:${payment.userId}`;
+    // 使用 paymentNo 作为锁key，更精确，避免同一用户支付不同订单时锁冲突
+    const lockKey = `payment:balance:${payment.paymentNo}`;
 
     return this.redisService.withLock(lockKey, 30000, async () => {
       // 检查余额 - 重新从数据库获取最新余额
@@ -186,8 +188,8 @@ export class PaymentService {
         throw new BadRequestException('余额不足，请充值后重试');
       }
 
-      // 扣减余额
-      await this.userService.updateBalance(
+      // 扣减余额（使用无锁版本，因为外层已有payment锁保护）
+      await this.userService.updateBalanceUnlocked(
         payment.userId,
         -paymentAmount,
         `支付订单: ${payment.outTradeNo}`,
@@ -319,12 +321,12 @@ export class PaymentService {
             );
             break;
           case 'redemption':
-            // 处理买断支付
-            await this.redemptionService.handlePaymentSuccess(
-              latestPayment.orderId,
-              latestPayment.paymentNo,
-              latestPayment.paymentMethod,
-            );
+            // 处理买断支付 - 使用事件驱动解耦
+            this.eventEmitter.emit('redemption.payment.success', {
+              redemptionId: latestPayment.orderId,
+              paymentNo: latestPayment.paymentNo,
+              paymentMethod: latestPayment.paymentMethod,
+            });
             break;
           case 'recharge':
             // 余额充值

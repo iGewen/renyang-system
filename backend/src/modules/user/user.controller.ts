@@ -116,9 +116,15 @@ export class UserController {
     }
 
     // 使用事务更新手机号和标记验证码
-    await this.userService.updatePhoneWithCode(userId, body.newPhone, smsCode.id);
+    const result = await this.userService.updatePhoneWithCode(userId, body.newPhone, smsCode.id);
 
-    return { success: true };
+    // 返回更新后的用户信息
+    const updatedUser = await this.userService.findOne(userId);
+    return {
+      success: true,
+      user: updatedUser,
+      nicknameUpdated: result.nicknameUpdated
+    };
   }
 
   @Get('me/balance-logs')
@@ -194,16 +200,9 @@ export class UserController {
   @Public()
   @Get('agreements/:type')
   async getAgreement(@Param('type') type: string) {
-    const agreementKeyMap: Record<string, string> = {
-      'user': 'user_agreement',
-      'adoption': 'adoption_agreement',
-      'privacy': 'privacy_policy',
-      'disclaimer': 'disclaimer',
-    };
-
-    const key = agreementKeyMap[type] || type;
+    // 直接使用前端传入的type作为key，与后台管理保存的key保持一致
     const config = await this.systemConfigRepository.findOne({
-      where: { configKey: key, configType: 'agreement' },
+      where: { configKey: type, configType: 'agreement' },
     });
 
     if (!config) {

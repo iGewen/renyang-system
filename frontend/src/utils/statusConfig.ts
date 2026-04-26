@@ -35,6 +35,26 @@ export const getOrderStatusConfig = (status: OrderStatus | number): StatusConfig
       label: '已退款',
       variant: 'danger',
       color: 'text-red-600 bg-red-50'
+    },
+    [OrderStatus.REFUND_REVIEW]: {
+      label: '退款审核中',
+      variant: 'warning',
+      color: 'text-orange-600 bg-orange-50'
+    },
+    [OrderStatus.REFUND_PROCESSING]: {
+      label: '退款处理中',
+      variant: 'info',
+      color: 'text-blue-600 bg-blue-50'
+    },
+    [OrderStatus.REFUND_FAILED]: {
+      label: '退款失败',
+      variant: 'danger',
+      color: 'text-red-600 bg-red-50'
+    },
+    [OrderStatus.ADMIN_CANCELLED]: {
+      label: '管理员取消',
+      variant: 'danger',
+      color: 'text-red-600 bg-red-50'
     }
   };
   return map[status] || { label: '未知', variant: 'default', color: 'text-slate-500 bg-slate-100' };

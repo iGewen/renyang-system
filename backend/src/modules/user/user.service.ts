@@ -76,6 +76,18 @@ export class UserService {
     // 使用分布式锁防止并发操作导致余额计算错误
     const lockKey = `user:balance:${userId}`;
     return this.redisService.withLock(lockKey, 10000, async () => {
+      return this.doUpdateBalance(userId, amount, remark);
+    });
+  }
+
+  /**
+   * 内部余额更新方法（无锁，供已有锁上下文调用）
+   */
+  async updateBalanceUnlocked(userId: string, amount: number, remark: string) {
+    return this.doUpdateBalance(userId, amount, remark);
+  }
+
+  private async doUpdateBalance(userId: string, amount: number, remark: string) {
       // 使用事务确保余额更新和日志记录的原子性
       return this.dataSource.transaction(async (manager) => {
         const user = await manager.findOne(User, { where: { id: userId } });
@@ -102,7 +114,7 @@ export class UserService {
           id: IdUtil.generate('BL'), // 安全修复：使用 IdUtil 替代 Date.now()
           userId,
           type: amount > 0 ? 1 : 2, // 1充值 2消费
-          amount: Math.abs(changeAmount),
+          amount: changeAmount, // 保留符号，支出为负数，收入为正数
           balanceBefore,
           balanceAfter: finalBalance,
           remark,
@@ -120,7 +132,6 @@ export class UserService {
 
         return { balanceBefore, balanceAfter: finalBalance };
       });
-    });
   }
 
   async getBalanceLogs(userId: string, page: number = 1, pageSize: number = 20) {
@@ -163,13 +174,33 @@ export class UserService {
   /**
    * 在事务中更新手机号并标记验证码已使用
    * 修复 B-BIZ-024：手机号更新和验证码标记应在同一事务中
+   * 同时处理昵称同步：如果昵称是默认格式则自动更新
    */
-  async updatePhoneWithCode(userId: string, phone: string, smsCodeId: string) {
+  async updatePhoneWithCode(userId: string, newPhone: string, smsCodeId: string) {
     return this.dataSource.transaction(async (manager) => {
-      // 更新手机号
-      await manager.update(User, { id: userId }, { phone });
+      // 获取用户当前信息
+      const user = await manager.findOne(User, { where: { id: userId } });
+      if (!user) {
+        throw new BadRequestException('用户不存在');
+      }
+
+      // 检查昵称是否为默认格式（"用户" + 旧手机号后4位）
+      const oldPhoneSuffix = user.phone.slice(-4);
+      const defaultNickname = `用户${oldPhoneSuffix}`;
+      const shouldUpdateNickname = user.nickname === defaultNickname;
+
+      // 准备更新数据
+      const updateData: { phone: string; nickname?: string } = { phone: newPhone };
+      if (shouldUpdateNickname) {
+        updateData.nickname = `用户${newPhone.slice(-4)}`;
+      }
+
+      // 更新用户信息（手机号和可能的昵称）
+      await manager.update(User, { id: userId }, updateData);
       // 标记验证码已使用
       await manager.update('SmsCode', { id: smsCodeId }, { isUsed: 1 });
+
+      return { nicknameUpdated: shouldUpdateNickname };
     });
   }
 }

@@ -4,6 +4,7 @@ import { FeedService } from '@/modules/feed/feed.service';
 import { OrderService } from '@/modules/order/order.service';
 import { AdoptionService } from '@/modules/adoption/adoption.service';
 import { RedemptionService } from '@/modules/redemption/redemption.service';
+import { RefundCompensationService } from '@/services/refund-compensation.service';
 import { RedisService } from '@/common/utils/redis.service';
 
 /**
@@ -18,6 +19,7 @@ export class TasksService {
     private readonly orderService: OrderService,
     private readonly adoptionService: AdoptionService,
     private readonly redemptionService: RedemptionService,
+    private readonly refundCompensationService: RefundCompensationService,
     private readonly redisService: RedisService,
   ) {}
 
@@ -147,6 +149,49 @@ export class TasksService {
       this.logger.debug('过期买断订单检查完成');
     } catch (error) {
       this.logger.error('检查过期买断订单失败:', error);
+    }
+  }
+
+  /**
+   * 每小时检查并补偿超时的退款订单
+   * 保证退款最终一致性
+   */
+  @Cron(CronExpression.EVERY_HOUR)
+  async compensateTimeoutRefunds() {
+    this.logger.log('开始检查超时退款订单...');
+
+    const lockKey = 'task:compensateTimeoutRefunds';
+    const locked = await this.redisService.setNX(lockKey, '1', 600); // 10分钟锁
+
+    if (!locked) {
+      this.logger.log('退款补偿任务正在执行中，跳过');
+      return;
+    }
+
+    try {
+      const result = await this.refundCompensationService.compensateTimeoutRefunds();
+      this.logger.log(`退款补偿完成: 处理 ${result.processed}, 成功 ${result.success}, 失败 ${result.failed}`);
+    } catch (error) {
+      this.logger.error('退款补偿失败:', error);
+    } finally {
+      await this.redisService.del(lockKey);
+    }
+  }
+
+  /**
+   * 每小时检查订单状态异常
+   */
+  @Cron(CronExpression.EVERY_HOUR)
+  async checkAbnormalOrders() {
+    this.logger.log('开始检查订单状态异常...');
+
+    try {
+      const result = await this.refundCompensationService.checkAbnormalOrders();
+      if (result.count > 0) {
+        this.logger.warn(`发现 ${result.count} 个异常订单`);
+      }
+    } catch (error) {
+      this.logger.error('检查订单状态异常失败:', error);
     }
   }
 }

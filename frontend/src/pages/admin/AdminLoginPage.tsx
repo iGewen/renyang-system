@@ -209,6 +209,12 @@ export const AdminLoginPage: React.FC = () => {
 
   // 页面加载时检查是否有记住的用户名
   useEffect(() => {
+    // 已登录则直接跳转管理后台
+    const token = sessionStorage.getItem('admin_token');
+    if (token) {
+      navigate('/admin');
+      return;
+    }
     const remembered = localStorage.getItem('admin_remembered_username');
     if (remembered) {
       setUsername(remembered);
@@ -398,7 +404,7 @@ export const AdminLoginPage: React.FC = () => {
                       </div>
                       <input
                         id="confirm-password"
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         className={cn(
@@ -409,11 +415,13 @@ export const AdminLoginPage: React.FC = () => {
                         )}
                         placeholder="请再次输入新密码"
                       />
-                      {confirmPassword && newPassword === confirmPassword && (
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500">
-                          <Icons.Check className="w-5 h-5" />
-                        </div>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        {showPassword ? <Icons.EyeOff className="w-5 h-5" /> : <Icons.Eye className="w-5 h-5" />}
+                      </button>
                     </div>
                     {confirmPassword && newPassword !== confirmPassword && (
                       <p className="text-xs text-red-500">密码不一致</p>

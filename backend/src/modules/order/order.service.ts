@@ -1,10 +1,12 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { Order, OrderStatus, Livestock, Adoption, AdoptionStatus } from '@/entities';
+import { Order, OrderStatus, Livestock, Adoption, AdoptionStatus, User } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
 import { IdUtil } from '@/common/utils/id.util';
 import { LivestockService } from '../livestock/livestock.service';
+import { NotificationService } from '../notification/notification.service';
+import { SmsService } from '@/services/sms.service';
 import { normalizePagination, buildPaginationResult } from '@/common/utils/pagination.util';
 
 // 常量定义
@@ -14,14 +16,20 @@ const EXPIRED_ORDER_BATCH_SIZE = 100; // 单次最多处理100个过期订单
 
 @Injectable()
 export class OrderService {
+  private readonly logger = new Logger(OrderService.name);
+
   constructor(
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
     @InjectRepository(Adoption)
     private readonly adoptionRepository: Repository<Adoption>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private readonly redisService: RedisService,
     private readonly livestockService: LivestockService,
     private readonly dataSource: DataSource,
+    private readonly notificationService: NotificationService,
+    private readonly smsService: SmsService,
   ) {}
 
   async create(userId: string, livestockId: string, clientOrderId: string) {
@@ -254,6 +262,36 @@ export class OrderService {
         await this.redisService.del(lockStockKey);
       }
       await this.redisService.zrem('delay:queue:order', order.id);
+
+      // 发送通知（站内信 + 短信）
+      try {
+        const livestock = order.livestockSnapshot as any;
+        const user = await this.userRepository.findOne({ where: { id: order.userId } });
+
+        // 发送站内信
+        await this.notificationService.sendAdoptionSuccess({
+          userId: order.userId,
+          orderNo: order.orderNo,
+          livestockName: livestock?.name || '活体',
+          amount: Number(order.totalAmount),
+          orderId: order.id,
+        });
+
+        // 发送短信通知
+        if (user?.phone) {
+          await this.smsService.sendNotification(user.phone, 'order', {
+            orderNo: order.orderNo,
+            livestockName: livestock?.name || '活体',
+            amount: order.totalAmount.toString(),
+          }).catch(err => {
+            this.logger.warn(`订单短信发送失败: ${err.message}`);
+          });
+        }
+
+        this.logger.log(`订单支付成功通知已发送: ${order.orderNo}`);
+      } catch (err) {
+        this.logger.warn(`发送订单通知失败: ${err.message}`);
+      }
 
       return order;
     });

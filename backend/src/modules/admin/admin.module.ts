@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
@@ -16,10 +16,34 @@ import {
   Notification,
   SystemConfig,
   AuditLog,
+  PaymentRecord,
 } from '@/entities';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { NotificationModule } from '../notification/notification.module';
+import { ServicesModule } from '@/services/services.module';
+import { OrderModule } from '../order/order.module';
+import { RedisService } from '@/common/utils/redis.service';
+import {
+  AdminUserService,
+  AdminLivestockService,
+  AdminOrderService,
+  AdminAdoptionService,
+  AdminFeedService,
+  AdminRedemptionService,
+  AdminRefundService,
+  AdminConfigBasicService,
+  AdminNotificationService,
+  AdminAgreementService,
+  AdminExportService,
+  AdminManagementService,
+} from './services';
+import {
+  AdminUserController,
+  AdminLivestockController,
+  AdminOrderController,
+  AdminSystemController,
+} from './controllers';
 import type { StringValue } from 'ms';
 
 @Module({
@@ -37,6 +61,7 @@ import type { StringValue } from 'ms';
       Notification,
       SystemConfig,
       AuditLog,
+      PaymentRecord,
     ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -55,10 +80,48 @@ import type { StringValue } from 'ms';
       },
       inject: [ConfigService],
     }),
-    NotificationModule,
+    forwardRef(() => NotificationModule),
+    forwardRef(() => ServicesModule),
+    forwardRef(() => OrderModule),
   ],
-  controllers: [AdminController],
-  providers: [AdminService, AdminGuard],
-  exports: [AdminService],
+  controllers: [
+    AdminController,
+    AdminUserController,
+    AdminLivestockController,
+    AdminOrderController,
+    AdminSystemController,
+  ],
+  providers: [
+    AdminService,
+    AdminGuard,
+    RedisService,
+    AdminUserService,
+    AdminLivestockService,
+    AdminOrderService,
+    AdminAdoptionService,
+    AdminFeedService,
+    AdminRedemptionService,
+    AdminRefundService,
+    AdminConfigBasicService,
+    AdminNotificationService,
+    AdminAgreementService,
+    AdminExportService,
+    AdminManagementService,
+  ],
+  exports: [
+    AdminService,
+    AdminUserService,
+    AdminLivestockService,
+    AdminOrderService,
+    AdminAdoptionService,
+    AdminFeedService,
+    AdminRedemptionService,
+    AdminRefundService,
+    AdminConfigBasicService,
+    AdminNotificationService,
+    AdminAgreementService,
+    AdminExportService,
+    AdminManagementService,
+  ],
 })
 export class AdminModule {}

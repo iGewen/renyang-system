@@ -178,7 +178,9 @@ export class SmsService {
         for (let attempt = 1; attempt <= SMS_RETRY_COUNT; attempt++) {
           try {
             const config = await this.getSmsConfig();
-            const templateCode = config.templates[type as keyof typeof config.templates] || config.templates.login;
+            // 获取对应类型的模板，change_phone 使用 reset_password 模板
+            const templateType = type === 'change_phone' ? 'reset_password' : type;
+            const templateCode = config.templates[templateType as keyof typeof config.templates] || config.templates.login;
             await this.sendSms(phone, code, config, templateCode);
             resolve();
             return;

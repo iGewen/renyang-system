@@ -14,6 +14,7 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   login: (token: string, user: User) => void;
   logout: () => void;
+  refreshUser: (user: User) => void;
 }
 
 // ==================== Context 创建 ====================
@@ -27,6 +28,7 @@ const DEFAULT_AUTH_VALUE: AuthContextType = {
   isAuthenticated: false,
   login: () => {},
   logout: () => {},
+  refreshUser: () => {},
 };
 
 // ==================== Hook ====================
@@ -45,23 +47,28 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
-    const stored = localStorage.getItem('user');
+    const stored = sessionStorage.getItem('user');
     return stored ? JSON.parse(stored) : null;
   });
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
+  const [token, setToken] = useState<string | null>(() => sessionStorage.getItem('token'));
 
   const login = useCallback((newToken: string, newUser: User) => {
     setToken(newToken);
     setUser(newUser);
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(newUser));
+    sessionStorage.setItem('token', newToken);
+    sessionStorage.setItem('user', JSON.stringify(newUser));
   }, []);
 
   const logout = useCallback(() => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
+  }, []);
+
+  const refreshUser = useCallback((updatedUser: User) => {
+    setUser(updatedUser);
+    sessionStorage.setItem('user', JSON.stringify(updatedUser));
   }, []);
 
   const value: AuthContextType = {
@@ -70,6 +77,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated: !!token && !!user,
     login,
     logout,
+    refreshUser,
   };
 
   return (

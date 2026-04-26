@@ -157,15 +157,9 @@ async function request<T>(url: string, options?: RequestInit, isAdminRequest: bo
           globalThis.dispatchEvent(new CustomEvent('auth:user-expired'));
         }
       }
-      // 生产环境不暴露具体错误信息，只返回通用提示
-      // 开发环境可以显示具体错误便于调试
-      // 但登录接口需要返回具体错误信息（如剩余次数提示）
-      const isDev = import.meta.env?.DEV === true;
-      const isLoginEndpoint = url.includes('/auth/login');
-      if (isDev || isLoginEndpoint) {
-        throw new Error(data.message || '请求失败');
-      }
-      throw new Error('操作失败，请稍后重试');
+      // 显示后端返回的业务错误信息（如"手机号已注册"、"验证码错误"等）
+      // 这些是用户友好的提示，不是技术细节
+      throw new Error(data.message || '请求失败');
     }
 
     return data.data || data;
@@ -188,7 +182,7 @@ async function adminRequest<T>(url: string, options?: RequestInit): Promise<T> {
 
 export const authApi = {
   // 发送短信验证码
-  sendSmsCode: async (phone: string, type: 'register' | 'login' | 'reset_password'): Promise<{ success: boolean }> => {
+  sendSmsCode: async (phone: string, type: 'register' | 'login' | 'reset_password' | 'change_phone'): Promise<{ success: boolean }> => {
     return request('/auth/sms/send', {
       method: 'POST',
       body: JSON.stringify({ phone, type }),
@@ -637,7 +631,7 @@ export const adminApi = {
 
   updateLivestockStatus: async (id: string, status: 'on_sale' | 'off_sale'): Promise<Livestock> => {
     return adminRequest(`/admin/livestock/${id}/status`, {
-      method: 'PUT',
+      method: 'POST',
       body: JSON.stringify({ status }),
     });
   },
@@ -762,7 +756,7 @@ export const adminApi = {
     return adminRequest(`/admin/refunds/${id}`);
   },
 
-  auditRefund: async (id: string, data: { passed: boolean; refundAmount: number; remark?: string; confirmToken?: string }): Promise<any> => {
+  auditRefund: async (id: string, data: { approved: boolean; remark?: string }): Promise<any> => {
     return adminRequest(`/admin/refunds/${id}/audit`, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -820,7 +814,7 @@ export const adminApi = {
 
   updateUserStatus: async (id: string, status: number): Promise<{ success: boolean }> => {
     return adminRequest(`/admin/users/${id}/status`, {
-      method: 'PUT',
+      method: 'POST',
       body: JSON.stringify({ status }),
     });
   },

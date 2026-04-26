@@ -41,9 +41,12 @@ export class UserStatusGuard implements CanActivate {
       throw new ForbiddenException('您的账号已被封禁，如有疑问请联系客服');
     }
 
-    // 受限用户只能访问基础接口
-    if (user.status === UserStatus.RESTRICTED && minStatus > UserStatus.RESTRICTED) {
-      throw new ForbiddenException('您的账号受限，暂时无法进行此操作，如有疑问请联系客服');
+    // 状态数值越大限制越严格，如果用户状态大于要求的最小状态，则拒绝访问
+    if (user.status > minStatus) {
+      if (user.status === UserStatus.RESTRICTED) {
+        throw new ForbiddenException('您的账号受限，暂时无法进行此操作，如有疑问请联系客服');
+      }
+      throw new ForbiddenException('您的账号状态异常，暂时无法进行此操作');
     }
 
     return true;

@@ -8,23 +8,24 @@ import { Link, useLocation } from 'react-router-dom';
 import { Icons } from '../ui';
 import { cn } from '../../lib/utils';
 import { notificationApi } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 // ==================== TabBar 组件 ====================
 
 const TabBarComponent: React.FC = () => {
   const location = useLocation();
+  const { token } = useAuth();
   const isActive = (path: string) => location.pathname === path;
   const [unreadCount, setUnreadCount] = useState(0);
 
   // 获取未读消息数的函数
   const fetchUnreadCount = useCallback(() => {
-    const token = localStorage.getItem('token');
     if (!token) return;
 
     notificationApi.getUnreadCount().then(res => {
       setUnreadCount(res.count || 0);
     }).catch(() => {});
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     fetchUnreadCount();

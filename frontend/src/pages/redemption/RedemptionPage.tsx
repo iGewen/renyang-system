@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Icons, PageTransition, LoadingSpinner, Button, Card } from '../../components/ui';
+import { Icons, PageTransition, LoadingSpinner, Button, Card, Modal } from '../../components/ui';
 import { cn } from '../../lib/utils';
-import { adoptionApi, redemptionApi } from '../../services/api';
+import { adoptionApi, redemptionApi, agreementApi } from '../../services/api';
 import type { Adoption } from '../../types';
 
 interface RedemptionPreview {
@@ -26,6 +26,9 @@ const RedemptionPage: React.FC = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [submitResult, setSubmitResult] = useState<{ success: boolean; redemptionNo?: string; amount?: number; error?: string } | null>(null);
+  const [showAgreementModal, setShowAgreementModal] = useState(false);
+  const [agreementContent, setAgreementContent] = useState<{ title: string; content: string } | null>(null);
+  const [agreementLoading, setAgreementLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -63,6 +66,31 @@ const RedemptionPage: React.FC = () => {
       setShowConfirmModal(false);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // 获取买断服务协议内容
+  const handleOpenAgreement = async () => {
+    if (agreementContent) {
+      setShowAgreementModal(true);
+      return;
+    }
+    setAgreementLoading(true);
+    try {
+      const result = await agreementApi.get('agreement_redemption');
+      setAgreementContent({
+        title: result.title || '买断服务协议',
+        content: result.content || '暂无协议内容',
+      });
+      setShowAgreementModal(true);
+    } catch (error) {
+      setAgreementContent({
+        title: '买断服务协议',
+        content: '暂无协议内容，请稍后再试',
+      });
+      setShowAgreementModal(true);
+    } finally {
+      setAgreementLoading(false);
     }
   };
 
@@ -235,7 +263,7 @@ const RedemptionPage: React.FC = () => {
               {agreed && <Icons.Check className="w-3.5 h-3.5" />}
             </button>
             <span className="text-sm text-slate-500">
-              我已阅读并同意 <span className="text-brand-primary font-medium cursor-pointer">《买断服务协议》</span>
+              我已阅读并同意 <button type="button" onClick={handleOpenAgreement} disabled={agreementLoading} className="text-brand-primary font-medium cursor-pointer hover:underline disabled:opacity-50">《买断服务协议》</button>
             </span>
           </div>
         </div>
@@ -278,6 +306,19 @@ const RedemptionPage: React.FC = () => {
             </Card>
           </div>
         )}
+
+        {/* Agreement Modal */}
+        <Modal open={showAgreementModal} onClose={() => setShowAgreementModal(false)} title={agreementContent?.title || '买断服务协议'} size="lg">
+          <div className="p-4 max-h-[60vh] overflow-y-auto">
+            {agreementLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <div className="prose prose-sm max-w-none text-slate-600" dangerouslySetInnerHTML={{ __html: agreementContent?.content || '暂无协议内容' }} />
+            )}
+          </div>
+        </Modal>
       </div>
     </PageTransition>
   );

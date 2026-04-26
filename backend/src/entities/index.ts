@@ -3,6 +3,7 @@ export * from './balance-log.entity';
 export * from './livestock-type.entity';
 export * from './livestock.entity';
 export * from './order.entity';
+export * from './order-history.entity';
 export * from './adoption.entity';
 export * from './feed-bill.entity';
 export * from './redemption-order.entity';

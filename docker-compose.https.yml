@@ -79,7 +79,7 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      PORT: 3001
+      PORT: 3000
       # 数据库配置
       DB_HOST: mysql
       DB_PORT: 3306
@@ -100,7 +100,7 @@ services:
       # CORS配置
       CORS_ORIGIN: ${CORS_ORIGIN:-}
     expose:
-      - "3001"
+      - "3000"
     depends_on:
       mysql:
         condition: service_healthy
@@ -121,7 +121,7 @@ services:
         max-size: "100m"
         max-file: "5"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/api/"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/"]
       interval: 30s
       timeout: 10s
       retries: 5

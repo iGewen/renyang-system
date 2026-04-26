@@ -19,7 +19,7 @@ import { authApi, agreementApi } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 
 // SMS 冷却存储 Key
-const SMS_COOLDOWN_KEY = 'sms_cooldown_end';
+const SMS_COOLDOWN_KEY_PREFIX = 'sms_cooldown_end';
 
 // ==================== 类型定义 ====================
 
@@ -37,18 +37,7 @@ const AuthPage: React.FC = () => {
   const [code, setCode] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [countdown, setCountdown] = useState(() => {
-    // 从 localStorage 恢复冷却时间
-    const storedEndTime = localStorage.getItem(SMS_COOLDOWN_KEY);
-    if (storedEndTime) {
-      const remaining = Math.ceil((Number.parseInt(storedEndTime, 10) - Date.now()) / 1000);
-      if (remaining > 0) {
-        return remaining;
-      }
-      localStorage.removeItem(SMS_COOLDOWN_KEY);
-    }
-    return 0;
-  });
+  const [countdown, setCountdown] = useState(0);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [agreed, setAgreed] = useState(false);
@@ -67,24 +56,45 @@ const AuthPage: React.FC = () => {
     };
   }, []);
 
-  // 恢复冷却倒计时（如果页面刷新后还有剩余时间）
+  // 获取当前mode对应的冷却key
+  const getCooldownKey = (m: AuthMode) => `${SMS_COOLDOWN_KEY_PREFIX}_${m}`;
+
+  // mode切换时恢复冷却倒计时
   useEffect(() => {
-    if (countdown > 0 && !countdownTimerRef.current) {
-      countdownTimerRef.current = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            if (countdownTimerRef.current) {
-              clearInterval(countdownTimerRef.current);
-              countdownTimerRef.current = null;
-            }
-            localStorage.removeItem(SMS_COOLDOWN_KEY);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+    // 清理旧定时器
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
     }
-  }, []); // 只在组件挂载时执行一次
+
+    // 从 localStorage 恢复当前mode的冷却时间
+    const key = getCooldownKey(mode);
+    const storedEndTime = localStorage.getItem(key);
+    if (storedEndTime) {
+      const remaining = Math.ceil((Number.parseInt(storedEndTime, 10) - Date.now()) / 1000);
+      if (remaining > 0) {
+        setCountdown(remaining);
+        countdownTimerRef.current = setInterval(() => {
+          setCountdown(prev => {
+            if (prev <= 1) {
+              if (countdownTimerRef.current) {
+                clearInterval(countdownTimerRef.current);
+                countdownTimerRef.current = null;
+              }
+              localStorage.removeItem(key);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        localStorage.removeItem(key);
+        setCountdown(0);
+      }
+    } else {
+      setCountdown(0);
+    }
+  }, [mode]);
 
   const handleSendCode = async () => {
     if (!phone || !/^1\d{10}$/.test(phone)) {
@@ -104,8 +114,9 @@ const AuthPage: React.FC = () => {
       await authApi.sendSmsCode(phone, type);
       const cooldownSeconds = 60;
       const endTime = Date.now() + cooldownSeconds * 1000;
-      // 存储冷却结束时间到 localStorage
-      localStorage.setItem(SMS_COOLDOWN_KEY, endTime.toString());
+      // 存储冷却结束时间到 localStorage（按mode区分）
+      const key = getCooldownKey(mode);
+      localStorage.setItem(key, endTime.toString());
       setCountdown(cooldownSeconds);
       // 使用 ref 保存定时器引用
       countdownTimerRef.current = setInterval(() => {
@@ -115,7 +126,7 @@ const AuthPage: React.FC = () => {
               clearInterval(countdownTimerRef.current);
               countdownTimerRef.current = null;
             }
-            localStorage.removeItem(SMS_COOLDOWN_KEY);
+            localStorage.removeItem(getCooldownKey(mode));
             return 0;
           }
           return prev - 1;

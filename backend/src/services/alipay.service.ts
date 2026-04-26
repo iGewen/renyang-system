@@ -366,6 +366,69 @@ export class AlipayService {
   }
 
   /**
+   * 查询退款状态
+   * 文档：https://opendocs.alipay.com/apis/api_1/alipay.trade.fastpay.refund.query
+   */
+  async queryRefund(outRefundNo: string): Promise<{ success: boolean; refundStatus?: string; message?: string }> {
+    const appId = await this.getConfig('alipay_app_id');
+    const privateKey = await this.getConfig('alipay_private_key');
+
+    if (!appId || !privateKey) {
+      this.logger.error('[Alipay] 支付宝配置缺失，无法查询退款');
+      return { success: false, message: '支付宝配置不完整' };
+    }
+
+    const bizContent = {
+      out_request_no: outRefundNo,
+    };
+
+    const params: Record<string, string> = {
+      app_id: appId,
+      method: 'alipay.trade.fastpay.refund.query',
+      format: 'JSON',
+      charset: 'utf-8',
+      sign_type: 'RSA2',
+      timestamp: this.formatTime(new Date()),
+      version: '1.0',
+      biz_content: JSON.stringify(bizContent),
+    };
+
+    params.sign = this.sign(params, privateKey);
+
+    try {
+      const response = await fetch(this.gateway, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: this.buildQueryString(params),
+      });
+
+      const result = await response.json();
+      const resp = result.alipay_trade_fastpay_refund_query_response;
+      this.logger.log(`[Alipay] 退款查询响应: ${JSON.stringify(resp || result)}`);
+
+      if (resp?.code === '10000') {
+        return {
+          success: true,
+          refundStatus: resp.refund_status || 'SUCCESS',
+        };
+      }
+
+      return {
+        success: false,
+        message: resp?.msg || resp?.sub_msg || '查询失败',
+      };
+    } catch (error) {
+      this.logger.error('[Alipay] 退款查询失败:', error);
+      return {
+        success: false,
+        message: error.message || '查询失败',
+      };
+    }
+  }
+
+  /**
    * RSA签名
    * 使用RSA2(SHA256)签名
    */

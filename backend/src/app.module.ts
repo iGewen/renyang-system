@@ -2,6 +2,7 @@ import { Module, MiddlewareConsumer, NestModule, OnModuleInit, Logger } from '@n
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, InjectDataSource } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -31,6 +32,8 @@ import { ServicesModule } from './services/services.module';
 import { TasksModule } from './tasks/tasks.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { HealthModule } from './modules/health/health.module';
+import { QueueModule } from './queue/queue.module';
+import { EventsModule } from './common/events';
 
 // 守卫
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -68,6 +71,9 @@ import { AppLogger, LoggerMiddleware } from './common/logger';
       }),
       inject: [ConfigService],
     }),
+
+    // 事件驱动模块
+    EventEmitterModule.forRoot(),
 
     // 定时任务模块
     ScheduleModule.forRoot(),
@@ -126,6 +132,12 @@ import { AppLogger, LoggerMiddleware } from './common/logger';
 
     // 定时任务模块
     TasksModule,
+
+    // BullMQ 消息队列模块
+    QueueModule,
+
+    // 事件处理模块
+    EventsModule,
   ],
   providers: [
     {

@@ -1194,30 +1194,26 @@ interface CardProps {
 }
 
 export const Card: React.FC<CardProps> = ({ children, className, onClick }) => {
-  if (onClick) {
-    return (
-      <button
-        type="button"
-        className={cn(
-          'block w-full text-left bg-white rounded-2xl shadow-sm border border-slate-100 transition-all duration-300 cursor-pointer hover:shadow-md hover:-translate-y-0.5',
-          className
-        )}
-        onClick={onClick}
-      >
-        {children}
-      </button>
-    );
-  }
-  return (
+  const cardContent = (
     <div
       className={cn(
-        'bg-white rounded-2xl shadow-sm border border-slate-100 transition-all duration-300',
+        'block w-full text-left bg-white rounded-2xl shadow-sm border border-slate-100 transition-all duration-300',
+        onClick && 'cursor-pointer hover:shadow-md hover:-translate-y-0.5',
         className
       )}
     >
       {children}
     </div>
   );
+
+  if (onClick) {
+    return (
+      <div onClick={onClick} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); }} role="button" tabIndex={0} className="focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2 rounded-2xl">
+        {cardContent}
+      </div>
+    );
+  }
+  return cardContent;
 };
 
 // ==================== 统计卡片组件 ====================

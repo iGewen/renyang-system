@@ -8,10 +8,10 @@ export class SendSmsCodeDto {
   @Matches(/^1[3-9]\d{9}$/, { message: '手机号格式不正确' })
   phone: string;
 
-  @ApiProperty({ description: '验证码类型', enum: ['register', 'login', 'reset_password'], example: 'register' })
+  @ApiProperty({ description: '验证码类型', enum: ['register', 'login', 'reset_password', 'change_phone'], example: 'register' })
   @IsString()
   @IsNotEmpty({ message: '类型不能为空' })
-  @Matches(/^(register|login|reset_password)$/, { message: '类型不正确' })
+  @Matches(/^(register|login|reset_password|change_phone)$/, { message: '类型不正确' })
   type: string;
 
   @ApiPropertyOptional({ description: '客户端IP（由服务器注入，非前端传递）' })

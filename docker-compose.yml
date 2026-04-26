@@ -91,7 +91,7 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      PORT: 3001
+      PORT: 3000
       # 数据库配置 - 直接使用环境变量
       DB_HOST: mysql
       DB_PORT: 3306
@@ -112,7 +112,7 @@ services:
       # CORS配置
       CORS_ORIGIN: ${CORS_ORIGIN:-}
     ports:
-      - "127.0.0.1:${BACKEND_PORT:-3001}:3001"
+      - "127.0.0.1:${BACKEND_PORT:-3000}:3000"
     depends_on:
       mysql:
         condition: service_healthy
@@ -129,7 +129,7 @@ services:
           cpus: '0.25'
           memory: 128M
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/api/"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/"]
       interval: 30s
       timeout: 10s
       retries: 5
