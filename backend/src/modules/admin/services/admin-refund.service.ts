@@ -475,7 +475,7 @@ export class AdminRefundService {
       userId,
       '退款通知',
       `您已收到一笔退款¥${amount}，原因：${reason}`,
-    ).catch(err => console.error('发送退款通知失败:', err));
+    ).catch(err => this.logger.error('发送退款通知失败', err));
 
     return refund;
   }

@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from '@/common/utils/redis.service';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,6 +14,7 @@ import { CryptoUtil } from '@/common/utils/crypto.util';
  */
 @Injectable()
 export class WechatService {
+  private readonly logger = new Logger(WechatService.name);
   private readonly appId: string;
   private readonly appSecret: string;
   private readonly loginAppId: string;
@@ -331,7 +332,7 @@ export class WechatService {
     const data = await response.json();
 
     if (data.errcode) {
-      console.error('获取微信access_token失败:', data);
+      this.logger.error('获取微信access_token失败', JSON.stringify(data));
       throw new BadRequestException('获取微信access_token失败: ' + data.errmsg);
     }
 
@@ -378,13 +379,13 @@ export class WechatService {
       const result = await response.json();
 
       if (result.errcode !== 0) {
-        console.error('发送模板消息失败:', result);
+        this.logger.error('发送模板消息失败', JSON.stringify(result));
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('发送模板消息异常:', error);
+      this.logger.error('发送模板消息异常', error);
       return false;
     }
   }
@@ -402,7 +403,7 @@ export class WechatService {
     // 模板ID需要从配置或数据库获取
     const templateId = await this.getTemplateId('adoption_success');
     if (!templateId) {
-      console.warn('领养成功通知模板未配置');
+      this.logger.warn('领养成功通知模板未配置');
       return false;
     }
 
@@ -433,7 +434,7 @@ export class WechatService {
   }): Promise<boolean> {
     const templateId = await this.getTemplateId('feed_bill');
     if (!templateId) {
-      console.warn('饲料费账单模板未配置');
+      this.logger.warn('饲料费账单模板未配置');
       return false;
     }
 
@@ -465,7 +466,7 @@ export class WechatService {
   }): Promise<boolean> {
     const templateId = await this.getTemplateId('feed_bill_overdue');
     if (!templateId) {
-      console.warn('饲料费逾期模板未配置');
+      this.logger.warn('饲料费逾期模板未配置');
       return false;
     }
 
@@ -497,7 +498,7 @@ export class WechatService {
   }): Promise<boolean> {
     const templateId = await this.getTemplateId('redemption_audit');
     if (!templateId) {
-      console.warn('买断审核模板未配置');
+      this.logger.warn('买断审核模板未配置');
       return false;
     }
 
@@ -528,7 +529,7 @@ export class WechatService {
   }): Promise<boolean> {
     const templateId = await this.getTemplateId('redemption_success');
     if (!templateId) {
-      console.warn('买断成功模板未配置');
+      this.logger.warn('买断成功模板未配置');
       return false;
     }
 

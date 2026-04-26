@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, In } from 'typeorm';
 import { OnEvent } from '@nestjs/event-emitter';
@@ -12,6 +12,8 @@ import { normalizePagination, buildPaginationResult } from '@/common/utils/pagin
 
 @Injectable()
 export class RedemptionService {
+  private readonly logger = new Logger(RedemptionService.name);
+
   constructor(
     @InjectRepository(RedemptionOrder)
     private readonly redemptionRepository: Repository<RedemptionOrder>,
@@ -580,7 +582,7 @@ export class RedemptionService {
         try {
           await this.cancelExpiredRedemption(redemption);
         } catch (error) {
-          console.error(`取消过期买断订单失败: ${redemption.id}`, error);
+          this.logger.error(`取消过期买断订单失败: ${redemption.id}`, error);
         }
       }
     });

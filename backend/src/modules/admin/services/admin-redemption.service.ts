@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -8,6 +8,8 @@ import { AdminService } from '../admin.service';
 
 @Injectable()
 export class AdminRedemptionService {
+  private readonly logger = new Logger(AdminRedemptionService.name);
+
   constructor(
     @InjectRepository(RedemptionOrder)
     private readonly redemptionOrderRepository: Repository<RedemptionOrder>,
@@ -134,7 +136,7 @@ export class AdminRedemptionService {
         relatedId: redemption.id,
       });
     } catch (error) {
-      console.error('Failed to send notification:', error);
+      this.logger.error('发送买断审核通知失败', error);
     }
 
     await this.adminService.createAuditLog({

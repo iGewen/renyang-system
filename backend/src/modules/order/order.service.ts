@@ -361,7 +361,7 @@ export class OrderService {
           // 从延时队列移除
           await this.redisService.zrem('delay:queue:order', orderId);
         } catch (error) {
-          console.error(`处理过期订单失败: ${orderId}`, error);
+          this.logger.error(`处理过期订单失败: ${orderId}`, error);
         }
       }),
     );
@@ -369,7 +369,7 @@ export class OrderService {
     // 记录失败的订单
     results.forEach((result, index) => {
       if (result.status === 'rejected') {
-        console.error(`处理过期订单失败: ${expiredOrderIds[index]}`, result.reason);
+        this.logger.error(`处理过期订单失败: ${expiredOrderIds[index]}`, result.reason);
       }
     });
   }
