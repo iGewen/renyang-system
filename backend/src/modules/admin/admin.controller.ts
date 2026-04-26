@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Delete, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { Request } from 'express';
 import { AdminService } from './admin.service';
 import { AdminManagementService } from './services';
 import { Public } from '@/common/decorators/public.decorator';
@@ -17,15 +18,17 @@ export class AdminController {
     private readonly adminManagementService: AdminManagementService,
   ) {}
 
-  private getClientIp(req: any): string {
-    return req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
-           req.headers['x-real-ip'] ||
+  private getClientIp(req: Request): string {
+    const forwarded = req.headers['x-forwarded-for'];
+    const forwardedStr = Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(',')[0];
+    return forwardedStr?.trim() ||
+           req.headers['x-real-ip'] as string ||
            req.ip ||
-           req.connection?.remoteAddress ||
+           req.socket.remoteAddress ||
            '';
   }
 
-  private getUserAgent(req: any): string {
+  private getUserAgent(req: Request): string {
     return req.headers['user-agent'] || '';
   }
 
@@ -36,7 +39,7 @@ export class AdminController {
   @ApiOperation({ summary: '管理员登录' })
   @ApiResponse({ status: 200, description: '登录成功' })
   @ApiResponse({ status: 401, description: '用户名或密码错误' })
-  async login(@Body() dto: LoginDto, @Req() req: any) {
+  async login(@Body() dto: LoginDto, @Req() req: Request) {
     const ip = this.getClientIp(req);
     const userAgent = this.getUserAgent(req);
     return this.adminService.login(dto.username, dto.password, ip, userAgent);
@@ -46,8 +49,8 @@ export class AdminController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取当前管理员信息' })
   @ApiResponse({ status: 200, description: '返回管理员信息' })
-  async getAdminInfo(@Req() req: any) {
-    const adminId = req.user?.id;
+  async getAdminInfo(@Req() req: Request) {
+    const adminId = req.user!.id;
     return this.adminService.getAdminInfo(adminId);
   }
 
@@ -55,8 +58,8 @@ export class AdminController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '修改密码' })
   @ApiResponse({ status: 200, description: '密码修改成功' })
-  async changePassword(@Body() dto: ChangePasswordDto, @Req() req: any) {
-    const adminId = req.user?.id;
+  async changePassword(@Body() dto: ChangePasswordDto, @Req() req: Request) {
+    const adminId = req.user!.id;
     const ip = this.getClientIp(req);
     const userAgent = this.getUserAgent(req);
     return this.adminService.changePassword(adminId, dto.oldPassword, dto.newPassword, ip, userAgent);
@@ -67,8 +70,8 @@ export class AdminController {
   @ApiOperation({ summary: '验证密码' })
   @ApiResponse({ status: 200, description: '密码验证成功' })
   @ApiResponse({ status: 401, description: '密码错误' })
-  async verifyPassword(@Body('password') password: string, @Req() req: any) {
-    const adminId = req.user?.id;
+  async verifyPassword(@Body('password') password: string, @Req() req: Request) {
+    const adminId = req.user!.id;
     return this.adminService.verifyPassword(adminId, password);
   }
 
@@ -102,9 +105,9 @@ export class AdminController {
   @Post('admins')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建管理员' })
-  async createAdmin(@Body() dto: CreateAdminDto, @Req() req: any) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+  async createAdmin(@Body() dto: CreateAdminDto, @Req() req: Request) {
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     return this.adminManagementService.createAdmin(dto, adminId, adminName, ip);
   }
@@ -116,10 +119,10 @@ export class AdminController {
   async updateAdminStatus(
     @Param('id') id: string,
     @Body('status') status: number,
-    @Req() req: any,
+    @Req() req: Request,
   ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     return this.adminManagementService.updateAdminStatus(id, status, adminId, adminName, ip);
   }
@@ -157,9 +160,9 @@ export class AdminController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '清空审计日志（仅超级管理员）' })
   @RequireAdmin(AdminRole.SUPER_ADMIN)
-  async clearAuditLogs(@Req() req: any) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+  async clearAuditLogs(@Req() req: Request) {
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     const userAgent = this.getUserAgent(req);
     return this.adminManagementService.clearAuditLogs(adminId, adminName, ip, userAgent);

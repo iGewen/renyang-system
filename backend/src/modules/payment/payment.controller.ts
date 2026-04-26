@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, Param, Query, Req, UseGuards, SetMetadata, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { Request } from 'express';
 import { PaymentService } from './payment.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { UserStatusGuard, UserStatus, MIN_STATUS_KEY } from '@/common/guards/user-status.guard';
@@ -140,11 +141,11 @@ export class PaymentController {
   @Public()
   @ApiOperation({ summary: '微信支付页面' })
   @ApiQuery({ name: 'paymentNo', description: '支付单号' })
-  async wechatPay(@Query('paymentNo') paymentNo: string, @Req() req: any) {
+  async wechatPay(@Query('paymentNo') paymentNo: string, @Req() req: Request) {
     if (!paymentNo) {
       throw new BadRequestException('缺少支付单号');
     }
-    const clientIp = req.ip || req.connection.remoteAddress;
+    const clientIp = req.ip || req.socket?.remoteAddress || '';
     return this.paymentService.getWechatPayUrl(paymentNo, clientIp);
   }
 
@@ -155,7 +156,7 @@ export class PaymentController {
   @Post('wechat/notify')
   @Public()
   @ApiOperation({ summary: '微信支付异步回调' })
-  async wechatNotify(@Body() data: Record<string, any>, @Req() req: any) {
+  async wechatNotify(@Body() data: Record<string, any>, @Req() req: Request) {
     // 基础验证：检查必要字段
     if (!data.id || !data.resource_type || !data.event_type || !data.resource) {
       throw new BadRequestException('缺少必要参数');
@@ -176,7 +177,7 @@ export class PaymentController {
   @Post('wechat/refund-notify')
   @Public()
   @ApiOperation({ summary: '微信退款异步回调' })
-  async wechatRefundNotify(@Body() data: Record<string, any>, @Req() req: any) {
+  async wechatRefundNotify(@Body() data: Record<string, any>, @Req() req: Request) {
     // 基础验证
     if (!data.id || !data.resource_type || !data.resource) {
       throw new BadRequestException('缺少必要参数');

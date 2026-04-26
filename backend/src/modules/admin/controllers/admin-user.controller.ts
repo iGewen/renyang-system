@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Put, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { Request } from 'express';
 import { AdminUserService } from '../services';
 import { AdminGuard } from '@/common/guards/admin.guard';
 import { RequireAdmin } from '@/common/decorators/admin-role.decorator';
@@ -64,10 +65,10 @@ export class AdminUserController {
   async updateUserStatus(
     @Param('id') id: string,
     @Body('status') status: number,
-    @Req() req: any,
+    @Req() req: Request,
   ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     return this.adminUserService.updateUserStatus(id, status, adminId, adminName, ip);
   }
@@ -79,10 +80,10 @@ export class AdminUserController {
   async updateUserInfo(
     @Param('id') id: string,
     @Body() dto: UpdateUserInfoDto,
-    @Req() req: any,
+    @Req() req: Request,
   ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     return this.adminUserService.updateUserInfo(id, dto, adminId, adminName, ip);
   }
@@ -94,10 +95,10 @@ export class AdminUserController {
   async adjustUserBalance(
     @Param('id') id: string,
     @Body() dto: AdjustBalanceDto,
-    @Req() req: any,
+    @Req() req: Request,
   ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     return this.adminUserService.adjustUserBalance(id, dto.amount, dto.reason, adminId, adminName, ip);
   }

@@ -172,9 +172,9 @@ export class AdminOrderController {
   async adjustFeedBill(
     @Param('id') id: string,
     @Body() body: { adjustedAmount: number; reason: string },
-    @Req() req: any,
+    @Req() req: Request,
   ) {
-    const adminId = req.user?.id;
+    const adminId = req.user!.id;
     return this.adminFeedService.adjustFeedBill(id, body.adjustedAmount, body.reason || '', adminId);
   }
 
@@ -185,9 +185,9 @@ export class AdminOrderController {
   async waiveFeedBill(
     @Param('id') id: string,
     @Body() body: { reason: string },
-    @Req() req: any,
+    @Req() req: Request,
   ) {
-    const adminId = req.user?.id;
+    const adminId = req.user!.id;
     return this.adminFeedService.waiveFeedBill(id, body.reason || '', adminId);
   }
 
@@ -198,9 +198,9 @@ export class AdminOrderController {
   async waiveLateFee(
     @Param('id') id: string,
     @Body() body: { reason: string },
-    @Req() req: any,
+    @Req() req: Request,
   ) {
-    const adminId = req.user?.id;
+    const adminId = req.user!.id;
     return this.adminFeedService.waiveLateFee(id, body.reason || '', adminId);
   }
 
@@ -239,10 +239,10 @@ export class AdminOrderController {
   async auditRedemption(
     @Param('id') id: string,
     @Body() dto: AuditRedemptionDto,
-    @Req() req: any,
+    @Req() req: Request,
   ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     return this.adminRedemptionService.auditRedemption(id, dto.approved, dto.adjustedAmount, dto.remark, adminId, adminName, ip);
   }
@@ -282,10 +282,10 @@ export class AdminOrderController {
   async auditRefund(
     @Param('id') id: string,
     @Body() dto: AuditRefundDto,
-    @Req() req: any,
+    @Req() req: Request,
   ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     return this.adminRefundService.auditRefund(id, dto.approved, dto.remark, adminId, adminName, ip);
   }
@@ -295,10 +295,10 @@ export class AdminOrderController {
   @ApiOperation({ summary: '管理员直接退款' })
   async adminRefund(
     @Body() dto: AdminRefundDto,
-    @Req() req: any,
+    @Req() req: Request,
   ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     return this.adminRefundService.adminRefund({
       adminId,

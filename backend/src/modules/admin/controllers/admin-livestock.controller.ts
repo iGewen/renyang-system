@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { Request } from 'express';
 import { AdminLivestockService } from '../services';
 import { AdminGuard } from '@/common/guards/admin.guard';
 import { RequireAdmin } from '@/common/decorators/admin-role.decorator';
@@ -12,11 +13,13 @@ import { CreateLivestockTypeDto, UpdateLivestockTypeDto, CreateLivestockDto, Upd
 export class AdminLivestockController {
   constructor(private readonly adminLivestockService: AdminLivestockService) {}
 
-  private getClientIp(req: any): string {
-    return req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
-           req.headers['x-real-ip'] ||
+  private getClientIp(req: Request): string {
+    const forwarded = req.headers['x-forwarded-for'];
+    const forwardedStr = Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(',')[0];
+    return forwardedStr?.trim() ||
+           req.headers['x-real-ip'] as string ||
            req.ip ||
-           req.connection?.remoteAddress ||
+           req.socket.remoteAddress ||
            '';
   }
 
@@ -36,9 +39,9 @@ export class AdminLivestockController {
   @Post('livestock-types')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建活体类型' })
-  async createLivestockType(@Body() dto: CreateLivestockTypeDto, @Req() req: any) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+  async createLivestockType(@Body() dto: CreateLivestockTypeDto, @Req() req: Request) {
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     return this.adminLivestockService.createLivestockType(dto, adminId, adminName, ip);
   }
@@ -50,10 +53,10 @@ export class AdminLivestockController {
   async updateLivestockType(
     @Param('id') id: string,
     @Body() dto: UpdateLivestockTypeDto,
-    @Req() req: any,
+    @Req() req: Request,
   ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     return this.adminLivestockService.updateLivestockType(id, dto, adminId, adminName, ip);
   }
@@ -62,9 +65,9 @@ export class AdminLivestockController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '删除活体类型' })
   @ApiParam({ name: 'id', description: '类型ID' })
-  async deleteLivestockType(@Param('id') id: string, @Req() req: any) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+  async deleteLivestockType(@Param('id') id: string, @Req() req: Request) {
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     return this.adminLivestockService.deleteLivestockType(id, adminId, adminName, ip);
   }
@@ -98,9 +101,9 @@ export class AdminLivestockController {
   @Post('livestock')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建活体' })
-  async createLivestock(@Body() dto: CreateLivestockDto, @Req() req: any) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+  async createLivestock(@Body() dto: CreateLivestockDto, @Req() req: Request) {
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     return this.adminLivestockService.createLivestock(dto, adminId, adminName, ip);
   }
@@ -112,10 +115,10 @@ export class AdminLivestockController {
   async updateLivestock(
     @Param('id') id: string,
     @Body() dto: UpdateLivestockDto,
-    @Req() req: any,
+    @Req() req: Request,
   ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     return this.adminLivestockService.updateLivestock(id, dto, adminId, adminName, ip);
   }
@@ -127,10 +130,10 @@ export class AdminLivestockController {
   async updateLivestockStatus(
     @Param('id') id: string,
     @Body('status') status: string | number,
-    @Req() req: any,
+    @Req() req: Request,
   ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     let statusCode: number;
     if (typeof status === 'string') {
@@ -145,9 +148,9 @@ export class AdminLivestockController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '删除活体' })
   @ApiParam({ name: 'id', description: '活体ID' })
-  async deleteLivestock(@Param('id') id: string, @Req() req: any) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+  async deleteLivestock(@Param('id') id: string, @Req() req: Request) {
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     const userAgent = this.getUserAgent(req);
     return this.adminLivestockService.deleteLivestock(id, adminId, adminName, ip, userAgent);

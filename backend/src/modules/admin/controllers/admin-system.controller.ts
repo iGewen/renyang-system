@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Delete, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { Request } from 'express';
 import {
   AdminConfigBasicService,
   AdminNotificationService,
@@ -43,9 +44,9 @@ export class AdminSystemController {
   @Post('system-config')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '更新系统配置' })
-  async updateSystemConfig(@Body() dto: UpdateSystemConfigDto, @Req() req: any) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+  async updateSystemConfig(@Body() dto: UpdateSystemConfigDto, @Req() req: Request) {
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     return this.adminConfigBasicService.updateSystemConfig(dto.configKey, dto.configValue, adminId, adminName, ip);
   }
@@ -70,9 +71,9 @@ export class AdminSystemController {
   @Post('announcements')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '发送系统公告' })
-  async sendAnnouncement(@Body() dto: SendAnnouncementDto, @Req() req: any) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+  async sendAnnouncement(@Body() dto: SendAnnouncementDto, @Req() req: Request) {
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     return this.adminNotificationService.sendSystemAnnouncement(dto.title, dto.content, adminId, adminName, ip);
   }
@@ -102,10 +103,10 @@ export class AdminSystemController {
   @ApiOperation({ summary: '发送通知' })
   async sendNotification(
     @Body() dto: SendNotificationDto,
-    @Req() req: any,
+    @Req() req: Request,
   ) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     return this.adminNotificationService.sendNotification(dto, adminId, adminName, ip);
   }
@@ -130,9 +131,9 @@ export class AdminSystemController {
   @Post('agreements')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '保存协议' })
-  async saveAgreement(@Body() dto: SaveAgreementDto, @Req() req: any) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+  async saveAgreement(@Body() dto: SaveAgreementDto, @Req() req: Request) {
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     return this.adminAgreementService.saveAgreement(dto, adminId, adminName, ip);
   }
@@ -141,9 +142,9 @@ export class AdminSystemController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '删除协议' })
   @ApiParam({ name: 'key', description: '协议键名' })
-  async deleteAgreement(@Param('key') key: string, @Req() req: any) {
-    const adminId = req.user?.id;
-    const adminName = req.user?.username;
+  async deleteAgreement(@Param('key') key: string, @Req() req: Request) {
+    const adminId = req.user!.id;
+    const adminName = req.user!.username || '';
     const ip = this.getClientIp(req);
     return this.adminAgreementService.deleteAgreement(key, adminId, adminName, ip);
   }
