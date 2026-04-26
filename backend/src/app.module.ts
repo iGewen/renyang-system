@@ -238,11 +238,11 @@ export class AppModule implements NestModule, OnModuleInit {
     // 使用密码学安全的随机数生成器
     const nodeCrypto = require('node:crypto');
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
-    let password = '';
+    let result = '';
     for (let i = 0; i < length; i++) {
-      password += chars.charAt(nodeCrypto.randomInt(0, chars.length));
+      result += chars.charAt(nodeCrypto.randomInt(0, chars.length));
     }
-    return password;
+    return result;
   }
 
   private async initializeSystemConfig() {
