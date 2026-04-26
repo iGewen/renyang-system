@@ -4,6 +4,7 @@ import { Repository, DataSource } from 'typeorm';
 import { User, Adoption, Order, AuditLog } from '@/entities';
 import { IdUtil } from '@/common/utils/id.util';
 import { AdminService } from '../admin.service';
+import { normalizePagination } from '@/common/utils/pagination.util';
 
 @Injectable()
 export class AdminUserService {
@@ -29,6 +30,7 @@ export class AdminUserService {
     keyword?: string;
     status?: number;
   }) {
+    const { page, pageSize, skip } = normalizePagination(params.page, params.pageSize);
     const queryBuilder = this.userRepository.createQueryBuilder('user');
 
     if (params.keyword) {
@@ -44,17 +46,17 @@ export class AdminUserService {
 
     queryBuilder
       .orderBy('user.createdAt', 'DESC')
-      .skip((params.page - 1) * params.pageSize)
-      .take(params.pageSize);
+      .skip(skip)
+      .take(pageSize);
 
     const [list, total] = await queryBuilder.getManyAndCount();
 
     return {
       list,
       total,
-      page: params.page,
-      pageSize: params.pageSize,
-      totalPages: Math.ceil(total / params.pageSize),
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
     };
   }
 

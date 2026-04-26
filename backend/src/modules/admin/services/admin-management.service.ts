@@ -5,6 +5,7 @@ import * as bcrypt from 'bcryptjs';
 import { Admin, AuditLog } from '@/entities';
 import { AdminService } from '../admin.service';
 import { IdUtil } from '@/common/utils/id.util';
+import { normalizePagination } from '@/common/utils/pagination.util';
 
 @Injectable()
 export class AdminManagementService {
@@ -22,19 +23,20 @@ export class AdminManagementService {
    * 获取管理员列表
    */
   async getAdminList(page: number = 1, pageSize: number = 20) {
+    const { page: normalizedPage, pageSize: normalizedPageSize, skip } = normalizePagination(page, pageSize);
     const [list, total] = await this.adminRepository.findAndCount({
       select: ['id', 'username', 'name', 'phone', 'avatar', 'role', 'status', 'lastLoginAt', 'createdAt'],
       order: { createdAt: 'DESC' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+      skip,
+      take: normalizedPageSize,
     });
 
     return {
       list,
       total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
+      page: normalizedPage,
+      pageSize: normalizedPageSize,
+      totalPages: Math.ceil(total / normalizedPageSize),
     };
   }
 

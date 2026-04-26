@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order, AuditLog, OrderStatus, Adoption } from '@/entities';
 import { AdminService } from '../admin.service';
+import { normalizePagination } from '@/common/utils/pagination.util';
 
 @Injectable()
 export class AdminOrderService {
@@ -24,6 +25,7 @@ export class AdminOrderService {
     startDate?: string;
     endDate?: string;
   }) {
+    const { page, pageSize, skip } = normalizePagination(params.page, params.pageSize);
     const queryBuilder = this.orderRepository.createQueryBuilder('order')
       .leftJoinAndSelect('order.user', 'user')
       .leftJoinAndSelect('order.livestock', 'livestock')
@@ -52,17 +54,17 @@ export class AdminOrderService {
 
     queryBuilder
       .orderBy('order.createdAt', 'DESC')
-      .skip((params.page - 1) * params.pageSize)
-      .take(params.pageSize);
+      .skip(skip)
+      .take(pageSize);
 
     const [list, total] = await queryBuilder.getManyAndCount();
 
     return {
       list,
       total,
-      page: params.page,
-      pageSize: params.pageSize,
-      totalPages: Math.ceil(total / params.pageSize),
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
     };
   }
 

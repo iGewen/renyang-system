@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { FeedBill, FeedBillStatus, AuditLog } from '@/entities';
 import { AdminService } from '../admin.service';
+import { normalizePagination } from '@/common/utils/pagination.util';
 
 @Injectable()
 export class AdminFeedService {
@@ -26,6 +27,7 @@ export class AdminFeedService {
     status?: FeedBillStatus;
     keyword?: string;
   }) {
+    const { page, pageSize, skip } = normalizePagination(params.page, params.pageSize);
     const queryBuilder = this.feedBillRepository.createQueryBuilder('bill')
       .leftJoinAndSelect('bill.adoption', 'adoption')
       .leftJoinAndSelect('bill.livestock', 'livestock')
@@ -44,17 +46,17 @@ export class AdminFeedService {
 
     queryBuilder
       .orderBy('bill.createdAt', 'DESC')
-      .skip((params.page - 1) * params.pageSize)
-      .take(params.pageSize);
+      .skip(skip)
+      .take(pageSize);
 
     const [list, total] = await queryBuilder.getManyAndCount();
 
     return {
       list,
       total,
-      page: params.page,
-      pageSize: params.pageSize,
-      totalPages: Math.ceil(total / params.pageSize),
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
     };
   }
 

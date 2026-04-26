@@ -4,6 +4,7 @@ import { Repository, In } from 'typeorm';
 import { Livestock, LivestockType, Adoption, AdoptionStatus, AuditLog } from '@/entities';
 import { IdUtil } from '@/common/utils/id.util';
 import { AdminService } from '../admin.service';
+import { normalizePagination } from '@/common/utils/pagination.util';
 
 @Injectable()
 export class AdminLivestockService {
@@ -132,6 +133,7 @@ export class AdminLivestockService {
     status?: number;
     keyword?: string;
   }) {
+    const { page, pageSize, skip } = normalizePagination(params.page, params.pageSize);
     const queryBuilder = this.livestockRepository.createQueryBuilder('livestock')
       .leftJoinAndSelect('livestock.type', 'type');
 
@@ -149,17 +151,17 @@ export class AdminLivestockService {
 
     queryBuilder
       .orderBy('livestock.createdAt', 'DESC')
-      .skip((params.page - 1) * params.pageSize)
-      .take(params.pageSize);
+      .skip(skip)
+      .take(pageSize);
 
     const [list, total] = await queryBuilder.getManyAndCount();
 
     return {
       list,
       total,
-      page: params.page,
-      pageSize: params.pageSize,
-      totalPages: Math.ceil(total / params.pageSize),
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
     };
   }
 

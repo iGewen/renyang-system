@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Notification } from '@/entities';
 import { AdminService } from '../admin.service';
 import { IdUtil } from '@/common/utils/id.util';
+import { normalizePagination } from '@/common/utils/pagination.util';
 
 @Injectable()
 export class AdminNotificationService {
@@ -23,6 +24,7 @@ export class AdminNotificationService {
     pageSize: number;
     type?: string;
   }) {
+    const { page, pageSize, skip } = normalizePagination(params.page, params.pageSize);
     const queryBuilder = this.notificationRepository.createQueryBuilder('notification');
 
     if (params.type) {
@@ -31,17 +33,17 @@ export class AdminNotificationService {
 
     queryBuilder
       .orderBy('notification.createdAt', 'DESC')
-      .skip((params.page - 1) * params.pageSize)
-      .take(params.pageSize);
+      .skip(skip)
+      .take(pageSize);
 
     const [list, total] = await queryBuilder.getManyAndCount();
 
     return {
       list,
       total,
-      page: params.page,
-      pageSize: params.pageSize,
-      totalPages: Math.ceil(total / params.pageSize),
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
     };
   }
 

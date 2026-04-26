@@ -5,6 +5,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { RedemptionOrder, Adoption, AuditLog } from '@/entities';
 import { NotificationService } from '../../notification/notification.service';
 import { AdminService } from '../admin.service';
+import { normalizePagination } from '@/common/utils/pagination.util';
 
 @Injectable()
 export class AdminRedemptionService {
@@ -31,6 +32,7 @@ export class AdminRedemptionService {
     pageSize: number;
     status?: number;
   }) {
+    const { page, pageSize, skip } = normalizePagination(params.page, params.pageSize);
     const queryBuilder = this.redemptionOrderRepository.createQueryBuilder('redemption')
       .leftJoinAndSelect('redemption.user', 'user')
       .leftJoinAndSelect('redemption.livestock', 'livestock')
@@ -42,17 +44,17 @@ export class AdminRedemptionService {
 
     queryBuilder
       .orderBy('redemption.createdAt', 'DESC')
-      .skip((params.page - 1) * params.pageSize)
-      .take(params.pageSize);
+      .skip(skip)
+      .take(pageSize);
 
     const [list, total] = await queryBuilder.getManyAndCount();
 
     return {
       list,
       total,
-      page: params.page,
-      pageSize: params.pageSize,
-      totalPages: Math.ceil(total / params.pageSize),
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
     };
   }
 
