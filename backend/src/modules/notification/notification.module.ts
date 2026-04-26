@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { NotificationController } from './notification.controller';
 import { NotificationService } from './notification.service';
 import { Notification, User } from '@/entities';
-import { RedisService } from '@/common/utils/redis.service';
 import { ServicesModule } from '@/services/services.module';
 
 @Module({
@@ -12,7 +11,7 @@ import { ServicesModule } from '@/services/services.module';
     ServicesModule,
   ],
   controllers: [NotificationController],
-  providers: [NotificationService, RedisService],
+  providers: [NotificationService],
   exports: [NotificationService],
 })
 export class NotificationModule {}

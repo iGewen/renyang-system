@@ -9,8 +9,6 @@ import { JwtStrategy } from './jwt.strategy';
 import { User } from '@/entities/user.entity';
 import { SmsCode } from '@/entities/sms-code.entity';
 import { SystemConfig } from '@/entities/system-config.entity';
-import { RedisService } from '@/common/utils/redis.service';
-import { SmsService } from '@/services/sms.service';
 import { UserStatusGuard } from '@/common/guards/user-status.guard';
 
 @Global()
@@ -29,7 +27,7 @@ import { UserStatusGuard } from '@/common/guards/user-status.guard';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RedisService, SmsService, UserStatusGuard],
+  providers: [AuthService, JwtStrategy, UserStatusGuard],
   exports: [AuthService, JwtStrategy, UserStatusGuard],
 })
 export class AuthModule {}
