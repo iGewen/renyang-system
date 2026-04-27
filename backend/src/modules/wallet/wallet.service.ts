@@ -105,28 +105,35 @@ export class WalletService {
       .where('log.userId = :userId', { userId })
       .andWhere('log.type IN (:...types)', { types: [3, 4] }); // 只查退款和调整
 
-    // 类型筛选
+    // 类型筛选：需要排除不相关的Query，确保只返回对应类型的记录
     if (params.type) {
       if (params.type === 'payment') {
+        // 支付：只查payment_records，排除充值
         paymentQuery.andWhere('payment.orderType != :recharge', { recharge: 'recharge' });
+        balanceQuery.andWhere('1 = 0'); // 排除balance_logs
       } else if (params.type === 'recharge') {
+        // 充值：只查payment_records的充值记录
         paymentQuery.andWhere('payment.orderType = :recharge', { recharge: 'recharge' });
+        balanceQuery.andWhere('1 = 0'); // 排除balance_logs
       } else if (params.type === 'refund') {
+        // 退款：只查balance_logs的退款记录
         balanceQuery.andWhere('log.type = :refundType', { refundType: 3 });
+        paymentQuery.andWhere('1 = 0'); // 排除payment_records
       } else if (params.type === 'adjust') {
+        // 调整：只查balance_logs的调整记录
         balanceQuery.andWhere('log.type = :adjustType', { adjustType: 4 });
+        paymentQuery.andWhere('1 = 0'); // 排除payment_records
       }
     }
 
     // 支付方式筛选
     if (params.paymentMethod) {
       if (params.paymentMethod === 'balance') {
+        // 余额：payment_records查余额支付，balance_logs都是余额不需要额外过滤
         paymentQuery.andWhere('payment.paymentMethod = :method', { method: 'balance' });
       } else {
+        // 非余额：只查payment_records，排除balance_logs
         paymentQuery.andWhere('payment.paymentMethod = :method', { method: params.paymentMethod });
-      }
-      // 非余额时排除balance_logs（退款和调整都是余额）
-      if (params.paymentMethod !== 'balance') {
         balanceQuery.andWhere('1 = 0');
       }
     }

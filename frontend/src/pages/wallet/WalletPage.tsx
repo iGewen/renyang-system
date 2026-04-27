@@ -46,6 +46,25 @@ export const WalletPage: React.FC = () => {
       setLoadingMore(true);
     }
     try {
+      // 计算时间筛选参数
+      let startDate: string | undefined;
+      let endDate: string | undefined;
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      if (dateFilter === 'today') {
+        startDate = today.toISOString().split('T')[0];
+        endDate = today.toISOString().split('T')[0];
+      } else if (dateFilter === 'week') {
+        const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        startDate = weekAgo.toISOString().split('T')[0];
+        endDate = today.toISOString().split('T')[0];
+      } else if (dateFilter === 'month') {
+        const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+        startDate = monthAgo.toISOString().split('T')[0];
+        endDate = today.toISOString().split('T')[0];
+      }
+
       const [overviewRes, transactionsRes] = await Promise.all([
         pageNum === 1 ? walletApi.getOverview() : Promise.resolve({ balance }),
         walletApi.getTransactions({
@@ -53,6 +72,8 @@ export const WalletPage: React.FC = () => {
           pageSize: 20,
           type: typeFilter !== 'all' ? typeFilter : undefined,
           paymentMethod: methodFilter !== 'all' ? methodFilter : undefined,
+          startDate,
+          endDate,
         }),
       ]);
 
@@ -75,11 +96,11 @@ export const WalletPage: React.FC = () => {
       setLoadingMore(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [balance, typeFilter, methodFilter]);
+  }, [balance, typeFilter, methodFilter, dateFilter]);
 
   useEffect(() => {
     fetchData(1, false);
-  }, [typeFilter, methodFilter]);
+  }, [typeFilter, methodFilter, dateFilter]);
 
   const loadMore = () => {
     if (!loadingMore && hasMore) {
