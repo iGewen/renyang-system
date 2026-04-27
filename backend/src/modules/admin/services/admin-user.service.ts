@@ -278,7 +278,7 @@ export class AdminUserService {
         id: IdUtil.generate('BL'),
         userId,
         type: 4, // 调整
-        amount: Math.abs(changeAmount),
+        amount: changeAmount,  // 保留正负号，增加为正，减少为负
         balanceBefore: beforeBalance,
         balanceAfter: finalBalance,
         relatedType: 'admin_adjust',
