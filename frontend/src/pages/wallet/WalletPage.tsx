@@ -304,8 +304,8 @@ export const WalletPage: React.FC = () => {
                               </div>
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">
-                                  <p className="text-sm font-medium text-slate-900 truncate">{tx.typeLabel}</p>
-                                  <span className={cn('text-xs px-1.5 py-0.5 rounded', getMethodBadgeStyle(tx.paymentMethod))}>
+                                  <span className="text-sm font-medium text-slate-900 min-w-[4em]">{tx.typeLabel}</span>
+                                  <span className={cn('text-xs px-1.5 py-0.5 rounded whitespace-nowrap', getMethodBadgeStyle(tx.paymentMethod))}>
                                     {getMethodLabel(tx.paymentMethod)}
                                   </span>
                                 </div>

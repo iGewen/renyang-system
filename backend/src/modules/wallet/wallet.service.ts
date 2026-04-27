@@ -98,9 +98,12 @@ export class WalletService {
       .where('payment.userId = :userId', { userId })
       .andWhere('payment.status = :status', { status: PaymentStatus.SUCCESS });
 
+    // balance_logs 只查询退款(type=3)和调整(type=4)
+    // 排除消费(type=2)和充值(type=1)，因为它们已经在 payment_records 中体现
     const balanceQuery = this.balanceLogRepository
       .createQueryBuilder('log')
-      .where('log.userId = :userId', { userId });
+      .where('log.userId = :userId', { userId })
+      .andWhere('log.type IN (:...types)', { types: [3, 4] }); // 只查退款和调整
 
     // 类型筛选
     if (params.type) {
@@ -119,10 +122,12 @@ export class WalletService {
     if (params.paymentMethod) {
       if (params.paymentMethod === 'balance') {
         paymentQuery.andWhere('payment.paymentMethod = :method', { method: 'balance' });
-        balanceQuery.andWhere('1 = 0'); // balance_logs都是余额
       } else {
         paymentQuery.andWhere('payment.paymentMethod = :method', { method: params.paymentMethod });
-        balanceQuery.andWhere('1 = 0'); // 非余额时排除balance_logs
+      }
+      // 非余额时排除balance_logs（退款和调整都是余额）
+      if (params.paymentMethod !== 'balance') {
+        balanceQuery.andWhere('1 = 0');
       }
     }
 
