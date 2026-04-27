@@ -31,7 +31,7 @@ export class AdminFeedService {
     const queryBuilder = this.feedBillRepository.createQueryBuilder('bill')
       .leftJoinAndSelect('bill.adoption', 'adoption')
       .leftJoinAndSelect('bill.livestock', 'livestock')
-      .leftJoinAndSelect('adoption.user', 'user');
+      .leftJoinAndSelect('bill.user', 'user');
 
     if (params.status !== undefined) {
       queryBuilder.andWhere('bill.status = :status', { status: params.status });
@@ -39,7 +39,7 @@ export class AdminFeedService {
 
     if (params.keyword) {
       queryBuilder.andWhere(
-        '(bill.billNo LIKE :keyword OR user.phone LIKE :keyword)',
+        '(bill.billNo LIKE :keyword OR user.phone LIKE :keyword OR user.nickname LIKE :keyword)',
         { keyword: `%${params.keyword}%` },
       );
     }
