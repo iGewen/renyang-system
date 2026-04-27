@@ -105,11 +105,15 @@ export class NotificationService {
    */
   async getUserNotifications(userId: string, page: number = 1, pageSize: number = 20, isRead?: number) {
     const queryBuilder = this.notificationRepository.createQueryBuilder('notification')
-      .where('notification.userId = :userId OR notification.userId IS NULL', { userId });
+      .where('notification.userId = :userId', { userId });
 
-    // 如果指定了 isRead 参数，添加筛选条件
+    // 如果查询未读消息，排除系统公告（userId IS NULL），因为系统公告的已读状态是全局的
+    // 系统公告只显示在"全部消息"中
     if (isRead !== undefined) {
       queryBuilder.andWhere('notification.isRead = :isRead', { isRead });
+    } else {
+      // 全部消息时，包含系统公告
+      queryBuilder.orWhere('notification.userId IS NULL');
     }
 
     queryBuilder

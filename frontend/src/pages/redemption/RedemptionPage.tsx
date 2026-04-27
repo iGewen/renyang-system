@@ -78,7 +78,7 @@ const RedemptionPage: React.FC = () => {
     }
     setAgreementLoading(true);
     try {
-      const result = await agreementApi.get('agreement_redemption');
+      const result = await agreementApi.get('redemption');
       setAgreementContent({
         title: result.title || '买断服务协议',
         content: result.content || '暂无协议内容',

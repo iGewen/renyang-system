@@ -58,17 +58,25 @@ export const WalletPage: React.FC = () => {
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
+      // 格式化本地日期为 YYYY-MM-DD
+      const formatLocalDate = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
       if (dateFilter === 'today') {
-        startDate = today.toISOString().split('T')[0];
-        endDate = today.toISOString().split('T')[0];
+        startDate = formatLocalDate(today);
+        endDate = formatLocalDate(today);
       } else if (dateFilter === 'week') {
         const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-        startDate = weekAgo.toISOString().split('T')[0];
-        endDate = today.toISOString().split('T')[0];
+        startDate = formatLocalDate(weekAgo);
+        endDate = formatLocalDate(today);
       } else if (dateFilter === 'month') {
         const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-        startDate = monthAgo.toISOString().split('T')[0];
-        endDate = today.toISOString().split('T')[0];
+        startDate = formatLocalDate(monthAgo);
+        endDate = formatLocalDate(today);
       }
 
       const [overviewRes, transactionsRes] = await Promise.all([
