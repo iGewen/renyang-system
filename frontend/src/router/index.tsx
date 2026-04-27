@@ -10,6 +10,8 @@ const FeedBillDetailPage = lazy(() => import('../pages/feed-bill/FeedBillDetailP
 const RedemptionPage = lazy(() => import('../pages/redemption/RedemptionPage'));
 const AdminPage = lazy(() => import('../pages/admin/AdminPage'));
 const BalancePage = lazy(() => import('../pages/user/BalancePage'));
+const WalletPage = lazy(() => import('../pages/wallet/WalletPage'));
+const TransactionDetailPage = lazy(() => import('../pages/wallet/TransactionDetailPage'));
 const AuthPage = lazy(() => import('../pages/auth/AuthPage'));
 const DetailsPage = lazy(() => import('../pages/details/DetailsPage'));
 const PaymentPage = lazy(() => import('../pages/payment/PaymentPage'));
@@ -94,6 +96,20 @@ export const AppRoutes: React.FC = () => {
         <UserProtectedRoute>
           <Suspense fallback={<LoadingSpinner />}>
             <BalancePage />
+          </Suspense>
+        </UserProtectedRoute>
+      } />
+      <Route path="/wallet" element={
+        <UserProtectedRoute>
+          <Suspense fallback={<LoadingSpinner />}>
+            <WalletPage />
+          </Suspense>
+        </UserProtectedRoute>
+      } />
+      <Route path="/wallet/transaction/:transactionNo" element={
+        <UserProtectedRoute>
+          <Suspense fallback={<LoadingSpinner />}>
+            <TransactionDetailPage />
           </Suspense>
         </UserProtectedRoute>
       } />

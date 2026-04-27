@@ -189,9 +189,9 @@ const ProfilePage: React.FC = () => {
             transition={{ delay: 0.2 }}
           >
             <Card className="p-4 grid grid-cols-3 gap-4 text-center shadow-lg">
-              <Link to="/balance" className="group">
+              <Link to="/wallet" className="group">
                 <p className="text-xl font-display font-bold text-brand-primary group-hover:scale-105 transition-transform">¥{Number.parseFloat(String(profile?.balance || '0')).toFixed(2)}</p>
-                <p className="text-xs text-slate-400 mt-0.5">余额</p>
+                <p className="text-xs text-slate-400 mt-0.5">钱包</p>
               </Link>
               <div className="border-x border-slate-100">
                 <p className="text-xl font-display font-bold text-brand-primary">{profile?.stats?.adoptions || 0}</p>
@@ -210,7 +210,7 @@ const ProfilePage: React.FC = () => {
           {/* 桌面端统计卡片 */}
           <div className="hidden lg:grid grid-cols-3 gap-6">
             {[
-              { value: `¥${Number.parseFloat(String(profile?.balance || '0')).toFixed(2)}`, label: '账户余额', to: '/balance' },
+              { value: `¥${Number.parseFloat(String(profile?.balance || '0')).toFixed(2)}`, label: '我的钱包', to: '/wallet' },
               { value: String(profile?.stats?.adoptions || 0), label: '领养活体', to: '/my-adoptions' },
               { value: String(profile?.stats?.days || 0), label: '领养天数' },
             ].map((item, i) => (
@@ -316,12 +316,12 @@ const ProfilePage: React.FC = () => {
                       </div>
                       <Icons.ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-brand-primary group-hover:translate-x-1 transition-all" />
                     </Link>
-                    <Link to="/balance" className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer group">
+                    <Link to="/wallet" className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors cursor-pointer group">
                       <div className="flex items-center gap-4">
                         <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-brand-primary/10 to-indigo-50 flex items-center justify-center text-brand-primary">
                           <Icons.Wallet className="w-5 h-5" />
                         </div>
-                        <span className="text-sm font-bold text-slate-700">我的余额</span>
+                        <span className="text-sm font-bold text-slate-700">我的钱包</span>
                       </div>
                       <Icons.ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-brand-primary group-hover:translate-x-1 transition-all" />
                     </Link>

@@ -143,3 +143,9 @@ export { notificationApi } from './notification.api';
 
 // 从独立文件导入
 export { adminApi } from './admin.api';
+
+// ==================== 钱包相关 ====================
+
+// 从独立文件导入
+export { walletApi } from './wallet.api';
+export type { TransactionRecord, TransactionDetail } from './wallet.api';

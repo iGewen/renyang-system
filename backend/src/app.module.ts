@@ -26,6 +26,7 @@ import { RedemptionModule } from './modules/redemption/redemption.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { RefundModule } from './modules/refund/refund.module';
 import { BalanceModule } from './modules/balance/balance.module';
+import { WalletModule } from './modules/wallet/wallet.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ServicesModule } from './services/services.module';
@@ -125,6 +126,7 @@ import { AppLogger, LoggerMiddleware } from './common/logger';
     PaymentModule,
     RefundModule,
     BalanceModule,
+    WalletModule,
     NotificationModule,
     AdminModule,
     UploadModule,
