@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notification, User } from '@/entities';
 import { WechatService } from '@/services/wechat.service';
+import { IdUtil } from '@/common/utils/id.util';
 
 @Injectable()
 export class NotificationService {
@@ -26,7 +27,7 @@ export class NotificationService {
     relatedId?: string;
   }) {
     const notification = this.notificationRepository.create({
-      id: `N${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      id: IdUtil.generate('N'),
       ...params,
       isRead: 0,
     });

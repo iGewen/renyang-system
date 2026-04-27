@@ -29,7 +29,7 @@ export const HomePage: React.FC = () => {
 
     const token = localStorage.getItem('token');
     if (token) {
-      notificationApi.getUnreadCount().then(res => setUnreadCount(res.count)).catch(() => {});
+      notificationApi.getUnreadCount().then(res => setUnreadCount(res.count)).catch(err => console.error('获取未读消息数失败:', err));
     }
   }, []);
 

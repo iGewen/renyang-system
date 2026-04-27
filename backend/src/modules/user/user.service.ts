@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { User, BalanceLog, Adoption } from '@/entities';
@@ -7,6 +7,8 @@ import { IdUtil } from '@/common/utils/id.util';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -128,7 +130,7 @@ export class UserService {
         // 2. 读取余额时优先从数据库获取，缓存仅作为性能优化
         // 3. 关键操作（支付、退款）使用分布式锁确保一致性
         // 4. 缓存更新失败不影响事务结果（catch 忽略错误）
-        this.redisService.set(`user:balance:${userId}`, finalBalance.toString()).catch(() => {});
+        this.redisService.set(`user:balance:${userId}`, finalBalance.toString()).catch(err => this.logger.warn(`更新余额缓存失败: ${err.message}`));
 
         return { balanceBefore, balanceAfter: finalBalance };
       });

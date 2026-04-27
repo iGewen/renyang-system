@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import DOMPurify from 'dompurify';
 import { Icons, PageTransition, LoadingSpinner, Button, Card, Modal } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { adoptionApi, redemptionApi, agreementApi } from '../../services/api';
@@ -315,7 +316,16 @@ const RedemptionPage: React.FC = () => {
                 <LoadingSpinner />
               </div>
             ) : (
-              <div className="prose prose-sm max-w-none text-slate-600" dangerouslySetInnerHTML={{ __html: agreementContent?.content || '暂无协议内容' }} />
+              <div
+                className="prose prose-sm max-w-none text-slate-600"
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(agreementContent?.content || '', {
+                    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'span', 'div'],
+                    ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
+                    ADD_ATTR: ['target'],
+                  }),
+                }}
+              />
             )}
           </div>
         </Modal>

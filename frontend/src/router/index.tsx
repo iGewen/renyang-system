@@ -9,7 +9,6 @@ const AdoptionDetailPage = lazy(() => import('../pages/adoption/AdoptionDetailPa
 const FeedBillDetailPage = lazy(() => import('../pages/feed-bill/FeedBillDetailPage'));
 const RedemptionPage = lazy(() => import('../pages/redemption/RedemptionPage'));
 const AdminPage = lazy(() => import('../pages/admin/AdminPage'));
-const BalancePage = lazy(() => import('../pages/user/BalancePage'));
 const WalletPage = lazy(() => import('../pages/wallet/WalletPage'));
 const TransactionDetailPage = lazy(() => import('../pages/wallet/TransactionDetailPage'));
 const AuthPage = lazy(() => import('../pages/auth/AuthPage'));
@@ -89,13 +88,6 @@ export const AppRoutes: React.FC = () => {
         <UserProtectedRoute>
           <Suspense fallback={<LoadingSpinner />}>
             <ProfilePage />
-          </Suspense>
-        </UserProtectedRoute>
-      } />
-      <Route path="/balance" element={
-        <UserProtectedRoute>
-          <Suspense fallback={<LoadingSpinner />}>
-            <BalancePage />
           </Suspense>
         </UserProtectedRoute>
       } />

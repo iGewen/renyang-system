@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BalanceLog, User } from '@/entities';
+import { IdUtil } from '@/common/utils/id.util';
 
 @Injectable()
 export class BalanceService {
@@ -106,7 +107,7 @@ export class BalanceService {
     operatorId?: string;
   }) {
     const log = this.balanceLogRepository.create({
-      id: `BL${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      id: IdUtil.generate('BL'),
       ...params,
     });
 

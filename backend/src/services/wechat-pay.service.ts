@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RedisService } from '@/common/utils/redis.service';
 import { SystemConfig } from '@/entities';
+import { IdUtil } from '@/common/utils/id.util';
 import Pay from 'wechatpay-node-v3';
 
 /**
@@ -257,7 +258,7 @@ export class WechatPayService {
     const notifyUrl = await this.getConfig('wechat_notify_url') || this.notifyUrl;
 
     try {
-      const refundId = `RFD${Date.now()}${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+      const refundId = IdUtil.generateRefundNo();
 
       const result = await payment.refunds({
         out_trade_no: outTradeNo,

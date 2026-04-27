@@ -7,14 +7,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import { PageTransition, Icons, Card, Button, Badge, EmptyState, LoadingSpinner } from '../../components/ui';
 import { Navbar } from '../../components/layout';
 import { adoptionApi, redemptionApi } from '../../services/api';
-import type { Adoption } from '../../types';
+import type { Adoption, RedemptionOrder } from '../../types';
 import { AdoptionStatus } from '../../types/enums';
 import { getAdoptionStatusText, getAdoptionBadgeVariant } from '../../utils/statusConfig';
 
 const MyAdoptionsPage: React.FC = () => {
   const navigate = useNavigate();
   const [adoptions, setAdoptions] = useState<Adoption[]>([]);
-  const [redemptions, setRedemptions] = useState<any[]>([]);
+  const [redemptions, setRedemptions] = useState<RedemptionOrder[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,7 +41,7 @@ const MyAdoptionsPage: React.FC = () => {
 
   type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'default';
 
-  const getStatusBadge = (status: number, redemption?: any) => {
+  const getStatusBadge = (status: number, redemption?: RedemptionOrder) => {
     if (redemption?.status === 2) {
       return <Badge variant="info">审核通过待支付</Badge>;
     }

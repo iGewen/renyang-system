@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, NotFoundException, Logger } from '@nes
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { RefundOrder, RefundStatus, RefundType, Order, OrderStatus, Adoption, AdoptionStatus, PaymentRecord, AuditLog, User } from '@/entities';
+import { RefundOrder, RefundStatus, RefundType, Order, OrderStatus, Adoption, AdoptionStatus, PaymentRecord, AuditLog, User, RedemptionStatus } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
 import { IdUtil } from '@/common/utils/id.util';
 import { NotificationService } from '../../notification/notification.service';
@@ -300,7 +300,7 @@ export class AdminRefundService {
               // 取消关联的待审核/审核通过的买断订单
               await manager.createQueryBuilder()
                 .update('redemption_orders' as any)
-                .set({ status: 5 })
+                .set({ status: RedemptionStatus.CANCELLED })
                 .where('adoption_id = :adoptionId AND status IN (1, 2)', { adoptionId: adoption.id })
                 .execute();
             }
@@ -438,7 +438,7 @@ export class AdminRefundService {
             // 取消关联的待审核/审核通过的买断订单
             await manager.createQueryBuilder()
               .update('redemption_orders' as any)
-              .set({ status: 5 })
+              .set({ status: RedemptionStatus.CANCELLED })
               .where('adoption_id = :adoptionId AND status IN (1, 2)', { adoptionId: adoption.id })
               .execute();
           }

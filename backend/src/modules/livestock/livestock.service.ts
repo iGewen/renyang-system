@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, EntityManager, UpdateQueryBuilder } from 'typeorm';
 import { Livestock, LivestockType } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
 import { normalizePagination, buildPaginationResult } from '@/common/utils/pagination.util';
@@ -71,7 +71,7 @@ export class LivestockService {
     return livestock.stock;
   }
 
-  async updateStock(id: string, quantity: number, manager?: any): Promise<boolean> {
+  async updateStock(id: string, quantity: number, manager?: EntityManager): Promise<boolean> {
     // 安全修复 B-SEC-023：验证 quantity 参数类型
     if (!Number.isFinite(quantity)) {
       throw new TypeError('库存变更数量必须是有效数字');
@@ -100,9 +100,9 @@ export class LivestockService {
    * 执行库存更新操作
    * 提取自 updateStock 以降低认知复杂度
    */
-  private async executeStockUpdate(id: string, quantity: number, manager?: any): Promise<void> {
+  private async executeStockUpdate(id: string, quantity: number, manager?: EntityManager): Promise<void> {
     // 根据是否有事务管理器选择更新方式
-    let updateBuilder: any;
+    let updateBuilder: UpdateQueryBuilder<Livestock>;
     if (manager) {
       updateBuilder = manager.createQueryBuilder().update(Livestock);
     } else {

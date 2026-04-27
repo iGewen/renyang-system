@@ -2,7 +2,7 @@
  * WalletPage.tsx - 我的钱包页面
  * 整合所有交易记录（余额/支付宝/微信支付）
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageTransition, Icons, Card, Button, Input, useToast, EmptyState, LoadingSpinner } from '../../components/ui';
@@ -37,6 +37,12 @@ export const WalletPage: React.FC = () => {
   const [methodFilter, setMethodFilter] = useState<PaymentMethod>('all');
   const [dateFilter, setDateFilter] = useState<DateRange>('all');
 
+  // 使用 ref 存储余额，避免作为 fetchData 的依赖
+  const balanceRef = useRef(balance);
+  useEffect(() => {
+    balanceRef.current = balance;
+  }, [balance]);
+
   const paymentConfig = usePaymentConfig();
 
   const fetchData = useCallback(async (pageNum: number = 1, append: boolean = false) => {
@@ -66,7 +72,7 @@ export const WalletPage: React.FC = () => {
       }
 
       const [overviewRes, transactionsRes] = await Promise.all([
-        pageNum === 1 ? walletApi.getOverview() : Promise.resolve({ balance }),
+        pageNum === 1 ? walletApi.getOverview() : Promise.resolve({ balance: balanceRef.current }),
         walletApi.getTransactions({
           page: pageNum,
           pageSize: 20,
@@ -95,8 +101,7 @@ export const WalletPage: React.FC = () => {
       setLoading(false);
       setLoadingMore(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [balance, typeFilter, methodFilter, dateFilter]);
+  }, [typeFilter, methodFilter, dateFilter]);
 
   useEffect(() => {
     fetchData(1, false);

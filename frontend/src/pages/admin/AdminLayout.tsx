@@ -4,6 +4,13 @@ import { Icons } from '../../components/ui';
 
 // ==================== 类型定义 ====================
 
+interface AdminInfo {
+  id: string;
+  username: string;
+  name?: string;
+  role: number;
+}
+
 interface MenuItem {
   id: string;
   label: string;
@@ -16,7 +23,7 @@ interface AdminLayoutProps {
   children: React.ReactNode;
   activeMenu: string;
   onMenuChange: (menu: string) => void;
-  adminInfo: any;
+  adminInfo: AdminInfo;
   onLogout: () => void;
 }
 
@@ -129,7 +136,7 @@ const Sidebar: React.FC<{
 
 interface HeaderBarProps {
   title: string;
-  adminInfo: any;
+  adminInfo: AdminInfo;
   onLogout: () => void;
   onMenuChange: (menu: string) => void;
 }

@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { UserStatusGuard, UserStatus, MIN_STATUS_KEY } from '@/common/guards/user-status.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { Public } from '@/common/decorators/public.decorator';
+import { IdUtil } from '@/common/utils/id.util';
 // DTO 从独立文件导入
 import {
   CreatePaymentDto,
@@ -35,7 +36,7 @@ export class PaymentController {
     let orderId = dto.orderId;
 
     if (dto.orderType === 'recharge') {
-      orderId = `recharge_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+      orderId = IdUtil.generate('RCH');
     }
 
     if (!orderId) {
@@ -69,7 +70,7 @@ export class PaymentController {
     @Body() dto: CreateRechargeDto,
   ) {
     // 后端生成订单ID，防止客户端伪造
-    const orderId = `recharge_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const orderId = IdUtil.generate('RCH');
 
     return this.paymentService.createPayment(
       userId,
