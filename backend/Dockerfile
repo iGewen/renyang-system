@@ -54,11 +54,11 @@ COPY --from=builder /app/package.json ./
 RUN chown -R appuser:appgroup /app
 
 # 暴露端口
-EXPOSE 3001
+EXPOSE 3000
 
 # 健康检查（使用根路由）
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
-  CMD curl -f http://localhost:3001/api/ || exit 1
+  CMD curl -f http://localhost:3000/api/ || exit 1
 
 # 安全修复：切换到非 root 用户
 USER appuser
