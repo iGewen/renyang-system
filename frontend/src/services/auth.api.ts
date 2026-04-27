@@ -24,13 +24,19 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(data.message || '请求失败');
+      // 安全访问 data?.message，处理 data 为 null 的情况
+      const errorMessage = data?.message || `请求失败 (${response.status})`;
+      throw new Error(errorMessage);
     }
 
-    return data.data || data;
+    return data?.data || data;
   } catch (error: any) {
     if (error.name === 'AbortError') {
       throw new Error('请求超时，请稍后重试');
+    }
+    // 网络错误等
+    if (error.message === 'Failed to fetch') {
+      throw new Error('网络连接失败，请检查网络');
     }
     throw error;
   } finally {

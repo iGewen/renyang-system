@@ -27,7 +27,7 @@ async function request<T>(url: string, options?: RequestInit, isAdminRequest: bo
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(data.message || '请求失败');
+      throw new Error(data?.message || `请求失败 (${response.status})`);
     }
 
     return data.data || data;
