@@ -70,6 +70,7 @@ export class AdminFeedService {
     }
 
     bill.adjustedAmount = adjustedAmount;
+    bill.finalAmount = adjustedAmount;  // 同时更新最终金额
     bill.adjustReason = reason;
     bill.operatorId = operatorId;
 
