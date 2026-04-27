@@ -155,7 +155,13 @@ const ProfilePage: React.FC = () => {
               className="relative"
             >
               <div className="w-16 h-16 rounded-2xl border-2 border-white/30 overflow-hidden bg-white/20 backdrop-blur-md shadow-lg">
-                <img src={profile?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                {profile?.avatar ? (
+                  <img src={profile.avatar} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  <svg viewBox="0 0 1024 1024" className="w-full h-full p-2 text-slate-400">
+                    <path d="M642.56 709.12C638.72 669.44 640 640 640 602.88c17.92-10.24 81.92-71.68 87.04-122.88 14.08-1.28 37.12-15.36 43.52-71.68 3.84-29.44-10.24-47.36-19.2-52.48 23.04-70.4 33.28-290.56-128-312.32C606.72 15.36 564.48 0 509.44 0 289.28 3.84 224 168.96 272.64 357.12c-8.96 5.12-23.04 21.76-19.2 52.48 6.4 56.32 29.44 70.4 43.52 71.68 5.12 52.48 69.12 113.92 87.04 122.88 0 37.12 1.28 65.28-2.56 106.24C337.92 828.16 52.48 766.72 38.4 1024l947.2 0C977.92 762.88 686.08 828.16 642.56 709.12z" fill="currentColor" />
+                  </svg>
+                )}
               </div>
               <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-green-500 rounded-full border-2 border-brand-primary flex items-center justify-center shadow-lg">
                 <div className="w-2 h-2 bg-white rounded-full" />
@@ -354,7 +360,7 @@ const ProfilePage: React.FC = () => {
             </div>
           </div>
 
-          <p className="text-center text-xs text-slate-300 pb-4 mt-4">云端牧场智慧平台 v2.1.0 · 智慧农业领先品牌</p>
+          <p className="text-center text-xs text-slate-300 pb-4 mt-4">云端牧场v1.0.0 · 智慧农业领先品牌</p>
         </div>
 
         {/* 昵称修改弹窗 */}
