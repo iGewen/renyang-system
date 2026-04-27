@@ -111,7 +111,7 @@ export const WalletPage: React.FC = () => {
     if (tx.amount > 0) {
       return 'bg-green-100 text-green-500';
     }
-    return 'bg-blue-100 text-blue-500';
+    return 'bg-red-100 text-red-500';  // 支出显示红色
   };
 
   // 获取支付方式标签样式
@@ -320,7 +320,7 @@ export const WalletPage: React.FC = () => {
                             <div className="text-right flex-shrink-0 flex items-center gap-2">
                               <p className={cn(
                                 'text-base font-bold',
-                                tx.amount > 0 ? 'text-green-600' : 'text-slate-900'
+                                tx.amount > 0 ? 'text-green-600' : 'text-red-600'
                               )}>
                                 {formatAmount(tx.amount)}
                               </p>

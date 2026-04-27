@@ -288,7 +288,7 @@ export class WalletService {
    */
   private convertBalanceLogsToTransactions(logs: BalanceLog[]): TransactionRecord[] {
     return logs.map(log => {
-      let type: 'refund' | 'adjust' | 'recharge' = 'adjust';
+      let type: 'refund' | 'adjust' | 'recharge' | 'payment' = 'adjust';
       let typeLabel = '余额变动';
 
       if (log.type === 3) {
@@ -300,15 +300,25 @@ export class WalletService {
       } else if (log.type === 1) {
         type = 'recharge';
         typeLabel = '充值';
+      } else if (log.type === 2) {
+        type = 'payment';
+        typeLabel = '消费';
       }
 
-      // 金额：退款和充值为正，其他根据amount判断
+      // 金额处理：
+      // type=1 充值：正数（收入）
+      // type=2 消费：负数（支出）
+      // type=3 退款：正数（收入）
+      // type=4 调整：根据实际金额判断
       let amount = Number(log.amount);
-      if (log.type === 3) {
+      if (log.type === 2) {
+        amount = -Math.abs(amount); // 消费为负
+      } else if (log.type === 3) {
         amount = Math.abs(amount); // 退款为正
       } else if (log.type === 1) {
         amount = Math.abs(amount); // 充值为正
       }
+      // type=4 调整：保持原金额符号
 
       return {
         id: log.id,

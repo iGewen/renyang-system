@@ -49,6 +49,31 @@ export const AdminLoginPage: React.FC = () => {
   // 密码强度指示器
   const [passwordStrength, setPasswordStrength] = useState(0);
 
+  // 检查是否已登录，如果已登录则跳转到后台
+  React.useEffect(() => {
+    const adminToken = sessionStorage.getItem('admin_token');
+    if (adminToken) {
+      try {
+        const payload = JSON.parse(atob(adminToken.split('.')[1]));
+        if (payload.exp && payload.exp * 1000 > Date.now()) {
+          // Token有效，跳转到后台
+          navigate('/admin', { replace: true });
+        }
+      } catch {
+        // Token无效，清除
+        sessionStorage.removeItem('admin_token');
+        sessionStorage.removeItem('admin_info');
+      }
+    }
+
+    // 检查记住的用户名
+    const rememberedUsername = localStorage.getItem('admin_remembered_username');
+    if (rememberedUsername) {
+      setUsername(rememberedUsername);
+      setRememberMe(true);
+    }
+  }, [navigate]);
+
   // 计算密码强度 - 使用 useCallback 避免每次渲染创建新函数
   const calculatePasswordStrength = React.useCallback((pwd: string) => {
     let strength = 0;
@@ -206,21 +231,6 @@ export const AdminLoginPage: React.FC = () => {
       setChangingPassword(false);
     }
   };
-
-  // 页面加载时检查是否有记住的用户名
-  useEffect(() => {
-    // 已登录则直接跳转管理后台
-    const token = sessionStorage.getItem('admin_token');
-    if (token) {
-      navigate('/admin');
-      return;
-    }
-    const remembered = localStorage.getItem('admin_remembered_username');
-    if (remembered) {
-      setUsername(remembered);
-      setRememberMe(true);
-    }
-  }, []);
 
   // 监听密码变化
   useEffect(() => {

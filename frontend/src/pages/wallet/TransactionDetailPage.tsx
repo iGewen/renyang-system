@@ -163,7 +163,7 @@ export const TransactionDetailPage: React.FC = () => {
           <p className="text-slate-500 text-sm mb-2">{detail.typeLabel}</p>
           <p className={cn(
             'text-4xl font-bold',
-            isIncome ? 'text-green-600' : 'text-slate-900'
+            isIncome ? 'text-green-600' : 'text-red-600'
           )}>
             {isIncome ? '+' : '-'}¥{amount.toFixed(2)}
           </p>
