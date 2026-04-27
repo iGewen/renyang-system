@@ -20,9 +20,10 @@ export class SendSmsCodeDto {
   clientIp?: string;
 }
 
-// 密码强度正则：至少包含大小写字母和数字，8-20位
-const PWD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,20}$/;
-const PWD_VALIDATION_MSG = '密码必须包含大小写字母和数字，长度8-20位，可包含特殊字符@$!%*?&';
+// 密码强度正则：至少包含大小写字母和数字，允许所有非空白字符，8-128位
+// 安全改进：放宽字符集限制，支持更长的密码，符合NIST建议
+const PWD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)\S{8,128}$/;
+const PWD_VALIDATION_MSG = '密码必须包含大小写字母和数字，长度8-128位，不能包含空格';
 
 export class RegisterDto {
   @ApiProperty({ description: '手机号', example: '13800138000' })

@@ -186,10 +186,10 @@ export class AdminService {
       throw new BadRequestException('原密码错误');
     }
 
-    // 安全修复：验证新密码强度
-    const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,20}$/;
+    // 安全修复：验证新密码强度（与auth.dto.ts保持一致）
+    const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)\S{8,128}$/;
     if (!passwordPattern.test(newPassword)) {
-      throw new BadRequestException('密码必须包含大小写字母和数字，长度8-20位，可包含特殊字符@$!%*?&');
+      throw new BadRequestException('密码必须包含大小写字母和数字，长度8-128位，不能包含空格');
     }
 
     // 安全修复：新密码不能与旧密码相同
