@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Icons, LoadingSpinner, Badge, Card, EmptyState, useToast } from '../../../components/ui';
+import { Icons, LoadingSpinner, Badge, Card, EmptyState, useToast, Modal, Input, Button } from '../../../components/ui';
 import { cn } from '../../../lib/utils';
 import { adminApi } from '../../../services/api';
 import { RedemptionStatus } from '../../../types/enums';
@@ -10,6 +10,10 @@ export const AdminRedemptions: React.FC = () => {
   const [redemptions, setRedemptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectRemark, setRejectRemark] = useState('');
+  const [auditing, setAuditing] = useState(false);
 
   useEffect(() => {
     adminApi.getRedemptions({ status: statusFilter || undefined })
@@ -31,14 +35,41 @@ export const AdminRedemptions: React.FC = () => {
     2: { label: '提前买断', color: 'text-orange-600 bg-orange-50' },
   };
 
-  const handleAudit = async (id: string, approved: boolean) => {
+  const handleApprove = async (id: string) => {
+    setAuditing(true);
     try {
-      await adminApi.auditRedemption(id, { approved });
+      await adminApi.auditRedemption(id, { approved: true });
       const res = await adminApi.getRedemptions({ status: statusFilter || undefined });
       setRedemptions(res.list || []);
-      toast.success(approved ? '已通过审核' : '已拒绝');
+      toast.success('已通过审核');
     } catch (error: any) {
       toast.error(error.message || '操作失败');
+    } finally {
+      setAuditing(false);
+    }
+  };
+
+  const openRejectModal = (id: string) => {
+    setRejectingId(id);
+    setRejectRemark('');
+    setShowRejectModal(true);
+  };
+
+  const handleReject = async () => {
+    if (!rejectingId) return;
+    setAuditing(true);
+    try {
+      await adminApi.auditRedemption(rejectingId, { approved: false, remark: rejectRemark || undefined });
+      const res = await adminApi.getRedemptions({ status: statusFilter || undefined });
+      setRedemptions(res.list || []);
+      toast.success('已拒绝');
+      setShowRejectModal(false);
+      setRejectingId(null);
+      setRejectRemark('');
+    } catch (error: any) {
+      toast.error(error.message || '操作失败');
+    } finally {
+      setAuditing(false);
     }
   };
 
@@ -92,11 +123,12 @@ export const AdminRedemptions: React.FC = () => {
                   <td className="py-3 px-4">
                     {item.status === RedemptionStatus.PENDING_AUDIT && (
                       <div className="flex gap-2">
-                        <button onClick={() => handleAudit(item.id, true)} className="px-3 py-1 bg-green-100 text-green-600 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors">通过</button>
-                        <button onClick={() => handleAudit(item.id, false)} className="px-3 py-1 bg-red-100 text-red-500 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors">拒绝</button>
+                        <button onClick={() => handleApprove(item.id)} disabled={auditing} className="px-3 py-1 bg-green-100 text-green-600 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors disabled:opacity-50">通过</button>
+                        <button onClick={() => openRejectModal(item.id)} disabled={auditing} className="px-3 py-1 bg-red-100 text-red-500 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors disabled:opacity-50">拒绝</button>
                       </div>
                     )}
                     {item.status === RedemptionStatus.AUDIT_PASSED && (<span className="text-xs text-slate-400">等待用户支付</span>)}
+                    {item.status === RedemptionStatus.AUDIT_REJECTED && item.auditRemark && (<span className="text-xs text-red-400" title={item.auditRemark}>拒绝原因</span>)}
                     {item.status === RedemptionStatus.CANCELLED && (<span className="text-xs text-slate-400">已取消（超时未支付）</span>)}
                     {item.status === RedemptionStatus.PAID && (<span className="text-xs text-green-500">已完成</span>)}
                   </td>
@@ -107,6 +139,28 @@ export const AdminRedemptions: React.FC = () => {
           {redemptions.length === 0 && (<EmptyState variant="compact" icon={<Icons.CheckCircle2 className="w-10 h-10" />} title="暂无买断申请" description="买断申请将在这里显示" />)}
         </div>
       </Card>
+
+      {/* 拒绝备注弹窗 */}
+      <Modal
+        open={showRejectModal}
+        onClose={() => setShowRejectModal(false)}
+        title="拒绝买断申请"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">拒绝原因（可选）</label>
+            <Input
+              value={rejectRemark}
+              onChange={(e) => setRejectRemark(e.target.value)}
+              placeholder="请输入拒绝原因"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowRejectModal(false)}>取消</Button>
+            <Button variant="danger" onClick={handleReject} loading={auditing}>确认拒绝</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
