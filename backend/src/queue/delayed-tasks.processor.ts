@@ -4,18 +4,18 @@ import { Job } from 'bullmq';
 import { QUEUE_NAMES, JOB_NAMES } from './queue.constants';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { Order, OrderStatus, RedemptionOrder, RedemptionStatus } from '@/entities';
+import { RedemptionOrder, RedemptionStatus } from '@/entities';
+import { OrderService } from '@/modules/order/order.service';
 
 @Processor(QUEUE_NAMES.DELAYED_TASKS)
 export class DelayedTasksProcessor extends WorkerHost {
   private readonly logger = new Logger(DelayedTasksProcessor.name);
 
   constructor(
-    @InjectRepository(Order)
-    private readonly orderRepository: Repository<Order>,
     @InjectRepository(RedemptionOrder)
     private readonly redemptionRepository: Repository<RedemptionOrder>,
     private readonly dataSource: DataSource,
+    private readonly orderService: OrderService,
   ) {
     super();
   }
@@ -37,34 +37,15 @@ export class DelayedTasksProcessor extends WorkerHost {
 
   /**
    * 订单自动取消 - 创建15分钟后未支付则取消
-   * 双检锁：只有状态未变才执行取消
+   * 复用 OrderService.handleOrderExpire 方法确保逻辑一致
    */
   private async handleOrderAutoCancel(data: { orderId: string }) {
-    const order = await this.orderRepository.findOne({ where: { id: data.orderId } });
-
-    if (!order) {
-      this.logger.warn(`订单不存在，跳过自动取消: ${data.orderId}`);
-      return;
+    try {
+      await this.orderService.handleOrderExpire(data.orderId);
+      this.logger.log(`订单自动取消处理完成: ${data.orderId}`);
+    } catch (error) {
+      this.logger.warn(`订单自动取消处理失败（可能已处理）: ${data.orderId}, ${error.message}`);
     }
-
-    // 双检锁：只有待支付状态才执行取消
-    if (order.status !== OrderStatus.PENDING_PAYMENT) {
-      this.logger.log(`订单已非待支付状态，跳过自动取消: ${data.orderId}, 当前状态: ${order.status}`);
-      return;
-    }
-
-    order.status = OrderStatus.CANCELLED;
-    await this.orderRepository.save(order);
-
-    // 恢复库存
-    if (order.livestockId) {
-      await this.dataSource.query(
-        'UPDATE livestocks SET stock = stock + ? WHERE id = ?',
-        [order.quantity || 1, order.livestockId],
-      );
-    }
-
-    this.logger.log(`订单已自动取消: ${order.orderNo}`);
   }
 
   /**

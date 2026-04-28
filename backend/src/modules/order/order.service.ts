@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, In } from 'typeorm';
 import { Order, OrderStatus, Livestock, Adoption, AdoptionStatus, User } from '@/entities';
 import { RedisService } from '@/common/utils/redis.service';
 import { IdUtil } from '@/common/utils/id.util';
@@ -332,6 +332,40 @@ export class OrderService {
         await this.redisService.del(lockStockKey);
       }
     });
+  }
+
+  /**
+   * 根据订单ID查询（供其他模块使用）
+   */
+  async findById(orderId: string): Promise<Order | null> {
+    return this.orderRepository.findOne({ where: { id: orderId } });
+  }
+
+  /**
+   * 根据订单ID查询（带关联，供其他模块使用）
+   */
+  async findByIdWithRelations(orderId: string): Promise<Order | null> {
+    return this.orderRepository.findOne({
+      where: { id: orderId },
+      relations: ['livestock', 'user'],
+    });
+  }
+
+  /**
+   * 根据订单ID和用户ID查询（供其他模块使用）
+   */
+  async findByOrderIdAndUser(orderId: string, userId: string): Promise<Order | null> {
+    return this.orderRepository.findOne({
+      where: { id: orderId, userId },
+    });
+  }
+
+  /**
+   * 批量查询订单（供其他模块使用）
+   */
+  async findByIds(orderIds: string[]): Promise<Order[]> {
+    if (orderIds.length === 0) return [];
+    return this.orderRepository.find({ where: { id: In(orderIds) } });
   }
 
   /**

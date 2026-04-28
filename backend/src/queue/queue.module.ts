@@ -13,7 +13,7 @@ import { PaymentModule } from '@/modules/payment/payment.module';
 import { OrderModule } from '@/modules/order/order.module';
 import { RedemptionModule } from '@/modules/redemption/redemption.module';
 import { RedisService } from '@/common/utils/redis.service';
-import { RefundOrder, Order, Adoption, RedemptionOrder } from '@/entities';
+import { RefundOrder, Adoption, RedemptionOrder } from '@/entities';
 
 @Module({
   imports: [
@@ -48,7 +48,7 @@ import { RefundOrder, Order, Adoption, RedemptionOrder } from '@/entities';
     ),
 
     // 队列处理器需要的实体
-    TypeOrmModule.forFeature([RefundOrder, Order, Adoption, RedemptionOrder]),
+    TypeOrmModule.forFeature([RefundOrder, Adoption, RedemptionOrder]),
 
     // 依赖的业务模块
     NotificationModule,

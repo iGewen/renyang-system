@@ -25,8 +25,6 @@ export class RefundProcessor extends WorkerHost {
   constructor(
     @InjectRepository(RefundOrder)
     private readonly refundOrderRepository: Repository<RefundOrder>,
-    @InjectRepository(Order)
-    private readonly orderRepository: Repository<Order>,
     @InjectRepository(Adoption)
     private readonly adoptionRepository: Repository<Adoption>,
     private readonly dataSource: DataSource,

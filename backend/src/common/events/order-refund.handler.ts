@@ -10,7 +10,7 @@ import {
   OrderRefundCompletedEvent,
   OrderRefundFailedEvent,
 } from './order-refund.events';
-import { Order, OrderHistory, RefundOrder } from '@/entities';
+import { OrderHistory, RefundOrder } from '@/entities';
 import { NotificationService } from '@/modules/notification/notification.service';
 import { QueueService } from '@/queue/queue.service';
 import { IdUtil } from '@/common/utils/id.util';
@@ -21,8 +21,6 @@ export class OrderRefundEventHandler {
   private readonly logger = new Logger(OrderRefundEventHandler.name);
 
   constructor(
-    @InjectRepository(Order)
-    private readonly orderRepository: Repository<Order>,
     @InjectRepository(OrderHistory)
     private readonly orderHistoryRepository: Repository<OrderHistory>,
     @InjectRepository(RefundOrder)

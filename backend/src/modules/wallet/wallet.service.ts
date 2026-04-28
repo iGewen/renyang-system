@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
-import { User, BalanceLog, PaymentRecord, Order, Adoption, FeedBill, RedemptionOrder, RefundOrder, PaymentStatus } from '@/entities';
+import { User, BalanceLog, PaymentRecord, Adoption, FeedBill, RedemptionOrder, RefundOrder, PaymentStatus } from '@/entities';
+import { OrderService } from '../order/order.service';
 
 /**
  * 统一交易记录格式
@@ -39,8 +40,6 @@ export class WalletService {
     private readonly balanceLogRepository: Repository<BalanceLog>,
     @InjectRepository(PaymentRecord)
     private readonly paymentRecordRepository: Repository<PaymentRecord>,
-    @InjectRepository(Order)
-    private readonly orderRepository: Repository<Order>,
     @InjectRepository(Adoption)
     private readonly adoptionRepository: Repository<Adoption>,
     @InjectRepository(FeedBill)
@@ -49,6 +48,7 @@ export class WalletService {
     private readonly redemptionOrderRepository: Repository<RedemptionOrder>,
     @InjectRepository(RefundOrder)
     private readonly refundOrderRepository: Repository<RefundOrder>,
+    private readonly orderService: OrderService,
   ) {}
 
   /**
@@ -238,7 +238,7 @@ export class WalletService {
 
     // 批量查询订单信息
     const orders = orderIds.length > 0
-      ? await this.orderRepository.find({ where: { id: In(orderIds) } })
+      ? await this.orderService.findByIds(orderIds)
       : [];
     const orderMap = new Map(orders.map(o => [o.id, o]));
 
@@ -377,7 +377,7 @@ export class WalletService {
     }
 
     // 查询关联订单
-    const order = await this.orderRepository.findOne({ where: { id: payment.orderId } });
+    const order = await this.orderService.findById(payment.orderId);
 
     // 领养支付
     if (payment.orderType === 'adoption') {
@@ -476,9 +476,7 @@ export class WalletService {
       const refund = await this.refundOrderRepository.findOne({
         where: { id: log.relatedId },
       });
-      const order = refund ? await this.orderRepository.findOne({
-        where: { id: refund.orderId },
-      }) : null;
+      const order = refund ? await this.orderService.findById(refund.orderId) : null;
       const adoption = order ? await this.adoptionRepository.findOne({
         where: { orderId: order.id },
       }) : null;
