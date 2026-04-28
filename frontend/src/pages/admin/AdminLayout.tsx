@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { cn } from '../../lib/utils';
-import { Icons } from '../../components/ui';
+import { Icons, Modal, Input, Button, useToast } from '../../components/ui';
+import { adminApi } from '../../services/api';
 
 // ==================== 类型定义 ====================
 
@@ -26,6 +27,75 @@ interface AdminLayoutProps {
   adminInfo: AdminInfo;
   onLogout: () => void;
 }
+
+// ==================== 修改密码弹窗 ====================
+
+const ChangePasswordModal: React.FC<{
+  open: boolean;
+  onClose: () => void;
+}> = ({ open, onClose }) => {
+  const toast = useToast();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    oldPassword: '',
+    newPassword: '',
+  });
+
+  const handleSubmit = async () => {
+    if (!formData.oldPassword || !formData.newPassword) {
+      toast.warning('请填写完整信息');
+      return;
+    }
+    if (formData.oldPassword === formData.newPassword) {
+      toast.warning('新密码不能与原密码相同');
+      return;
+    }
+    if (formData.newPassword.length < 8) {
+      toast.warning('密码长度至少8位');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await adminApi.changePassword(formData.oldPassword, formData.newPassword);
+      toast.success('密码修改成功，请重新登录');
+      onClose();
+      // 修改密码后需要重新登录
+      sessionStorage.removeItem('admin_token');
+      sessionStorage.removeItem('admin_info');
+      globalThis.location.href = '/admin-login';
+    } catch (error: any) {
+      toast.error(error.message || '修改失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="修改密码">
+      <div className="p-6 space-y-4">
+        <Input
+          label="原密码"
+          type="password"
+          value={formData.oldPassword}
+          onChange={e => setFormData({ ...formData, oldPassword: e.target.value })}
+          placeholder="请输入原密码"
+        />
+        <Input
+          label="新密码"
+          type="password"
+          value={formData.newPassword}
+          onChange={e => setFormData({ ...formData, newPassword: e.target.value })}
+          placeholder="请输入新密码（至少8位，含大小写字母和数字）"
+        />
+        <div className="flex gap-3 pt-4">
+          <Button variant="outline" className="flex-1" onClick={onClose}>取消</Button>
+          <Button className="flex-1" onClick={handleSubmit} loading={loading}>确认修改</Button>
+        </div>
+      </div>
+    </Modal>
+  );
+};
 
 // ==================== 侧边栏菜单配置 ====================
 
@@ -142,45 +212,67 @@ interface HeaderBarProps {
 }
 
 const HeaderBar: React.FC<HeaderBarProps> = ({ title, adminInfo, onLogout, onMenuChange }) => {
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+
   return (
-    <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-6 sticky top-0 z-40">
-      <div className="flex items-center gap-4">
-        <h1 className="text-lg font-bold text-slate-900">{title}</h1>
-      </div>
-
-      <div className="flex items-center gap-4">
-        {/* 通知 */}
-        <button
-          onClick={() => onMenuChange('notifications')}
-          className="relative p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer"
-          title="站内信"
-        >
-          <Icons.Bell className="w-5 h-5" />
-        </button>
-
-        {/* 分隔线 */}
-        <div className="h-8 w-px bg-slate-200" />
-
-        {/* 用户信息 + 退出 */}
-        <div className="flex items-center gap-3">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-semibold text-slate-800">{adminInfo?.username || '管理员'}</p>
-            <p className="text-xs text-slate-400">{adminInfo?.role === 1 ? '超级管理员' : '管理员'}</p>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-brand-primary flex items-center justify-center text-white font-bold text-sm shadow-md shadow-brand-primary/20">
-            {adminInfo?.username?.charAt(0)?.toUpperCase() || 'A'}
-          </div>
-          {/* 退出按钮 */}
-          <button
-            onClick={onLogout}
-            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-            title="退出登录"
-          >
-            <Icons.LogOut className="w-5 h-5" />
-          </button>
+    <>
+      <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-6 sticky top-0 z-40">
+        <div className="flex items-center gap-4">
+          <h1 className="text-lg font-bold text-slate-900">{title}</h1>
         </div>
-      </div>
-    </header>
+
+        <div className="flex items-center gap-4">
+          {/* 通知 */}
+          <button
+            onClick={() => onMenuChange('notifications')}
+            className="relative p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer"
+            title="站内信"
+          >
+            <Icons.Bell className="w-5 h-5" />
+          </button>
+
+          {/* 分隔线 */}
+          <div className="h-8 w-px bg-slate-200" />
+
+          {/* 用户信息 */}
+          <div className="flex items-center gap-3">
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-semibold text-slate-800">{adminInfo?.username || '管理员'}</p>
+              <p className="text-xs text-slate-400">{adminInfo?.role === 1 ? '超级管理员' : '管理员'}</p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-brand-primary flex items-center justify-center text-white font-bold text-sm shadow-md shadow-brand-primary/20">
+              {adminInfo?.username?.charAt(0)?.toUpperCase() || 'A'}
+            </div>
+          </div>
+
+          {/* 分隔线 */}
+          <div className="h-8 w-px bg-slate-200" />
+
+          {/* 操作按钮 */}
+          <div className="flex items-center gap-2">
+            {/* 修改密码 */}
+            <button
+              onClick={() => setShowPasswordModal(true)}
+              className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-50 rounded-xl transition-colors"
+              title="修改密码"
+            >
+              <Icons.Key className="w-5 h-5" />
+            </button>
+            {/* 退出 */}
+            <button
+              onClick={onLogout}
+              className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+              title="退出登录"
+            >
+              <Icons.LogOut className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* 修改密码弹窗 */}
+      <ChangePasswordModal open={showPasswordModal} onClose={() => setShowPasswordModal(false)} />
+    </>
   );
 };
 

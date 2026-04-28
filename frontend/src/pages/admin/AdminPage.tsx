@@ -64,13 +64,26 @@ const AdminPage: React.FC = () => {
     }
   }, [location.pathname]);
 
+  // 监听token过期事件，自动跳转登录页
+  useEffect(() => {
+    const handleAdminExpired = () => {
+      sessionStorage.removeItem('admin_token');
+      sessionStorage.removeItem('admin_info');
+      navigate('/admin-login');
+    };
+    globalThis.addEventListener('auth:admin-expired', handleAdminExpired);
+    return () => {
+      globalThis.removeEventListener('auth:admin-expired', handleAdminExpired);
+    };
+  }, [navigate]);
+
   // 获取管理员信息
   useEffect(() => {
     adminApi.getCurrentAdmin()
       .then(setAdminInfo)
       .catch(() => {
         // 获取失败，跳转登录页
-        navigate('/admin/login');
+        navigate('/admin-login');
       });
   }, [navigate]);
 
@@ -82,8 +95,9 @@ const AdminPage: React.FC = () => {
 
   // 退出登录
   const handleLogout = () => {
-    localStorage.removeItem('admin_token');
-    navigate('/admin/login');
+    sessionStorage.removeItem('admin_token');
+    sessionStorage.removeItem('admin_info');
+    navigate('/admin-login');
   };
 
   // 渲染当前菜单对应的组件

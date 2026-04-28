@@ -13,6 +13,24 @@ export const AdminUsers: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
 
+  // 复制到剪贴板（兼容非HTTPS环境）
+  const copyToClipboard = (text: string) => {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text);
+    } else {
+      // fallback: 使用textarea
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+    toast.success('已复制');
+  };
+
   // 弹窗状态
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -375,6 +393,19 @@ export const AdminUsers: React.FC = () => {
             <div className="flex-1">
               <p className="text-lg font-bold text-slate-900">{selectedUser?.nickname || '未设置昵称'}</p>
               <p className="text-sm text-slate-500">{selectedUser?.phone}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-xs text-slate-400 font-mono">ID: {selectedUser?.id}</p>
+                <button
+                  onClick={() => {
+                    if (selectedUser?.id) {
+                      copyToClipboard(selectedUser.id);
+                    }
+                  }}
+                  className="text-xs text-brand-primary hover:underline"
+                >
+                  复制
+                </button>
+              </div>
             </div>
             <div className="text-right">
               <p className="text-sm text-slate-500">账户余额</p>

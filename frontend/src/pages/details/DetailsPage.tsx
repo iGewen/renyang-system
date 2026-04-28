@@ -21,9 +21,15 @@ const DetailsPage: React.FC = () => {
       if (!id) return;
       try {
         const data = await livestockApi.getById(id);
-        if (data) setLivestock(data);
+        if (data) {
+          setLivestock(data);
+        } else {
+          // 活体不存在
+          setLivestock(null);
+        }
       } catch (error) {
         console.error('Failed to fetch livestock details:', error);
+        setLivestock(null);
       } finally {
         setLoading(false);
       }
@@ -52,7 +58,9 @@ const DetailsPage: React.FC = () => {
     if (!id) return;
     setCreatingOrder(true);
     try {
-      const clientOrderId = `CLIENT-${crypto.randomUUID().replaceAll('-', '').substring(0, 16).toUpperCase()}`;
+      // 生成客户端订单ID（兼容非HTTPS环境）
+      const randomId = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+      const clientOrderId = `CLIENT-${randomId.toUpperCase().substring(0, 16)}`;
       const order = await orderApi.create({ livestockId: id, clientOrderId });
       navigate(`/payment?orderId=${order.id}`);
     } catch (error) {
@@ -64,6 +72,8 @@ const DetailsPage: React.FC = () => {
 
   if (loading) return <LoadingSpinner />;
   if (!livestock) return <div className="flex justify-center items-center h-screen text-slate-400">活体不存在</div>;
+
+  const isOutOfStock = !livestock.stock || livestock.stock <= 0;
 
   return (
     <PageTransition>
@@ -153,8 +163,8 @@ const DetailsPage: React.FC = () => {
                   <span className="text-2xl font-display font-bold text-brand-primary">{livestock.price}</span>
                 </div>
               </div>
-              <button onClick={handleConfirm} disabled={!agreed || creatingOrder} className={cn("w-full h-12 rounded-xl flex items-center justify-center gap-2 text-base font-bold transition-all", agreed && !creatingOrder ? "bg-brand-primary text-white" : "bg-slate-200 text-slate-400 cursor-not-allowed")}>
-                {creatingOrder ? '处理中...' : '确认领养'}
+              <button onClick={handleConfirm} disabled={!agreed || creatingOrder || isOutOfStock} className={cn("w-full h-12 rounded-xl flex items-center justify-center gap-2 text-base font-bold transition-all", agreed && !creatingOrder && !isOutOfStock ? "bg-brand-primary text-white" : "bg-slate-200 text-slate-400 cursor-not-allowed")}>
+                {isOutOfStock ? '已售罄' : creatingOrder ? '处理中...' : '确认领养'}
               </button>
             </div>
 
@@ -174,8 +184,8 @@ const DetailsPage: React.FC = () => {
                     <span className="text-3xl font-display font-bold text-brand-primary">{livestock.price}</span>
                   </div>
                 </div>
-                <button onClick={handleConfirm} disabled={!agreed || creatingOrder} className={cn("h-12 px-10 rounded-xl flex items-center justify-center gap-2 text-base font-bold transition-all", agreed && !creatingOrder ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/30 hover:shadow-xl hover:shadow-brand-primary/40" : "bg-slate-200 text-slate-400 cursor-not-allowed")}>
-                  {creatingOrder ? '处理中...' : '确认领养'}
+                <button onClick={handleConfirm} disabled={!agreed || creatingOrder || isOutOfStock} className={cn("h-12 px-10 rounded-xl flex items-center justify-center gap-2 text-base font-bold transition-all", agreed && !creatingOrder && !isOutOfStock ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/30 hover:shadow-xl hover:shadow-brand-primary/40" : "bg-slate-200 text-slate-400 cursor-not-allowed")}>
+                  {isOutOfStock ? '已售罄' : creatingOrder ? '处理中...' : '确认领养'}
                 </button>
               </div>
             </div>

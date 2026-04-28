@@ -38,7 +38,7 @@ export class RegisterDto {
   @Length(6, 6, { message: '验证码为6位' })
   code: string;
 
-  @ApiProperty({ description: '密码', example: 'Password123' })
+  @ApiProperty({ description: '密码', example: 'YouPassword' })
   @IsString()
   @IsNotEmpty({ message: '密码不能为空' })
   @Matches(PWD_PATTERN, { message: PWD_VALIDATION_MSG })
@@ -57,7 +57,7 @@ export class LoginByPasswordDto {
   @Matches(/^1[3-9]\d{9}$/, { message: '手机号格式不正确' })
   phone: string;
 
-  @ApiProperty({ description: '密码', example: 'Password123' })
+  @ApiProperty({ description: '密码', example: 'YouPassword' })
   @IsString()
   @IsNotEmpty({ message: '密码不能为空' })
   password: string;
@@ -90,7 +90,7 @@ export class ResetPasswordDto {
   @Length(6, 6, { message: '验证码为6位' })
   code: string;
 
-  @ApiProperty({ description: '新密码', example: 'NewPassword123' })
+  @ApiProperty({ description: '新密码', example: 'YouNewPassword' })
   @IsString()
   @IsNotEmpty({ message: '新密码不能为空' })
   @Matches(PWD_PATTERN, { message: PWD_VALIDATION_MSG })

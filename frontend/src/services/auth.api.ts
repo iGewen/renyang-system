@@ -24,6 +24,15 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
+      // 处理401认证失败
+      if (response.status === 401) {
+        const isAuthPage = globalThis.location?.pathname === '/auth';
+        if (!isAuthPage) {
+          sessionStorage.removeItem('token');
+          sessionStorage.removeItem('user');
+          globalThis.dispatchEvent(new CustomEvent('auth:user-expired'));
+        }
+      }
       // 安全访问 data?.message，处理 data 为 null 的情况
       const errorMessage = data?.message || `请求失败 (${response.status})`;
       throw new Error(errorMessage);

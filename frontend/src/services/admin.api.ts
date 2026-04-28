@@ -503,6 +503,13 @@ export const adminApi = {
     });
   },
 
+  changePassword: async (oldPassword: string, newPassword: string): Promise<{ success: boolean }> => {
+    return adminRequest('/admin/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ oldPassword, newPassword }),
+    });
+  },
+
   // ==================== 协议管理 ====================
   getAgreements: async (): Promise<{ id: string; agreementKey: string; title: string; content: string; createdAt: string; updatedAt: string }[]> => {
     return adminRequest('/admin/agreements');

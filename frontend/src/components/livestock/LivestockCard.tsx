@@ -15,26 +15,37 @@ interface LivestockCardProps {
 }
 
 export const LivestockCard: React.FC<LivestockCardProps> = ({ item, index, onClick }) => {
+  const isOutOfStock = !item.stock || item.stock <= 0;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.08, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      onClick={onClick}
-      className="group cursor-pointer"
+      onClick={isOutOfStock ? undefined : onClick}
+      className={isOutOfStock ? "group cursor-not-allowed" : "group cursor-pointer"}
     >
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1">
+      <div className={`bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden transition-all duration-300 ${isOutOfStock ? 'opacity-60' : 'hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1'}`}>
         {/* 图片区域 */}
         <div className="relative h-64 overflow-hidden">
           <img
             src={item.mainImage || item.images?.[0] || '/placeholder.jpg'}
             alt={item.name}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            className={`w-full h-full object-cover transition-transform duration-700 ${isOutOfStock ? '' : 'group-hover:scale-110'}`}
             referrerPolicy="no-referrer"
             loading="lazy"
           />
           {/* 渐变遮罩 */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+
+          {/* 售罄标识 */}
+          {isOutOfStock && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+              <span className="px-6 py-2 bg-slate-800/80 text-white text-sm font-bold rounded-full">
+                已售罄
+              </span>
+            </div>
+          )}
 
           {/* 顶部标签 */}
           <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
