@@ -184,6 +184,7 @@ export class WechatPayService {
   async verifyNotify(headers: any, body: string): Promise<boolean> {
     try {
       const payment = await this.initPayment();
+      const apiV3Key = await this.getConfig('wechat_api_v3_key');
 
       // SDK验签需要的参数
       const result = await payment.verifySign({
@@ -192,6 +193,7 @@ export class WechatPayService {
         body: body,
         serial: headers['wechatpay-serial'],
         signature: headers['wechatpay-signature'],
+        apiSecret: apiV3Key,
       });
 
       return result;
