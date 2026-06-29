@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { LoadingSpinner } from '../components/ui';
 import { AdminProtectedRoute, UserProtectedRoute } from './RouteGuards';
+import AuthPage from '../pages/auth/AuthPage';
 
 // Lazy load existing pages
 const OrdersPage = lazy(() => import('../pages/order/OrdersPage'));
@@ -11,7 +12,6 @@ const RedemptionPage = lazy(() => import('../pages/redemption/RedemptionPage'));
 const AdminPage = lazy(() => import('../pages/admin/AdminPage'));
 const WalletPage = lazy(() => import('../pages/wallet/WalletPage'));
 const TransactionDetailPage = lazy(() => import('../pages/wallet/TransactionDetailPage'));
-const AuthPage = lazy(() => import('../pages/auth/AuthPage'));
 const DetailsPage = lazy(() => import('../pages/details/DetailsPage'));
 const PaymentPage = lazy(() => import('../pages/payment/PaymentPage'));
 const PaymentResultPage = lazy(() => import('../pages/payment-result/PaymentResultPage'));
@@ -34,11 +34,7 @@ export const AppRoutes: React.FC = () => {
     <Routes>
       {/* 公开路由 */}
       <Route path="/" element={<HomePage />} />
-      <Route path="/auth" element={
-        <Suspense fallback={<LoadingSpinner />}>
-          <AuthPage />
-        </Suspense>
-      } />
+      <Route path="/auth" element={<AuthPage />} />
       <Route path="/admin-login" element={<AdminLoginPageWrapper />} />
 
       {/* 需要登录的用户路由 */}

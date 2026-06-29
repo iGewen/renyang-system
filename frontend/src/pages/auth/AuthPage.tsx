@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import DOMPurify from 'dompurify';
 import { PageTransition, Button, Modal, Input } from '../../components/ui';
-import { Icons } from '../../components/ui';
+import { Icons, useToast } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { authApi, agreementApi } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -30,6 +30,7 @@ type AuthMode = 'login' | 'register' | 'forgot';
 const AuthPage: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const toast = useToast();
   const [mode, setMode] = useState<AuthMode>('login');
   const [loginType, setLoginType] = useState<'password' | 'code'>('code');
   const [phone, setPhone] = useState('');
@@ -76,6 +77,7 @@ const AuthPage: React.FC = () => {
               setMode('login');
             } else {
               login(data.data.token, data.data.user);
+              toast.success('微信登录成功');
               navigate('/');
             }
           } else {
@@ -322,6 +324,7 @@ const AuthPage: React.FC = () => {
       const result = await authApi.bindPhone({ tempToken: wechatTempToken!, phone, code });
       setWechatTempToken(null);
       login(result.token, result.user);
+      toast.success('绑定成功，微信登录中');
       navigate('/');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : '绑定失败';
