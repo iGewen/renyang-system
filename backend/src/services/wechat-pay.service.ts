@@ -159,6 +159,7 @@ export class WechatPayService {
           return {
             prepayId,
             payParams: {
+              appId,
               timeStamp: timestamp,
               nonceStr,
               package: packageStr,
