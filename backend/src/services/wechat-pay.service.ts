@@ -140,26 +140,33 @@ export class WechatPayService {
         notify_url: notifyUrl,
       });
 
-      if (result.status === 200 && result.data?.prepay_id) {
-        const prepayId = result.data.prepay_id;
-        // 生成前端支付参数
-        const timestamp = Math.floor(Date.now() / 1000).toString();
-        const nonceStr = Math.random().toString(36).substring(2, 18);
-        const packageStr = `prepay_id=${prepayId}`;
-        const paySign = payment.sha256WithRsa(
-          `${appId}\n${timestamp}\n${nonceStr}\n${packageStr}\n`
-        );
+      if (result.status === 200) {
+        // SDK 可能返回 prepay_id 在 data.prepay_id 或 data.package 字段中
+        let prepayId = result.data?.prepay_id;
+        if (!prepayId && result.data?.package) {
+          const match = String(result.data.package).match(/prepay_id=(.+)/);
+          if (match) prepayId = match[1];
+        }
+        if (prepayId) {
+          // 生成前端支付参数
+          const timestamp = Math.floor(Date.now() / 1000).toString();
+          const nonceStr = Math.random().toString(36).substring(2, 18);
+          const packageStr = `prepay_id=${prepayId}`;
+          const paySign = payment.sha256WithRsa(
+            `${appId}\n${timestamp}\n${nonceStr}\n${packageStr}\n`
+          );
 
-        return {
-          prepayId,
-          payParams: {
-            timeStamp: timestamp,
-            nonceStr,
-            package: packageStr,
-            signType: 'RSA',
-            paySign,
-          },
-        };
+          return {
+            prepayId,
+            payParams: {
+              timeStamp: timestamp,
+              nonceStr,
+              package: packageStr,
+              signType: 'RSA',
+              paySign,
+            },
+          };
+        }
       }
 
       this.logger.error(`[WechatPay] JSAPI支付失败: status=${result.status}, error=${JSON.stringify(result.error)}, data=${JSON.stringify(result.data)}`);
