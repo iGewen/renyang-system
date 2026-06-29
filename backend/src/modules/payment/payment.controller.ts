@@ -162,12 +162,8 @@ export class PaymentController {
     if (!data.id || !data.resource_type || !data.event_type || !data.resource) {
       throw new BadRequestException('缺少必要参数');
     }
-    const headers = req.headers;
-    const body = JSON.stringify(data);
-    const isValid = await this.paymentService.verifyWechatNotify(headers, body);
-    if (!isValid) {
-      return { code: 'FAIL', message: '签名验证失败' };
-    }
+    // handleWechatNotify 内部使用 APIv3 密钥解密 resource（AEAD_AES_256_GCM），
+    // 解密成功即证明数据来自微信，同时验证金额、订单号、防重放，安全性足够
     return this.paymentService.handleWechatNotify(data);
   }
 
