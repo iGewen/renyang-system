@@ -196,7 +196,7 @@ export class PaymentController {
    * 同步微信平台证书
    */
   @Post('wechat/sync-certs')
-  @ApiBearerAuth('JWT-auth')
+  @Public()
   @ApiOperation({ summary: '同步微信平台证书' })
   async syncWechatCerts() {
     return this.paymentService.syncWechatCertificates();
