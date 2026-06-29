@@ -162,6 +162,7 @@ export class WechatPayService {
         };
       }
 
+      this.logger.error(`[WechatPay] JSAPI支付失败: status=${result.status}, error=${JSON.stringify(result.error)}, data=${JSON.stringify(result.data)}`);
       throw new BadRequestException(result.error?.message || '创建支付失败');
     } catch (error: any) {
       this.logger.error('[WechatPay] 创建JSAPI支付失败:', error);
