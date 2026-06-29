@@ -731,4 +731,11 @@ export class PaymentService {
 
     return { code: 'SUCCESS', message: '成功' };
   }
+
+  /**
+   * 同步微信平台证书
+   */
+  async syncWechatCertificates(): Promise<{ serialNo: string }> {
+    return this.wechatPayService.fetchAndSavePlatformCertificates();
+  }
 }
