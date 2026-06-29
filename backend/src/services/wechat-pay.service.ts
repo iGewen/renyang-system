@@ -375,6 +375,7 @@ export class WechatPayService {
       headers: {
         Authorization: authorization,
         Accept: 'application/json',
+        'Accept-Language': 'zh-CN',
         'User-Agent': 'cloud-ranch-backend',
       },
     });
