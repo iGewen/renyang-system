@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 import { RedisService } from '@/common/utils/redis.service';
 import { SystemConfig } from '@/entities';
 import { IdUtil } from '@/common/utils/id.util';
-import * as Pay from 'wechatpay-node-v3';
+import Pay from 'wechatpay-node-v3';
 
 /**
  * 微信支付服务 (使用官方SDK wechatpay-node-v3)
