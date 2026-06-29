@@ -310,7 +310,16 @@ const AuthPage: React.FC = () => {
                   <div className="flex items-center gap-4 mb-6">
                     <div className="flex-1 h-px bg-slate-200" /><span className="text-xs text-slate-400">其他登录方式</span><div className="flex-1 h-px bg-slate-200" />
                   </div>
-                  <button className="w-full flex items-center justify-center gap-3 py-3 border border-green-500 text-green-600 rounded-2xl font-medium hover:bg-green-50 transition-colors">
+                  <button onClick={async () => {
+                    try {
+                      const res = await authApi.getWechatAuthUrl();
+                      if (res?.data?.url) {
+                        window.location.href = res.data.url;
+                      }
+                    } catch (err) {
+                      console.error('获取微信授权URL失败:', err);
+                    }
+                  }} className="w-full flex items-center justify-center gap-3 py-3 border border-green-500 text-green-600 rounded-2xl font-medium hover:bg-green-50 transition-colors">
                     <Icons.Wechat className="w-5 h-5" />微信登录
                   </button>
                 </div>
