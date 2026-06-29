@@ -43,6 +43,7 @@ const AuthPage: React.FC = () => {
   const [agreed, setAgreed] = useState(false);
   const [showAgreement, setShowAgreement] = useState(false);
   const [agreementContent, setAgreementContent] = useState<{ title: string; content: string } | null>(null);
+  const [wechatTempToken, setWechatTempToken] = useState<string | null>(null);
 
   // 使用 ref 保存定时器引用，用于清理
   const countdownTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
@@ -69,8 +70,14 @@ const AuthPage: React.FC = () => {
         .then(res => res.json())
         .then(data => {
           if (data.code === 0 && data.data) {
-            login(data.data.token, data.data.user);
-            navigate('/');
+            if (data.data.isNewUser) {
+              // 新用户需要绑定手机号
+              setWechatTempToken(data.data.token);
+              setMode('login');
+            } else {
+              login(data.data.token, data.data.user);
+              navigate('/');
+            }
           } else {
             console.error('微信登录交换失败:', data.message);
           }
@@ -268,6 +275,62 @@ const AuthPage: React.FC = () => {
     }
   };
 
+  const handleWechatBindSendCode = async () => {
+    if (!phone || !/^1\d{10}$/.test(phone)) {
+      setErrors({ phone: '请输入正确的手机号' });
+      return;
+    }
+    if (countdown > 0) return;
+    try {
+      await authApi.sendSmsCode(phone, 'register');
+      const cooldownSeconds = 60;
+      const endTime = Date.now() + cooldownSeconds * 1000;
+      const key = 'sms_cooldown_wechat_bind';
+      localStorage.setItem(key, endTime.toString());
+      setCountdown(cooldownSeconds);
+      countdownTimerRef.current = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            if (countdownTimerRef.current) {
+              clearInterval(countdownTimerRef.current);
+              countdownTimerRef.current = null;
+            }
+            localStorage.removeItem(key);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      setErrors({});
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : '发送失败';
+      setErrors({ code: message });
+    }
+  };
+
+  const handleWechatBindPhone = async () => {
+    if (!phone || !/^1\d{10}$/.test(phone)) {
+      setErrors({ phone: '请输入正确的手机号' });
+      return;
+    }
+    if (!code || code.length !== 6) {
+      setErrors({ code: '请输入6位验证码' });
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await authApi.bindPhone({ tempToken: wechatTempToken!, phone, code });
+      setWechatTempToken(null);
+      login(result.token, result.user);
+      navigate('/');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : '绑定失败';
+      setErrors({ submit: message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <PageTransition>
       <div className="min-h-screen bg-brand-bg flex flex-col">
@@ -278,7 +341,7 @@ const AuthPage: React.FC = () => {
         </div>
         <div className="flex-1 px-6 pb-8">
           <AnimatePresence mode="wait">
-            {mode === 'login' && (
+            {mode === 'login' && !wechatTempToken && (
               <motion.div key="login" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                 <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
                   <div className="mb-8">
@@ -381,6 +444,26 @@ const AuthPage: React.FC = () => {
                     <button type="button" onClick={() => setMode('login')} className="text-brand-primary font-medium ml-1">返回登录</button>
                   </div>
                   <Button type="submit" className="w-full mt-6" size="lg" loading={loading}>重置密码</Button>
+                </form>
+              </motion.div>
+            )}
+            {wechatTempToken && (
+              <motion.div key="wechat-bind" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <form onSubmit={(e) => { e.preventDefault(); handleWechatBindPhone(); }}>
+                  <div className="mb-8 text-center">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Icons.Wechat className="w-8 h-8 text-green-500" />
+                    </div>
+                    <h1 className="text-3xl font-display font-bold text-brand-primary mb-2">绑定手机号</h1>
+                    <p className="text-slate-500">为了您的账号安全，请绑定手机号完成注册</p>
+                  </div>
+                  <div className="space-y-4">
+                    <Input label="手机号" placeholder="请输入手机号" value={phone} onChange={e => setPhone(e.target.value)} icon={<Icons.Smartphone className="w-5 h-5" />} error={errors.phone} />
+                    <Input label="验证码" placeholder="请输入验证码" value={code} onChange={e => setCode(e.target.value)} icon={<Icons.Key className="w-5 h-5" />}
+                      suffix={<button type="button" onClick={handleWechatBindSendCode} disabled={countdown > 0} className="text-brand-primary font-medium text-sm disabled:text-slate-300">{countdown > 0 ? `${countdown}s` : '获取验证码'}</button>} error={errors.code} />
+                  </div>
+                  {errors.submit && <p className="text-red-500 text-sm mt-4 text-center">{errors.submit}</p>}
+                  <Button type="submit" className="w-full mt-6" size="lg" loading={loading}>完成绑定</Button>
                 </form>
               </motion.div>
             )}

@@ -291,9 +291,8 @@ export class AuthService {
   /**
    * 绑定手机号
    */
-  async bindPhone(_dto: BindPhoneDto) {
-    // NOTE: 绑定手机号功能暂未开放
-    throw new BadRequestException('绑定手机号功能暂未开放');
+  async bindPhone(dto: BindPhoneDto) {
+    return this.wechatService.bindPhone(dto.tempToken, dto.phone, dto.code);
   }
 
   /**
