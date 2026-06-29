@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Icons, PageTransition, Button } from '../../components/ui';
 import { usePaymentConfig } from '../../contexts/SiteConfigContext';
 import { useToast } from '../../components/ui';
+import { invokeWechatJsapiPay } from '../../utils/wechatPay';
 import { orderApi, paymentApi } from '../../services/api';
 import { OrderStatus } from '../../types/enums';
 
@@ -77,7 +78,18 @@ const PaymentPage: React.FC = () => {
       const amount = orderData?.livestock?.price || 0;
       const result = await paymentApi.create({ orderType: 'adoption', orderId: orderData.orderId, paymentMethod: method, amount });
 
-      if (result.payUrl) {
+      if (result.payParams) {
+        // JSAPI支付 - 在微信内调起支付窗
+        const payResult = await invokeWechatJsapiPay(result.payParams);
+        if (payResult === 'success') {
+          success('支付成功');
+          navigate(`/payment-result?orderId=${orderData.orderId}`, { replace: true });
+        } else if (payResult === 'cancel') {
+          error('用户取消支付');
+        } else {
+          error('支付失败，请重试');
+        }
+      } else if (result.payUrl) {
         globalThis.location.href = result.payUrl;
       } else {
         success('支付成功');

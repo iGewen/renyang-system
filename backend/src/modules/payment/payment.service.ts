@@ -223,18 +223,39 @@ export class PaymentService {
    * 微信H5支付
    */
   private async createWechatPayment(payment: PaymentRecord, clientIp?: string) {
-    const result = await this.wechatPayService.createH5Payment(
-      payment.paymentNo,
-      payment.amount,
-      '订单支付',
-      clientIp || '127.0.0.1',
-    );
+    // 获取用户 openid
+    const user = await this.userService.findOne(payment.userId);
+    const openid = user?.wechatOpenId;
 
-    return {
-      payUrl: result.payUrl,
-      prepayId: result.prepayId,
-      paymentNo: payment.paymentNo,
-    };
+    if (openid) {
+      // 微信浏览器/服务号内 → JSAPI支付
+      const result = await this.wechatPayService.createJsapiPayment(
+        payment.paymentNo,
+        payment.amount,
+        '订单支付',
+        openid,
+      );
+
+      return {
+        payParams: result.payParams,
+        prepayId: result.prepayId,
+        paymentNo: payment.paymentNo,
+      };
+    } else {
+      // 非微信环境 → H5支付
+      const result = await this.wechatPayService.createH5Payment(
+        payment.paymentNo,
+        payment.amount,
+        '订单支付',
+        clientIp || '127.0.0.1',
+      );
+
+      return {
+        payUrl: result.payUrl,
+        prepayId: result.prepayId,
+        paymentNo: payment.paymentNo,
+      };
+    }
   }
 
   /**

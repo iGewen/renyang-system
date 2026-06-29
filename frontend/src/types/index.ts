@@ -246,6 +246,14 @@ export interface PaymentResult {
   payUrl?: string;
   paymentNo?: string;
   redemptionNo?: string;
+  payParams?: {
+    timeStamp: string;
+    nonceStr: string;
+    package: string;
+    signType: 'RSA';
+    paySign: string;
+  };
+  prepayId?: string;
 }
 
 // ==================== 消息相关 ====================
