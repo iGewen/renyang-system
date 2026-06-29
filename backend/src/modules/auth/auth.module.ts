@@ -10,6 +10,7 @@ import { User } from '@/entities/user.entity';
 import { SmsCode } from '@/entities/sms-code.entity';
 import { SystemConfig } from '@/entities/system-config.entity';
 import { UserStatusGuard } from '@/common/guards/user-status.guard';
+import { WechatService } from '@/services/wechat.service';
 
 @Global()
 @Module({
@@ -27,7 +28,7 @@ import { UserStatusGuard } from '@/common/guards/user-status.guard';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, UserStatusGuard],
+  providers: [AuthService, JwtStrategy, UserStatusGuard, WechatService],
   exports: [AuthService, JwtStrategy, UserStatusGuard],
 })
 export class AuthModule {}

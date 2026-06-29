@@ -15,6 +15,7 @@ import { databaseConfig } from './config/database.config';
 import { redisConfig } from './config/redis.config';
 import { jwtConfig } from './config/jwt.config';
 import { wechatConfig } from './config/wechat.config';
+import { appConfig } from './config/app.config';
 
 // 模块
 import { AuthModule } from './modules/auth/auth.module';
@@ -49,7 +50,7 @@ import { AppLogger, LoggerMiddleware } from './common/logger';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
-      load: [databaseConfig, redisConfig, jwtConfig, wechatConfig],
+      load: [databaseConfig, redisConfig, jwtConfig, wechatConfig, appConfig],
     }),
 
     // 数据库模块

@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { User, UserStatus } from '@/entities/user.entity';
 import { SmsCode } from '@/entities/sms-code.entity';
 import { PasswordUtil } from '@/common/utils/password.util';
+import { CryptoUtil } from '@/common/utils/crypto.util';
 import { RedisService } from '@/common/utils/redis.service';
 import { IdUtil } from '@/common/utils/id.util';
 import { SmsService } from '@/services/sms.service';
@@ -268,15 +269,22 @@ export class AuthService {
    * 获取微信授权URL
    */
   async getWechatAuthUrl() {
-    const appUrl = this.configService.get('APP_URL') || 'https://ry.yunong.icu';
-    const redirectUri = `${appUrl}/api/auth/wechat/callback`;
-    return this.wechatService.getAuthUrl(redirectUri);
+    const appId = this.configService.get('wechatLogin.appId');
+    const redirectUri = encodeURIComponent(`${this.configService.get('app.url')}/api/auth/wechat/callback`);
+    const state = CryptoUtil.randomString(16);
+
+    // 存储state
+    await this.redisService.set(`wechat:state:${state}`, '1', 600); // 10分钟
+
+    const url = `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${appId}&redirect_uri=${redirectUri}&response_type=code&scope=snsapi_userinfo&state=${state}#wechat_redirect`;
+
+    return { url };
   }
 
   /**
    * 微信授权回调
    */
-  async wechatCallback(code: string, state: string) {
+  async wechatCallback(code: string, state: string): Promise<{ token: string; user: any; isNewUser: boolean }> {
     return this.wechatService.handleCallback(code, state);
   }
 

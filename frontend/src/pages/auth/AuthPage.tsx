@@ -56,6 +56,29 @@ const AuthPage: React.FC = () => {
     };
   }, []);
 
+  // 微信登录回调处理
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const wechatKey = params.get('wechat_key');
+    if (wechatKey) {
+      // 清除 URL 参数
+      window.history.replaceState({}, '', window.location.pathname);
+      // 交换 token
+      // 使用 exchange 接口交换 token
+      fetch(`/api/auth/wechat/exchange?key=${encodeURIComponent(wechatKey)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.code === 0 && data.data) {
+            login(data.data.token, data.data.user);
+            navigate('/');
+          } else {
+            console.error('微信登录交换失败:', data.message);
+          }
+        })
+        .catch(err => console.error('微信登录交换失败:', err));
+    }
+  }, []);
+
   // 获取当前mode对应的冷却key
   const getCooldownKey = (m: AuthMode) => `${SMS_COOLDOWN_KEY_PREFIX}_${m}`;
 
@@ -287,16 +310,7 @@ const AuthPage: React.FC = () => {
                   <div className="flex items-center gap-4 mb-6">
                     <div className="flex-1 h-px bg-slate-200" /><span className="text-xs text-slate-400">其他登录方式</span><div className="flex-1 h-px bg-slate-200" />
                   </div>
-                  <button onClick={async () => {
-                    try {
-                      const result = await authApi.getWechatAuthUrl();
-                      if (result.url) {
-                        globalThis.location.href = result.url;
-                      }
-                    } catch (err: any) {
-                      console.error('微信登录失败', err);
-                    }
-                  }} className="w-full flex items-center justify-center gap-3 py-3 border border-green-500 text-green-600 rounded-2xl font-medium hover:bg-green-50 transition-colors">
+                  <button className="w-full flex items-center justify-center gap-3 py-3 border border-green-500 text-green-600 rounded-2xl font-medium hover:bg-green-50 transition-colors">
                     <Icons.Wechat className="w-5 h-5" />微信登录
                   </button>
                 </div>

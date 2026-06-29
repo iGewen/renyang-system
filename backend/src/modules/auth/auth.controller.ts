@@ -6,6 +6,8 @@ import {
   Body,
   Request,
   Query,
+  Res,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -14,6 +16,9 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
+import { RedisService } from '@/common/utils/redis.service';
+import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
 import { Public } from '@/common/decorators/public.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import {
@@ -29,7 +34,7 @@ import {
 @ApiTags('认证')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService, private readonly redisService: RedisService, private readonly configService: ConfigService) {}
 
   /**
    * 发送短信验证码
@@ -107,9 +112,28 @@ export class AuthController {
   @Public()
   @Get('wechat/callback')
   @ApiOperation({ summary: '微信授权回调' })
-  @ApiResponse({ status: 200, description: '授权成功' })
-  async wechatCallback(@Query('code') code: string, @Query('state') state: string) {
-    return this.authService.wechatCallback(code, state);
+  async wechatCallback(@Query('code') code: string, @Query('state') state: string, @Res() res: any) {
+    const result = await this.authService.wechatCallback(code, state);
+    // 生成临时交换key，避免token直接暴露在URL中
+    const exchangeKey = crypto.randomBytes(24).toString('hex');
+    await this.redisService.set(`wechat:exchange:${exchangeKey}`, JSON.stringify(result), 300);
+    // 重定向到前端，带上交换key
+    const appUrl = this.configService.get('app.url') || 'https://ry.yunong.icu';
+    return res.redirect(`${appUrl}/auth?wechat_key=${exchangeKey}`);
+  }
+
+  @Get('wechat/exchange')
+  @ApiOperation({ summary: '微信登录交换token' })
+  async exchangeWechatToken(@Query('key') key: string) {
+    if (!key) {
+      throw new BadRequestException('无效的交换key');
+    }
+    const data = await this.redisService.get(`wechat:exchange:${key}`);
+    if (!data) {
+      throw new BadRequestException('交换key已过期或无效');
+    }
+    await this.redisService.del(`wechat:exchange:${key}`);
+    return JSON.parse(data);
   }
 
   /**

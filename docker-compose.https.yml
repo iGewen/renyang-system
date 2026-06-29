@@ -11,7 +11,7 @@
 services:
   # MySQL 数据库
   mysql:
-    image: crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/mysql:8.0
+    image: mysql:8.0
     container_name: cloud-ranch-mysql
     restart: unless-stopped
     environment:
@@ -42,7 +42,7 @@ services:
 
   # Redis 缓存
   redis:
-    image: crpi-h8wdp3y1iogi9wj4.cn-qingdao.personal.cr.aliyuncs.com/ihee_docker_project/redis:7.2-alpine
+    image: redis:7.2-alpine
     container_name: cloud-ranch-redis
     restart: unless-stopped
     environment:
@@ -95,12 +95,12 @@ services:
       JWT_EXPIRES_IN: 7d
       # 加密密钥
       ENCRYPTION_KEY: "${ENCRYPTION_KEY:?ERROR: ENCRYPTION_KEY must be set}"
-      # 微信登录配置
-      WECHATLOGIN_APPID: "${WECHATLOGIN_APPID:?ERROR: WECHATLOGIN_APPID must be set}"
-      WECHATLOGIN_APPSECRET: "${WECHATLOGIN_APPSECRET:*** WECHATLOGIN_APPSECRET must be set}"
-      APP_URL: "${APP_URL:-https://ry.yunong.icu}"
       # 管理员配置
       ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD:-}
+      # 微信登录配置
+      WECHATLOGIN_APPID: "${WECHATLOGIN_APPID:?ERROR: WECHATLOGIN_APPID must be set}"
+      WECHATLOGIN_APPSECRET: "${WECHATLOGIN_APPSECRET:?ERROR: WECHATLOGIN_APPSECRET must be set}"
+      APP_URL: "${APP_URL:-https://ry.yunong.icu}"
       # CORS配置
       CORS_ORIGIN: ${CORS_ORIGIN:-}
     expose:
