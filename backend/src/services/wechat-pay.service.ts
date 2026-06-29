@@ -404,11 +404,18 @@ export class WechatPayService {
     const publicKeyPem = pemCert.publicKey.toPEM();
 
     // 保存到数据库
-    await this.configRepository.upsert(
-      { configKey: 'wechat_public_key' },
-      { configKey: 'wechat_public_key', configValue: publicKeyPem, configType: 'payment', description: '微信平台公钥（自动同步）' },
-      ['configKey'],
-    );
+    const existing = await this.configRepository.findOne({ where: { configKey: 'wechat_public_key' } });
+    if (existing) {
+      existing.configValue = publicKeyPem;
+      await this.configRepository.save(existing);
+    } else {
+      await this.configRepository.insert({
+        configKey: 'wechat_public_key',
+        configValue: publicKeyPem,
+        configType: 'payment',
+        description: '微信平台公钥（自动同步）',
+      });
+    }
 
     // 清除 Redis 缓存，下次 initPayment 会读取新值
     await this.redisService.del('system:config:wechat_public_key');
