@@ -313,8 +313,8 @@ const AuthPage: React.FC = () => {
                   <button onClick={async () => {
                     try {
                       const res = await authApi.getWechatAuthUrl();
-                      if (res?.data?.url) {
-                        window.location.href = res.data.url;
+                      if (res?.url) {
+                        window.location.href = res.url;
                       }
                     } catch (err) {
                       console.error('获取微信授权URL失败:', err);

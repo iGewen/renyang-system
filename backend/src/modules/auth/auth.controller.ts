@@ -122,6 +122,7 @@ export class AuthController {
     return res.redirect(`${appUrl}/auth?wechat_key=${exchangeKey}`);
   }
 
+  @Public()
   @Get('wechat/exchange')
   @ApiOperation({ summary: '微信登录交换token' })
   async exchangeWechatToken(@Query('key') key: string) {
