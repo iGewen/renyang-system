@@ -95,6 +95,10 @@ services:
       JWT_EXPIRES_IN: 7d
       # 加密密钥
       ENCRYPTION_KEY: "${ENCRYPTION_KEY:?ERROR: ENCRYPTION_KEY must be set}"
+      # 微信登录配置
+      WECHATLOGIN_APPID: "${WECHATLOGIN_APPID:?ERROR: WECHATLOGIN_APPID must be set}"
+      WECHATLOGIN_APPSECRET: "${WECHATLOGIN_APPSECRET:*** WECHATLOGIN_APPSECRET must be set}"
+      APP_URL: "${APP_URL:-https://ry.yunong.icu}"
       # 管理员配置
       ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD:-}
       # CORS配置

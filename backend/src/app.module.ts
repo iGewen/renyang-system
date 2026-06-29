@@ -14,6 +14,7 @@ import * as bcrypt from 'bcryptjs';
 import { databaseConfig } from './config/database.config';
 import { redisConfig } from './config/redis.config';
 import { jwtConfig } from './config/jwt.config';
+import { wechatConfig } from './config/wechat.config';
 
 // 模块
 import { AuthModule } from './modules/auth/auth.module';
@@ -48,7 +49,7 @@ import { AppLogger, LoggerMiddleware } from './common/logger';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
-      load: [databaseConfig, redisConfig, jwtConfig],
+      load: [databaseConfig, redisConfig, jwtConfig, wechatConfig],
     }),
 
     // 数据库模块

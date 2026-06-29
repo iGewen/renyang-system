@@ -84,6 +84,7 @@ export class WechatService {
       // 创建新用户（临时用户，需要绑定手机号）
       user = this.userRepository.create({
         id: IdUtil.generate('U'),
+        phone: "",
         wechatOpenId: tokenData.openid,
         wechatUnionId: tokenData.unionid,
         nickname: userInfo.nickname || `微信用户${userInfo.openid.slice(-6)}`,
