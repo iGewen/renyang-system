@@ -78,6 +78,7 @@ services:
     container_name: cloud-ranch-backend
     restart: unless-stopped
     environment:
+      TZ: Asia/Shanghai
       NODE_ENV: production
       PORT: 3000
       # 数据库配置
