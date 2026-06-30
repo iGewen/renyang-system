@@ -184,9 +184,9 @@ export const AdminOrders: React.FC = () => {
               <div><p className="text-sm text-slate-500">状态</p><Badge variant={orderStatusMap[selectedOrder.status]?.variant || 'default'}>{orderStatusMap[selectedOrder.status]?.label || selectedOrder.status}</Badge></div>
               {selectedOrder.paymentNo && (
                 <>
-                  <div><p className="text-sm text-slate-500">商户单号（支付单号）</p><p className="font-mono text-xs break-all">{selectedOrder.payPaymentNo || selectedOrder.paymentNo}</p></div>
+                  <div><p className="text-sm text-slate-500">商户单号（传给微信的订单号）</p><p className="font-mono text-xs break-all">{selectedOrder.payPaymentNo || selectedOrder.paymentNo}</p></div>
                   <div><p className="text-sm text-slate-500">微信交易单号</p><p className="font-mono text-xs break-all">{selectedOrder.transactionId || '-'}</p></div>
-                  <div className="col-span-2 text-xs text-slate-400 bg-slate-50 rounded p-2">商户单号（PAY开头）是系统传给微信的支付单号，微信上显示的商户订单号就是它；微信交易单号是微信返回的内部交易流水号。</div>
+                  <div className="col-span-2 text-xs text-slate-400 bg-slate-50 rounded p-2">商户单号与后台订单号一致（均为ORD开头），方便在微信商户平台和后台之间对照。微信交易单号是微信返回的内部流水号。</div>
                 </>
               )}
               <div><p className="text-sm text-slate-500">活体名称</p><p>{selectedOrder.livestock?.name || selectedOrder.livestockSnapshot?.name || '-'}</p></div>

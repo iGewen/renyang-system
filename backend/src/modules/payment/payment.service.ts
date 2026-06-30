@@ -49,11 +49,20 @@ export class PaymentService {
       throw new BadRequestException('支付金额与订单金额不符');
     }
 
-    // 创建支付记录
+    // 以订单号作为支付单号（微信上显示的就是这个号），避免ORD/PAY两套编号混淆
+    let paymentNo = IdUtil.generateOrderNo();
+    let outTradeNo = orderId;
+    if (orderType !== 'recharge') {
+      const order = await this.orderService.getByIdForUser(orderId, userId).catch(() => null);
+      if (order?.orderNo) {
+        paymentNo = order.orderNo;
+        outTradeNo = order.orderNo;
+      }
+    }
     const payment = this.paymentRepository.create({
       id: IdUtil.generate('PAY'),
-      paymentNo: IdUtil.generatePaymentNo(),
-      outTradeNo: orderId,
+      paymentNo,
+      outTradeNo,
       userId,
       orderType,
       orderId,
