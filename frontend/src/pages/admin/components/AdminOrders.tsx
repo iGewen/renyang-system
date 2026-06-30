@@ -194,8 +194,8 @@ export const AdminOrders: React.FC = () => {
       </Card>
 
       {showDetail && selectedOrder && (
-        <Modal open={showDetail} onClose={() => setShowDetail(false)} size="lg">
-          <div className="w-[460px]">
+        <Modal open={showDetail} onClose={() => setShowDetail(false)}>
+          <div className="min-w-0">
             {/* 头部 */}
             <div className="flex items-center justify-between px-6 pt-6 pb-4">
               <h3 className="text-lg font-bold text-slate-900">订单详情</h3>
