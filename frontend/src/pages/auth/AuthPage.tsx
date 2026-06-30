@@ -9,7 +9,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import DOMPurify from 'dompurify';
 import { PageTransition, Button, Modal, Input } from '../../components/ui';
@@ -29,8 +29,10 @@ type AuthMode = 'login' | 'register' | 'forgot';
 
 const AuthPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const toast = useToast();
+  const redirectTo = new URLSearchParams(location.search).get('redirect') || sessionStorage.getItem('login_redirect') || '/';
   const [mode, setMode] = useState<AuthMode>('login');
   const [loginType, setLoginType] = useState<'password' | 'code'>('code');
   const [phone, setPhone] = useState('');
@@ -78,7 +80,8 @@ const AuthPage: React.FC = () => {
             } else {
               login(data.data.token, data.data.user);
               toast.success('微信登录成功');
-              navigate('/');
+              sessionStorage.removeItem('login_redirect');
+              navigate(redirectTo, { replace: true });
             }
           } else {
             console.error('微信登录交换失败:', data.message);
@@ -223,7 +226,8 @@ const AuthPage: React.FC = () => {
         ? await authApi.loginByPassword({ phone, password })
         : await authApi.loginByCode({ phone, code });
       login(result.token, result.user);
-      navigate('/');
+      sessionStorage.removeItem('login_redirect');
+      navigate(redirectTo, { replace: true });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : '登录失败';
       setErrors({ submit: message });
@@ -239,7 +243,8 @@ const AuthPage: React.FC = () => {
     try {
       const result = await authApi.register({ phone, code, password });
       login(result.token, result.user);
-      navigate('/');
+      sessionStorage.removeItem('login_redirect');
+      navigate(redirectTo, { replace: true });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : '注册失败';
       setErrors({ submit: message });
@@ -325,7 +330,8 @@ const AuthPage: React.FC = () => {
       setWechatTempToken(null);
       login(result.token, result.user);
       toast.success('绑定成功，微信登录中');
-      navigate('/');
+      sessionStorage.removeItem('login_redirect');
+      navigate(redirectTo, { replace: true });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : '绑定失败';
       setErrors({ submit: message });
@@ -380,6 +386,7 @@ const AuthPage: React.FC = () => {
                     try {
                       const res = await authApi.getWechatAuthUrl();
                       if (res?.url) {
+                        sessionStorage.setItem('login_redirect', redirectTo);
                         window.location.href = res.url;
                       }
                     } catch (err) {
