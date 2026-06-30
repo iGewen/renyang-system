@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Order, AuditLog, OrderStatus, Adoption } from '@/entities';
+import { Order, AuditLog, OrderStatus, Adoption, PaymentRecord } from '@/entities';
 import { AdminService } from '../admin.service';
 import { normalizePagination } from '@/common/utils/pagination.util';
 
@@ -14,6 +14,8 @@ export class AdminOrderService {
     private readonly auditLogRepository: Repository<AuditLog>,
     @InjectRepository(Adoption)
     private readonly adoptionRepository: Repository<Adoption>,
+    @InjectRepository(PaymentRecord)
+    private readonly paymentRepository: Repository<PaymentRecord>,
     private readonly adminService: AdminService,
   ) {}
 
@@ -81,7 +83,19 @@ export class AdminOrderService {
       throw new NotFoundException('订单不存在');
     }
 
-    return order;
+    // 查找关联的支付记录（最新一条）
+    let payment: PaymentRecord | null = null;
+    if (order.paymentNo) {
+      payment = await this.paymentRepository.findOne({
+        where: { paymentNo: order.paymentNo },
+      });
+    }
+
+    return {
+      ...order,
+      transactionId: payment?.transactionId || null,
+      payPaymentNo: payment?.paymentNo || order.paymentNo || null,
+    };
   }
 
   /**

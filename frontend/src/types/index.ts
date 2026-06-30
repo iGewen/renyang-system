@@ -111,6 +111,10 @@ export interface Order {
   user?: User;
   livestock?: Livestock;
   adoption?: Adoption;
+  /** 微信/支付宝交易单号（从支付记录关联） */
+  transactionId?: string;
+  /** 支付单号冗余（与 paymentNo 相同，从后端额外返回） */
+  payPaymentNo?: string;
 }
 
 // 兼容旧名称
