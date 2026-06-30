@@ -37,8 +37,8 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 # 安全修复：创建非 root 用户运行应用
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# 安装curl用于健康检查
-RUN apk add --no-cache curl
+# 安装curl用于健康检查，tzdata用于时区支持
+RUN apk add --no-cache curl tzdata
 
 WORKDIR /app
 
