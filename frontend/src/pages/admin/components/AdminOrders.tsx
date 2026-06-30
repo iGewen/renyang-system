@@ -1,10 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Icons, LoadingSpinner, Button, Badge, Card, Modal, EmptyState, useToast } from '../../../components/ui';
 import { cn } from '../../../lib/utils';
 import { adminApi } from '../../../services/api';
 import type { AdoptionOrder } from '../../../types';
 import { OrderStatus } from '../../../types/enums';
 import type { StatusVariant } from './admin-utils';
+
+const CopyButton: React.FC<{ text: string }> = ({ text }) => {
+  const toast = useToast();
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('已复制');
+    } catch {
+      toast.error('复制失败');
+    }
+  }, [text, toast]);
+  return (
+    <button type="button" onClick={handleCopy} className="flex-shrink-0 p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors" title="复制">
+      <Icons.Copy className="w-3.5 h-3.5" />
+    </button>
+  );
+};
 
 export const AdminOrders: React.FC = () => {
   const toast = useToast();
@@ -177,30 +194,121 @@ export const AdminOrders: React.FC = () => {
       </Card>
 
       {showDetail && selectedOrder && (
-        <Modal open={showDetail} onClose={() => setShowDetail(false)} title="订单详情">
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div><p className="text-sm text-slate-500">订单号</p><p className="font-mono">{selectedOrder.orderNo}</p></div>
-              <div><p className="text-sm text-slate-500">状态</p><Badge variant={orderStatusMap[selectedOrder.status]?.variant || 'default'}>{orderStatusMap[selectedOrder.status]?.label || selectedOrder.status}</Badge></div>
+        <Modal open={showDetail} onClose={() => setShowDetail(false)} size="lg">
+          <div className="w-[460px]">
+            {/* 头部 */}
+            <div className="flex items-center justify-between px-6 pt-6 pb-4">
+              <h3 className="text-lg font-bold text-slate-900">订单详情</h3>
+              <button type="button" onClick={() => setShowDetail(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <Icons.X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="mx-6 h-px bg-slate-200" />
+
+            {/* 金额区 */}
+            <div className="mx-6 mt-6 p-5 rounded-xl bg-gradient-to-br from-emerald-50 to-green-50 text-center">
+              <Badge variant="success" className="mb-3">
+                <span className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                  {orderStatusMap[selectedOrder.status]?.label || selectedOrder.status}
+                </span>
+              </Badge>
+              <div className="text-[32px] font-bold text-slate-900 leading-none">¥{selectedOrder.totalAmount}</div>
+              <div className="mt-2 text-sm text-slate-400">{getPaymentMethodText(selectedOrder.paymentMethod)}</div>
+            </div>
+
+            {/* 信息区 */}
+            <div className="px-6 pt-6 pb-4 space-y-6">
+
+              {/* 商品信息 */}
+              <div>
+                <div className="text-xs text-slate-400 tracking-wider mb-3">商品信息</div>
+                <div className="space-y-2.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-400">活体名称</span>
+                    <span className="text-sm text-slate-900">{selectedOrder.livestock?.name || selectedOrder.livestockSnapshot?.name || '-'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-400">领养编号</span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-50 rounded text-xs font-mono text-slate-700">
+                      {selectedOrder.adoption?.adoptionNo || '-'}
+                      {selectedOrder.adoption?.adoptionNo && <CopyButton text={selectedOrder.adoption.adoptionNo} />}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 虚线分割 */}
+              <div className="border-t border-dashed border-slate-200" />
+
+              {/* 用户信息 */}
+              <div>
+                <div className="text-xs text-slate-400 tracking-wider mb-3">用户信息</div>
+                <div className="space-y-2.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-400">用户昵称</span>
+                    <span className="text-sm text-slate-900">{selectedOrder.user?.nickname || '-'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-400">手机号码</span>
+                    <span className="text-sm text-slate-900">{selectedOrder.user?.phone || '-'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 虚线分割 */}
+              <div className="border-t border-dashed border-slate-200" />
+
+              {/* 交易信息 */}
+              <div>
+                <div className="text-xs text-slate-400 tracking-wider mb-3">交易信息</div>
+                <div className="space-y-2.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-400">创建时间</span>
+                    <span className="text-sm text-slate-900">{new Date(selectedOrder.createdAt).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-400">支付时间</span>
+                    <span className="text-sm text-slate-900">{selectedOrder.paidAt ? new Date(selectedOrder.paidAt).toLocaleString() : '-'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 虚线分割 - 仅已支付订单显示单号区 */}
               {selectedOrder.paymentNo && (
                 <>
-                  <div><p className="text-sm text-slate-500">商户单号（传给微信的订单号）</p><p className="font-mono text-xs break-all">{selectedOrder.payPaymentNo || selectedOrder.paymentNo}</p></div>
-                  <div><p className="text-sm text-slate-500">微信交易单号</p><p className="font-mono text-xs break-all">{selectedOrder.transactionId || '-'}</p></div>
-                  <div className="col-span-2 text-xs text-slate-400 bg-slate-50 rounded p-2">商户单号与后台订单号一致（均为ORD开头），方便在微信商户平台和后台之间对照。微信交易单号是微信返回的内部流水号。</div>
+                  <div className="border-t border-dashed border-slate-200" />
+
+                  {/* 单号信息 */}
+                  <div>
+                    <div className="text-xs text-slate-400 tracking-wider mb-3">单号信息</div>
+                    <div className="space-y-2.5">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-slate-400">商户单号</span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-50 rounded text-xs font-mono text-slate-700 max-w-[220px] truncate">
+                          {selectedOrder.payPaymentNo || selectedOrder.paymentNo}
+                          <CopyButton text={selectedOrder.payPaymentNo || selectedOrder.paymentNo || ''} />
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-slate-400">微信交易号</span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-50 rounded text-xs font-mono text-slate-700 max-w-[220px] truncate">
+                          {selectedOrder.transactionId || '-'}
+                          {selectedOrder.transactionId && <CopyButton text={selectedOrder.transactionId} />}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </>
               )}
-              <div><p className="text-sm text-slate-500">活体名称</p><p>{selectedOrder.livestock?.name || selectedOrder.livestockSnapshot?.name || '-'}</p></div>
-              <div><p className="text-sm text-slate-500">领养编号</p><p className="font-mono text-brand-primary">{selectedOrder.adoption?.adoptionNo || '-'}</p></div>
-              <div><p className="text-sm text-slate-500">用户手机</p><p>{selectedOrder.user?.phone || '-'}</p></div>
-              <div><p className="text-sm text-slate-500">用户昵称</p><p>{selectedOrder.user?.nickname || '-'}</p></div>
-              <div><p className="text-sm text-slate-500">订单金额</p><p className="text-lg font-bold text-brand-primary">¥{selectedOrder.totalAmount}</p></div>
-              <div><p className="text-sm text-slate-500">支付方式</p><p>{getPaymentMethodText(selectedOrder.paymentMethod)}</p></div>
-              <div><p className="text-sm text-slate-500">支付时间</p><p>{selectedOrder.paidAt ? new Date(selectedOrder.paidAt).toLocaleString() : '-'}</p></div>
-              <div className="col-span-2"><p className="text-sm text-slate-500">创建时间</p><p>{new Date(selectedOrder.createdAt).toLocaleString()}</p></div>
             </div>
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button variant="outline" onClick={() => setShowDetail(false)}>关闭</Button>
-              {selectedOrder.status === OrderStatus.PAID && (<Button onClick={() => { setShowDetail(false); setShowRefund(true); }}>申请退款</Button>)}
+
+            {/* 底部操作区 */}
+            <div className="px-6 pb-6 pt-2 flex gap-3">
+              <Button variant="outline" onClick={() => setShowDetail(false)} className="flex-1">关闭</Button>
+              {selectedOrder.status === OrderStatus.PAID && (
+                <Button onClick={() => { setShowDetail(false); setShowRefund(true); }} className="flex-1" variant="primary">申请退款</Button>
+              )}
             </div>
           </div>
         </Modal>
