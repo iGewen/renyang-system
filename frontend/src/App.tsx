@@ -34,11 +34,25 @@ const AuthExpiredHandler: React.FC = () => {
   return null;
 };
 
+// 导航到登录页前保存当前页面路径，登录后可跳回
+const SaveLoginRedirect: React.FC = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.pathname !== '/auth') {
+      sessionStorage.setItem('login_redirect', location.pathname + location.search);
+    }
+  }, [location.pathname, location.search]);
+
+  return null;
+};
+
 export default function App() {
   return (
     <Router>
       <div className="w-full min-h-screen bg-brand-bg relative overflow-x-hidden">
         <AuthExpiredHandler />
+        <SaveLoginRedirect />
         <AnimatePresence mode="wait">
           <AppRoutes />
         </AnimatePresence>

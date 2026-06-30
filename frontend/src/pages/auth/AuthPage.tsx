@@ -32,7 +32,16 @@ const AuthPage: React.FC = () => {
   const location = useLocation();
   const { login } = useAuth();
   const toast = useToast();
-  const redirectTo = new URLSearchParams(location.search).get('redirect') || sessionStorage.getItem('login_redirect') || '/';
+
+  // 登录后跳转到来源页面：state.from > sessionStorage > 首页
+  const getRedirectTo = () => {
+    const fromState = (location.state as any)?.from;
+    if (fromState && typeof fromState === 'string') return fromState;
+    const saved = sessionStorage.getItem('login_redirect');
+    if (saved) return saved;
+    return '/';
+  };
+  const redirectTo = getRedirectTo();
   const [mode, setMode] = useState<AuthMode>('login');
   const [loginType, setLoginType] = useState<'password' | 'code'>('code');
   const [phone, setPhone] = useState('');
