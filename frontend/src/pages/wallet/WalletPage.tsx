@@ -9,6 +9,7 @@ import { PageTransition, Icons, Card, Button, Input, useToast, EmptyState, Loadi
 import { cn } from '../../lib/utils';
 import { walletApi, type TransactionRecord } from '../../services/wallet.api';
 import { usePaymentConfig } from '../../contexts/SiteConfigContext';
+import { invokeWechatJsapiPay } from '../../utils/wechatPay';
 
 type TransactionType = 'all' | 'payment' | 'refund' | 'recharge';
 type PaymentMethod = 'all' | 'balance' | 'alipay' | 'wechat';
@@ -187,7 +188,18 @@ export const WalletPage: React.FC = () => {
       // 使用balance API处理充值
       const { balanceApi } = await import('../../services/api');
       const result = await balanceApi.recharge(amount, paymentMethod);
-      if (result.payUrl) {
+      if (result.payParams) {
+        const payResult = await invokeWechatJsapiPay(result.payParams);
+        if (payResult === 'success') {
+          success('充值成功');
+          setShowRecharge(false);
+          fetchData(1, false);
+        } else if (payResult === 'cancel') {
+          error('已取消支付');
+        } else {
+          error('支付失败，请重试');
+        }
+      } else if (result.payUrl) {
         globalThis.location.href = result.payUrl;
       } else {
         success('充值成功');
