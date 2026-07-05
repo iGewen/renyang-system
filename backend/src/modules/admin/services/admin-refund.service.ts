@@ -206,6 +206,7 @@ export class AdminRefundService {
     paymentRecord: PaymentRecord | null,
     refundAmount: number,
     reason: string,
+    attempts: number = 1,
   ): Promise<{ refundMethod: string; refundMessage: string }> {
     if (!paymentRecord?.paymentMethod || !paymentRecord.paymentNo) {
       return { refundMethod: 'balance', refundMessage: '已退回到账户余额' };
@@ -215,11 +216,11 @@ export class AdminRefundService {
     const totalAmount = Number(paymentRecord.amount);
 
     if (paymentMethod === 'wechat') {
-      return this.processWechatRefund(paymentRecord.paymentNo, totalAmount, refundAmount, reason);
+      return this.processWechatRefund(paymentRecord.paymentNo, totalAmount, refundAmount, reason, attempts);
     }
 
     if (paymentMethod === 'alipay') {
-      return this.processAlipayRefund(paymentRecord.paymentNo, refundAmount, reason);
+      return this.processAlipayRefund(paymentRecord.paymentNo, refundAmount, reason, attempts);
     }
 
     return { refundMethod: 'balance', refundMessage: '已退回到账户余额' };
@@ -233,15 +234,16 @@ export class AdminRefundService {
     totalAmount: number,
     refundAmount: number,
     reason: string,
+    attempts: number = 1,
   ): Promise<{ refundMethod: string; refundMessage: string }> {
     try {
       const result = await this.wechatPayService.refund(paymentNo, totalAmount, refundAmount, reason || '管理员审核退款');
       if (result.success) {
         return { refundMethod: 'wechat', refundMessage: '已退回到微信支付账户' };
       }
-      return { refundMethod: 'balance', refundMessage: `微信退款失败(${result.message})，已退回到账户余额` };
+      return { refundMethod: 'balance', refundMessage: `微信退款失败(${result.message}): 尝试 ${attempts} 次后，已退回到账户余额` };
     } catch {
-      return { refundMethod: 'balance', refundMessage: '微信退款异常，已退回到账户余额' };
+      return { refundMethod: 'balance', refundMessage: `微信退款异常: 尝试 ${attempts} 次后，已退回到账户余额` };
     }
   }
 
@@ -252,15 +254,16 @@ export class AdminRefundService {
     paymentNo: string,
     refundAmount: number,
     reason: string,
+    attempts: number = 1,
   ): Promise<{ refundMethod: string; refundMessage: string }> {
     try {
       const result = await this.alipayService.refund(paymentNo, refundAmount, reason || '管理员审核退款');
       if (result.success) {
         return { refundMethod: 'alipay', refundMessage: '已退回到支付宝账户' };
       }
-      return { refundMethod: 'balance', refundMessage: `支付宝退款失败(${result.message})，已退回到账户余额` };
+      return { refundMethod: 'balance', refundMessage: `支付宝退款失败(${result.message}): 尝试 ${attempts} 次后，已退回到账户余额` };
     } catch {
-      return { refundMethod: 'balance', refundMessage: '支付宝退款异常，已退回到账户余额' };
+      return { refundMethod: 'balance', refundMessage: `支付宝退款异常: 尝试 ${attempts} 次后，已退回到账户余额` };
     }
   }
 
@@ -294,6 +297,157 @@ export class AdminRefundService {
       remark: `退款: ${refund.refundNo}`,
     });
     await manager.save(balanceLog);
+  }
+
+  /**
+   * 带重试的原路退款（最多3次，间隔1s/2s/4s）
+   */
+  private async processRefundWithRetry(
+    paymentRecord: PaymentRecord | null,
+    refundAmount: number,
+    reason: string,
+  ): Promise<{ refundMethod: string; refundMessage: string }> {
+    const MAX_RETRIES = 3;
+    const delays = [1000, 2000, 4000];
+    let lastResult: { refundMethod: string; refundMessage: string } = { refundMethod: 'balance', refundMessage: '已退回到账户余额' };
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      lastResult = await this.processOriginalRefund(paymentRecord, refundAmount, reason, attempt);
+      if (lastResult.refundMethod !== 'balance') {
+        return lastResult;
+      }
+      if (attempt < MAX_RETRIES) {
+        await new Promise(r => setTimeout(r, delays[attempt - 1]));
+      }
+    }
+
+    return lastResult;
+  }
+
+  /**
+   * 创建退款处理记录 + 启动异步退款（统一入口）
+   */
+  private async startRefundProcessing(
+    manager: EntityManager,
+    refund: RefundOrder,
+    adminId: string,
+    adminName: string,
+    action: string,
+    remarkPrefix: string,
+    ip?: string,
+    beforeData?: { status: number },
+  ): Promise<RefundOrder> {
+    refund.status = RefundStatus.REFUNDED;
+    refund.refundMethod = 'processing';
+    refund.operatorId = adminId;
+    refund.refundAt = new Date();
+    await manager.save(refund);
+
+    if (beforeData) {
+      await this.adminService.createAuditLog({
+        adminId,
+        adminName,
+        module: 'refund',
+        action,
+        targetType: 'refund',
+        targetId: refund.id,
+        beforeData,
+        afterData: { status: refund.status, remark: remarkPrefix },
+        remark: `${remarkPrefix}，退款金额: ¥${refund.refundAmount}，异步处理中`,
+        ip,
+      });
+    }
+
+    return refund;
+  }
+
+  /**
+   * 异步执行退款（原路→重试3次→兜底余额）
+   */
+  private async processRefundAsync(params: {
+    refundId: string;
+    refundAmount: number;
+    orderType: string;
+    orderId: string;
+    userId: string;
+    adminId: string;
+  }): Promise<void> {
+    const { refundId, refundAmount, orderType, orderId, userId, adminId } = params;
+    await this.dataSource.transaction(async (manager) => {
+      const refund = await manager.findOne(RefundOrder, {
+        where: { id: refundId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!refund) return;
+
+      const paymentRecord = orderId ? await manager.findOne(PaymentRecord, {
+        where: { orderType, orderId },
+        order: { createdAt: 'DESC' },
+      }) : null;
+
+      const refundReason = refund.reason || '管理员退款';
+      const { refundMethod, refundMessage } = await this.processRefundWithRetry(paymentRecord, Number(refundAmount), refundReason);
+
+      if (refundMethod === 'balance') {
+        await this.refundToBalance(manager, refund);
+      }
+
+      refund.refundMethod = refundMethod;
+      await manager.save(refund);
+
+      if (orderType === 'adoption' && orderId) {
+        await this.updateRelatedOrderStatus(manager, refund);
+      }
+
+      await this.logOrderStateTransition(orderId, refundMethod, adminId);
+
+      await this.adminService.createAuditLog({
+        adminId,
+        adminName: 'admin',
+        module: 'refund',
+        action: 'refund_async_complete',
+        targetType: orderType,
+        targetId: orderId || refundId,
+        afterData: { refundId, refundMethod, refundAmount },
+        remark: `退款完成: ¥${refundAmount}, ${refundMessage}`,
+        ip: undefined,
+      });
+    }).then(() => {
+      this.eventEmitter.emit('order.refund.completed', new OrderRefundCompletedEvent(
+        orderId,
+        refundId,
+        'completed',
+        Number(refundAmount),
+      ));
+      this.notificationService.sendBalanceNotification(
+        userId,
+        '退款完成通知',
+        `您的退款¥${refundAmount}已完成`,
+      ).catch(err => this.logger.error('发送退款通知失败', err));
+    }).catch(err => {
+      this.logger.error(`异步退款处理失败: ${refundId}`, err);
+    });
+  }
+
+  /**
+   * 触发异步退款（setImmediate 脱离请求上下文）
+   */
+  private triggerRefundAsync(
+    refund: RefundOrder,
+    refundAmount: number,
+    orderType: string,
+    orderId: string,
+    userId: string,
+    adminId: string,
+  ): void {
+    setImmediate(() => this.processRefundAsync({
+      refundId: refund.id,
+      refundAmount,
+      orderType,
+      orderId,
+      userId,
+      adminId,
+    }));
   }
 
   /**
@@ -342,7 +496,7 @@ export class AdminRefundService {
   }
 
   /**
-   * 审核退款申请
+   * 审核退款申请（拒绝同步处理，批准走统一异步退款）
    */
   async auditRefund(
     id: string,
@@ -368,63 +522,33 @@ export class AdminRefundService {
           return this.handleRefundRejection(manager, refundLocked, remark, adminId, adminName, ip, beforeData);
         }
 
-        // 审核通过
         refundLocked.auditAdminId = adminId;
         refundLocked.auditAt = new Date();
         if (remark) {
           refundLocked.auditRemark = remark;
         }
 
-        // 查找原支付记录并尝试原路退款
-        const paymentRecord = await manager.findOne(PaymentRecord, {
-          where: { orderType: refundLocked.orderType, orderId: refundLocked.orderId },
-          order: { createdAt: 'DESC' },
-        });
-        const { refundMethod, refundMessage } = await this.processOriginalRefund(
-          paymentRecord,
-          Number(refundLocked.refundAmount),
-          refundLocked.reason || '',
-        );
-
-        // 余额退款
-        if (refundMethod === 'balance') {
-          await this.refundToBalance(manager, refundLocked);
-        }
-
-        // 更新退款状态
-        refundLocked.status = RefundStatus.REFUNDED;
-        refundLocked.refundMethod = refundMethod;
-        refundLocked.operatorId = adminId;
-        refundLocked.refundAt = new Date();
-        await manager.save(refundLocked);
-
-        // 更新关联订单状态
-        await this.updateRelatedOrderStatus(manager, refundLocked);
-
-        // 记录订单状态变更历史
-        await this.logOrderStateTransition(refundLocked.orderId, refundMethod, adminId);
-
-        await this.adminService.createAuditLog({
+        const result = await this.startRefundProcessing(
+          manager,
+          refundLocked,
           adminId,
           adminName,
-          module: 'refund',
-          action: 'approve',
-          targetType: 'refund',
-          targetId: id,
-          beforeData,
-          afterData: { status: refundLocked.status, remark, refundMethod },
-          remark: `审核通过退款申请，退款金额: ¥${refundLocked.refundAmount}，${refundMessage}`,
+          'approve',
+          `审核通过退款申请`,
           ip,
-        });
+          beforeData,
+        );
 
-        this.eventEmitter.emit('order.refund.completed', new OrderRefundCompletedEvent(
-          refundLocked.orderId,
-          refundLocked.id,
-          refundMethod,
+        this.triggerRefundAsync(
+          result,
           Number(refundLocked.refundAmount),
-        ));
+          refundLocked.orderType,
+          refundLocked.orderId,
+          refundLocked.userId,
+          adminId,
+        );
 
-        return refundLocked;
+        return result;
       });
     });
   }
@@ -449,102 +573,82 @@ export class AdminRefundService {
       throw new NotFoundException('用户不存在');
     }
 
-    const refund = await this.dataSource.transaction(async (manager) => {
-      const refundEntity = manager.create(RefundOrder, {
-        id: IdUtil.generate('RFD'),
-        refundNo: IdUtil.generateRefundNo(),
-        userId,
-        orderType: orderType || 'admin',
-        orderId: orderId || '',
-        originalAmount: amount,
-        refundAmount: amount,
-        refundLivestock: 2,
-        reason,
-        type: RefundType.ADMIN_OPERATE,
-        status: RefundStatus.REFUNDED,
-        auditAdminId: adminId,
-        auditAt: new Date(),
-        operatorId: adminId,
-        refundMethod: 'balance',
-        refundAt: new Date(),
-      });
+    const resolvedOrderType = orderType || 'admin';
+    const resolvedOrderId = orderId || '';
 
-      await manager.save(refundEntity);
+    const lockKey = resolvedOrderId
+      ? `refund:lock:${resolvedOrderType}:${resolvedOrderId}`
+      : `refund:lock:admin:${userId}:${Date.now()}`;
 
-      const userEntity = await manager.findOne(User, {
-        where: { id: userId },
-        lock: { mode: 'pessimistic_write' },
-      });
-      if (userEntity) {
-        const beforeBalance = Number(userEntity.balance) || 0;
-        const afterBalance = Math.round((beforeBalance + amount) * 100) / 100;
-        userEntity.balance = afterBalance;
-        await manager.save(userEntity);
-
-        const balanceLog = manager.create('BalanceLog', {
-          id: IdUtil.generate('BL'),
-          userId,
-          type: 3,
-          amount,
-          balanceBefore: beforeBalance,
-          balanceAfter: afterBalance,
-          relatedType: 'admin_refund',
-          relatedId: refundEntity.id,
-          remark: `管理员退款: ${refundEntity.refundNo}`,
-        } as any);
-        await manager.save(balanceLog);
-      }
-
-      if (orderType === 'adoption' && orderId) {
-        const order = await manager.findOne(Order, { where: { id: orderId } });
-        if (order) {
-          order.status = OrderStatus.REFUNDED;
-          await manager.save(Order, order);
-
-          const adoption = await manager.findOne(Adoption, { where: { orderId: order.id } });
-          if (adoption) {
-            adoption.status = AdoptionStatus.TERMINATED;
-            await manager.save(Adoption, adoption);
-
-            await manager.createQueryBuilder()
-              .update('redemption_orders' as any)
-              .set({ status: RedemptionStatus.CANCELLED })
-              .where('adoption_id = :adoptionId AND status IN (1, 2)', { adoptionId: adoption.id })
-              .execute();
+    return this.redisService.withLock(lockKey, 30000, async () => {
+      const refund = await this.dataSource.transaction(async (manager) => {
+        if (resolvedOrderId) {
+          await this.checkOrderAlreadyRefunded(manager, { orderId: resolvedOrderId, orderType: resolvedOrderType } as RefundOrder);
+          const duplicateRefund = await manager.findOne(RefundOrder, {
+            where: {
+              orderId: resolvedOrderId,
+              orderType: resolvedOrderType,
+              status: RefundStatus.REFUNDED,
+            },
+            lock: { mode: 'pessimistic_write' },
+          });
+          if (duplicateRefund) {
+            throw new BadRequestException('该订单已有退款完成，不可重复退款');
           }
         }
-      }
 
-      const auditLog = manager.create(AuditLog, {
-        id: IdUtil.generate('AL'),
-        adminId,
-        adminName: adminName || 'admin',
-        module: 'refund',
-        action: 'refund',
-        targetType: orderType || 'admin',
-        targetId: orderId || refundEntity.id,
-        afterData: {
-          refundNo: refundEntity.refundNo,
+        const refundEntity = manager.create(RefundOrder, {
+          id: IdUtil.generate('RFD'),
+          refundNo: IdUtil.generateRefundNo(),
           userId,
-          amount,
+          orderType: resolvedOrderType,
+          orderId: resolvedOrderId,
+          originalAmount: amount,
+          refundAmount: amount,
+          refundLivestock: 2,
           reason,
-          orderType,
-          orderId,
-        },
-        remark: `管理员退款: ¥${amount}, 原因: ${reason}`,
-        ip,
+          type: RefundType.ADMIN_OPERATE,
+          status: RefundStatus.REFUNDED,
+          auditAdminId: adminId,
+          auditAt: new Date(),
+          operatorId: adminId,
+          refundMethod: 'processing',
+          refundAt: new Date(),
+        });
+        await manager.save(refundEntity);
+
+        await this.adminService.createAuditLog({
+          adminId,
+          adminName: adminName || 'admin',
+          module: 'refund',
+          action: 'refund',
+          targetType: resolvedOrderType,
+          targetId: resolvedOrderId || refundEntity.id,
+          afterData: {
+            refundNo: refundEntity.refundNo,
+            userId,
+            amount,
+            reason,
+            orderType: resolvedOrderType,
+            orderId: resolvedOrderId,
+          },
+          remark: `管理员退款: ¥${amount}, 原因: ${reason}，异步处理中`,
+          ip,
+        });
+
+        return refundEntity;
       });
-      await manager.save(auditLog);
 
-      return refundEntity;
+      this.triggerRefundAsync(
+        refund,
+        amount,
+        resolvedOrderType,
+        resolvedOrderId,
+        userId,
+        adminId,
+      );
+
+      return refund;
     });
-
-    this.notificationService.sendBalanceNotification(
-      userId,
-      '退款通知',
-      `您已收到一笔退款¥${amount}，原因：${reason}`,
-    ).catch(err => this.logger.error('发送退款通知失败', err));
-
-    return refund;
   }
 }
